@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
-import type { Assignment } from '@/app/(app)/assignments/page';
+import type { AssignmentWithUsers } from '@/lib/api';
 import { format as formatDate } from 'date-fns'; 
 import {
   Info,
@@ -37,7 +37,7 @@ import { cn } from '@/lib/utils';
 interface AssignmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
-  assignment: Assignment | null;
+  assignment: AssignmentWithUsers | null;
 }
 
 const currentUserRole = 'Operator';
@@ -63,42 +63,42 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
     onClose();
   };
 
-  const getStatusBadgeVariant = (status: Assignment['status']) => {
+  const getStatusBadgeVariant = (status: AssignmentWithUsers['status']) => {
     switch (status) {
-      case 'Completed':
+      case 'COMPLETED':
         return "default";
-      case 'In Progress':
+      case 'IN_PROGRESS':
         return "default"; 
-      case 'Pending':
+      case 'PENDING':
       default:
         return "outline";
     }
   };
 
-  const getStatusBadgeClassName = (status: Assignment['status']) => {
+  const getStatusBadgeClassName = (status: AssignmentWithUsers['status']) => {
     switch (status) {
-      case 'Completed':
+      case 'COMPLETED':
         return "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white";
-      case 'In Progress':
+      case 'IN_PROGRESS':
         return "bg-blue-500 hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500 text-white"; 
       default:
         return "";
     }
   };
 
-  const getPriorityBadgeVariant = (priority: Assignment['priority']) => {
+  const getPriorityBadgeVariant = (priority: AssignmentWithUsers['priority']) => {
     switch (priority) {
-      case 'Urgent':
+      case 'URGENT':
         return "destructive";
-      case 'Normal':
+      case 'NORMAL':
         return "secondary"; 
-      case 'Low':
+      case 'LOW':
       default:
         return "outline"; 
     }
   };
 
-   const getPriorityBadgeClassName = (priority: Assignment['priority']) => {
+   const getPriorityBadgeClassName = (priority: AssignmentWithUsers['priority']) => {
     // 'Normal' uses secondary variant, 'Urgent' destructive, 'Low' outline
     // No specific class overrides needed here currently
     return "";
@@ -170,7 +170,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                   <User size={16} />
                   <span>{getTranslation(currentLang, 'AssignmentDetailAssigneeLabel')}</span>
                 </div>
-                <p className="text-sm font-medium text-foreground">{assignment.assignedTo}</p>
+                <p className="text-sm font-medium text-foreground">{assignment.assignedTo?.name || 'Unassigned'}</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
@@ -216,36 +216,36 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                   <UserCircle size={16} />
                   <span>{getTranslation(currentLang, 'AssignmentDetailCreatedByLabel')}</span>
                 </div>
-                <p className="text-foreground/90">{assignment.createdBy}</p>
+                <p className="text-foreground/90">{assignment.createdBy?.name || 'Unknown'}</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock size={16} />
                   <span>{getTranslation(currentLang, 'AssignmentDetailCreatedAtLabel')}</span>
                 </div>
-                <p className="text-foreground/90">{assignment.createdAt}</p>
+                <p className="text-foreground/90">{formatDate(assignment.createdAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Edit3 size={16} />
                   <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedByLabel')}</span>
                 </div>
-                <p className="text-foreground/90">{assignment.lastUpdatedBy}</p>
+                <p className="text-foreground/90">{assignment.lastUpdatedBy?.name || 'Unknown'}</p>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Clock size={16} />
                   <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedAtLabel')}</span>
                 </div>
-                <p className="text-foreground/90">{assignment.lastUpdatedAt}</p>
+                <p className="text-foreground/90">{formatDate(assignment.updatedAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
               </div>
-              {assignment.status === 'Completed' && assignment.completedAt && (
+              {assignment.status === 'COMPLETED' && assignment.completedAt && (
                 <div className="space-y-1 md:col-span-2"> {/* Allow completed at to span if needed */}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <CalendarCheck size={16} />
                     <span>{getTranslation(currentLang, 'AssignmentDetailCompletedAtLabel')}</span>
                   </div>
-                  <p className="text-foreground/90">{assignment.completedAt}</p>
+                  <p className="text-foreground/90">{formatDate(assignment.completedAt!, 'MMM do, yyyy \'at\' h:mm a')}</p>
                 </div>
               )}
             </div>

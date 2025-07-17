@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
-import type { Assignment } from '@/app/(app)/assignments/page';
+import type { AssignmentWithUsers } from '@/lib/api';
 
 interface Operator {
   id: string;
@@ -40,7 +40,7 @@ interface NewAssignmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSaveAssignment: (data: NewAssignmentFormValues, assignmentId?: string) => Promise<void>;
-  assignmentToEdit?: Assignment | null;
+  assignmentToEdit?: AssignmentWithUsers | null;
   availableOperators: Operator[];
 }
 

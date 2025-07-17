@@ -237,10 +237,10 @@ export default function AssignmentsPage() {
       const updateData = {
         id: assignmentId,
         name: assignment.name,
-        dueDate: assignment.dueDate,
+        dueDate: assignment.dueDate.toISOString(),
         status: completed ? 'COMPLETED' as const : 'PENDING' as const,
         priority: assignment.priority,
-        assignedToId: assignment.assignedToId,
+        assignedToId: assignment.assignedToId || undefined,
         description: assignment.description || '',
         sourceLocation: assignment.sourceLocation || '',
       };
@@ -307,7 +307,7 @@ export default function AssignmentsPage() {
               {assignmentsToDisplay.length > 0 ? (
                 <AssignmentTable
                   assignments={assignmentsToDisplay}
-                  operators={operators}
+                  operators={operators.filter(op => op.name !== null).map(op => ({ id: op.id, name: op.name! }))}
                   onEditAssignment={handleOpenEditModal}
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
@@ -429,7 +429,7 @@ export default function AssignmentsPage() {
         onClose={() => { setIsAssignmentModalOpen(false); setEditingAssignment(null); }}
         onSaveAssignment={handleSaveAssignment}
         assignmentToEdit={editingAssignment}
-        availableOperators={operators}
+        availableOperators={operators.filter(op => op.name !== null).map(op => ({ id: op.id, name: op.name! }))}
       />
     </div>
   );

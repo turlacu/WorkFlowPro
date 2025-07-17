@@ -2,19 +2,19 @@
 'use client';
 
 import * as React from 'react';
-import type { Translations } from '@/lib/translations'; // Assuming this type exists
+import type { AppTranslations } from '@/lib/translations';
 
 interface LanguageContextType {
-  currentLang: keyof Translations; // 'en' | 'ro'
-  setLanguage: (lang: keyof Translations) => void;
+  currentLang: keyof AppTranslations; // 'en' | 'ro'
+  setLanguage: (lang: keyof AppTranslations) => void;
 }
 
 const LanguageContext = React.createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [currentLang, setCurrentLang] = React.useState<keyof Translations>('en');
+  const [currentLang, setCurrentLang] = React.useState<keyof AppTranslations>('en');
 
-  const setLanguage = (lang: keyof Translations) => {
+  const setLanguage = (lang: keyof AppTranslations) => {
     setCurrentLang(lang);
     // Optionally, persist language preference (e.g., localStorage)
     // localStorage.setItem('appLanguage', lang);
@@ -22,7 +22,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   // Optionally, load preference on initial mount
   // React.useEffect(() => {
-  //   const storedLang = localStorage.getItem('appLanguage') as keyof Translations | null;
+  //   const storedLang = localStorage.getItem('appLanguage') as keyof AppTranslations | null;
   //   if (storedLang) {
   //     setCurrentLang(storedLang);
   //   }

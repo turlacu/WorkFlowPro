@@ -26,10 +26,10 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'Admin' | 'Producer' | 'Operator';
+  role: 'ADMIN' | 'PRODUCER' | 'OPERATOR';
 }
 
-const userRoles: User['role'][] = ['Admin', 'Producer', 'Operator'];
+const userRoles = ['ADMIN', 'PRODUCER', 'OPERATOR'] as const;
 
 // Define Zod schema dynamically to use translations for error messages
 const getUserFormSchema = (currentLang: string) => z.object({

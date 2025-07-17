@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { format as formatDate, parseISO } from 'date-fns';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
-import type { Assignment } from '@/app/(app)/assignments/page';
+import type { AssignmentWithUsers } from '@/lib/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,17 +37,17 @@ interface Operator {
 }
 
 interface AssignmentTableProps {
-  assignments: Assignment[];
+  assignments: AssignmentWithUsers[];
   operators: Operator[];
-  onEditAssignment: (assignment: Assignment) => void;
+  onEditAssignment: (assignment: AssignmentWithUsers) => void;
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
 }
 
-const currentUserRole = 'Producer'; // Assuming Producer can edit/delete, adjust as needed
+const currentUserRole: 'ADMIN' | 'PRODUCER' | 'OPERATOR' = 'PRODUCER'; // Assuming Producer can edit/delete, adjust as needed
 
 export function AssignmentTable({ assignments, operators, onEditAssignment, onDeleteAssignment, onToggleComplete }: AssignmentTableProps) {
-  const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<Assignment | null>(null);
+  const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = React.useState<{id: string, name: string} | null>(null);
   const { currentLang } = useLanguage();
@@ -59,7 +59,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
     }, {} as Record<string, string>),
   [operators]);
 
-  const handleViewDetails = (assignment: Assignment) => {
+  const handleViewDetails = (assignment: AssignmentWithUsers) => {
     setSelectedAssignmentForDetail(assignment);
     setIsDetailModalOpen(true);
   };
@@ -76,52 +76,52 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
     }
   };
 
-  const handleEditClick = (assignment: Assignment, event: React.MouseEvent) => {
+  const handleEditClick = (assignment: AssignmentWithUsers, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent row click when clicking edit button
     onEditAssignment(assignment);
   }
 
-  const getStatusBadgeVariant = (status: Assignment['status']) => {
+  const getStatusBadgeVariant = (status: AssignmentWithUsers['status']) => {
     switch (status) {
-      case 'Completed':
+      case 'COMPLETED':
         return "default";
-      case 'In Progress':
+      case 'IN_PROGRESS':
         return "default";
-      case 'Pending':
+      case 'PENDING':
       default:
         return "outline";
     }
   };
 
-  const getStatusBadgeClassName = (status: Assignment['status']) => {
+  const getStatusBadgeClassName = (status: AssignmentWithUsers['status']) => {
     switch (status) {
-      case 'Completed':
+      case 'COMPLETED':
         return "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white";
-      case 'In Progress':
+      case 'IN_PROGRESS':
         return "bg-blue-500 hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500 text-white";
       default:
         return "";
     }
   };
 
-  const getPriorityBadgeVariant = (priority: Assignment['priority']) => {
+  const getPriorityBadgeVariant = (priority: AssignmentWithUsers['priority']) => {
     switch (priority) {
-      case 'Urgent':
+      case 'URGENT':
         return "destructive";
-      case 'Normal':
+      case 'NORMAL':
         return "secondary";
-      case 'Low':
+      case 'LOW':
       default:
         return "outline";
     }
   };
 
-   const getPriorityBadgeClassName = (priority: Assignment['priority']) => {
+   const getPriorityBadgeClassName = (priority: AssignmentWithUsers['priority']) => {
     return "";
   };
 
 
-  const getStatusBadge = (status: Assignment['status']) => {
+  const getStatusBadge = (status: AssignmentWithUsers['status']) => {
     const variant = getStatusBadgeVariant(status);
     const className = getStatusBadgeClassName(status);
     const text = getTranslation(currentLang, `AssignmentStatus${status.replace(' ', '')}`);
@@ -133,14 +133,14 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
     );
   };
 
-  const getPriorityBadge = (priority: Assignment['priority']) => {
+  const getPriorityBadge = (priority: AssignmentWithUsers['priority']) => {
     const variant = getPriorityBadgeVariant(priority);
     const className = getPriorityBadgeClassName(priority);
     const text = getTranslation(currentLang, `Priority${priority}`);
     return (
       <Badge variant={variant} className={cn(className, "capitalize")}>
         {text}
-        {priority === 'Urgent' && <AlertTriangle className="ml-1 h-3 w-3" />}
+        {priority === 'URGENT' && <AlertTriangle className="ml-1 h-3 w-3" />}
       </Badge>
     );
   };
@@ -162,7 +162,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
               <TableHead>{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
               <TableHead>{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
               <TableHead className="text-right">{getTranslation(currentLang, 'AssignmentTableActions')}</TableHead>
-              {currentUserRole === 'Operator' && <TableHead className="w-[50px] text-right">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>}
+              {currentUserRole === 'OPERATOR' && <TableHead className="w-[50px] text-right">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -171,7 +171,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                 key={assignment.id}
                 className={cn(
                   'cursor-pointer hover:bg-muted/50',
-                  {'bg-green-500/10 dark:bg-green-500/20': assignment.status === 'Completed'},
+                  {'bg-green-500/10 dark:bg-green-500/20': assignment.status === 'COMPLETED'},
                 )}
                 onClick={() => handleViewDetails(assignment)}
                 role="button"
@@ -179,19 +179,19 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                 onKeyDown={(e) => e.key === 'Enter' && handleViewDetails(assignment)}
               >
                 <TableCell className="font-medium">{assignment.name}</TableCell>
-                <TableCell>{formatDate(parseISO(assignment.dueDate), 'MMM d, yyyy')}</TableCell>
+                <TableCell>{formatDate(assignment.dueDate, 'MMM d, yyyy')}</TableCell>
                 <TableCell>{getStatusBadge(assignment.status)}</TableCell>
                 <TableCell>{getPriorityBadge(assignment.priority)}</TableCell>
                 <TableCell>
-                  {assignment.assignedTo === 'unassigned'
+                  {!assignment.assignedTo
                     ? getTranslation(currentLang, 'AssignmentUnassigned')
-                    : operatorNameMap[assignment.assignedTo] || assignment.assignedTo}
+                    : assignment.assignedTo.name}
                 </TableCell>
                 <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
                   <Button variant="ghost" size="sm" onClick={() => handleViewDetails(assignment)}>
                      {getTranslation(currentLang, 'View')}
                   </Button>
-                  {currentUserRole === 'Producer' && (
+                  {currentUserRole === 'PRODUCER' && (
                     <>
                       <Button variant="ghost" size="icon" onClick={(e) => handleEditClick(assignment, e)} aria-label={getTranslation(currentLang, 'Edit')}>
                         <Edit className="h-4 w-4" />
@@ -202,10 +202,10 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                     </>
                   )}
                 </TableCell>
-                {currentUserRole === 'Operator' && (
+                {currentUserRole === 'OPERATOR' && (
                   <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
                     <Checkbox
-                      checked={assignment.status === 'Completed'}
+                      checked={assignment.status === 'COMPLETED'}
                       onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
                       aria-label={`Mark ${assignment.name} as complete`}
                     />
