@@ -1,0 +1,99 @@
+{
+  "name": "WorkFlow Pro",
+  "description": "Self-hosted assignment management system",
+  "type": "docker",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".",
+    "args": {}
+  },
+  "deploy": {
+    "port": 3000,
+    "healthcheck": {
+      "path": "/api/health",
+      "interval": 30,
+      "timeout": 10,
+      "retries": 3
+    }
+  },
+  "environment": {
+    "required": [
+      "DATABASE_URL",
+      "NEXTAUTH_URL",
+      "NEXTAUTH_SECRET"
+    ],
+    "optional": [
+      "MINIO_ENDPOINT",
+      "MINIO_ACCESS_KEY",
+      "MINIO_SECRET_KEY",
+      "MINIO_BUCKET_NAME",
+      "REDIS_URL"
+    ]
+  },
+  "volumes": [
+    {
+      "source": "workflowpro-uploads",
+      "target": "/app/uploads"
+    }
+  ],
+  "services": {
+    "dependencies": [
+      {
+        "name": "postgres",
+        "image": "postgres:15-alpine",
+        "environment": {
+          "POSTGRES_DB": "workflowpro",
+          "POSTGRES_USER": "workflowpro",
+          "POSTGRES_PASSWORD": "workflowpro123"
+        },
+        "volumes": [
+          {
+            "source": "workflowpro-db",
+            "target": "/var/lib/postgresql/data"
+          }
+        ]
+      },
+      {
+        "name": "redis",
+        "image": "redis:7-alpine",
+        "volumes": [
+          {
+            "source": "workflowpro-redis",
+            "target": "/data"
+          }
+        ]
+      },
+      {
+        "name": "minio",
+        "image": "minio/minio:latest",
+        "command": "server /data --console-address ':9001'",
+        "environment": {
+          "MINIO_ROOT_USER": "minioadmin",
+          "MINIO_ROOT_PASSWORD": "minioadmin123"
+        },
+        "volumes": [
+          {
+            "source": "workflowpro-minio",
+            "target": "/data"
+          }
+        ],
+        "ports": [
+          {
+            "source": 9000,
+            "target": 9000
+          },
+          {
+            "source": 9001,
+            "target": 9001
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "postDeploy": [
+      "npx prisma migrate deploy",
+      "npx prisma db seed"
+    ]
+  }
+}
