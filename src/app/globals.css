@@ -1,0 +1,108 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 25% 98%; /* #FBFDFC - Very light gray */
+    --foreground: 222 84% 4.9%;
+
+    --card: 210 25% 98%;
+    --card-foreground: 222 84% 4.9%;
+ 
+    --popover: 210 25% 98%;
+    --popover-foreground: 222 84% 4.9%;
+ 
+    --primary: 208 62% 44%; /* #2972B6 - Moderate Blue */
+    --primary-foreground: 0 0% 100%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 47 100% 48%; /* #F7C300 - Golden Yellow */
+    --accent-foreground: 222 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 208 62% 44%;
+ 
+    --radius: 0.5rem;
+
+    /* Chart Colors */
+    --chart-1: 208 62% 44%; /* Primary Blue */
+    --chart-2: 47 100% 48%; /* Accent Yellow */
+    --chart-3: 142 71% 45%; /* Green */
+    --chart-4: 0 84% 60%;   /* Red */
+    --chart-5: 262 84% 60%; /* Purple */
+
+    /* Calendar specific colors */
+    --calendar-selected-day-bg: 257 58% 90%; /* Soft Purple */
+    --calendar-selected-day-text: 257 58% 30%;
+    --calendar-tasks-completed-bg: 142 71% 85%; /* Light Green */
+    --calendar-tasks-completed-text: 142 71% 25%;
+    --calendar-tasks-incomplete-bg: 0 84% 90%; /* Light Red */
+    --calendar-tasks-incomplete-text: 0 84% 30%;
+  }
+ 
+  .dark {
+    --background: 222 47% 11.2%;
+    --foreground: 210 40% 98%;
+ 
+    --card: 222 47% 11.2%;
+    --card-foreground: 210 40% 98%;
+ 
+    --popover: 222 47% 11.2%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --primary: 208 62% 54%; /* Lighter blue for dark mode */
+    --primary-foreground: 0 0% 100%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+ 
+    --accent: 47 100% 58%; /* Lighter yellow for dark mode */
+    --accent-foreground: 222 47.4% 11.2%;
+ 
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: 0 0% 98%;
+ 
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 208 62% 54%;
+
+    /* Chart Colors */
+    --chart-1: 208 62% 54%;
+    --chart-2: 47 100% 58%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 0 72% 51%;
+    --chart-5: 262 74% 61%;
+
+    /* Calendar specific colors */
+    --calendar-selected-day-bg: 257 50% 40%;
+    --calendar-selected-day-text: 257 50% 95%;
+    --calendar-tasks-completed-bg: 142 71% 20%;
+    --calendar-tasks-completed-text: 142 71% 80%;
+    --calendar-tasks-incomplete-bg: 0 84% 25%;
+    --calendar-tasks-incomplete-text: 0 84% 85%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+}

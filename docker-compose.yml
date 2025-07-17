@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  database:
+    image: postgres:15-alpine
+    container_name: workflowpro-db
+    environment:
+      POSTGRES_DB: workflowpro
+      POSTGRES_USER: workflowpro
+      POSTGRES_PASSWORD: workflowpro123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  # Redis for caching and sessions
+  redis:
+    image: redis:7-alpine
+    container_name: workflowpro-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  # MinIO for S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    container_name: workflowpro-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    restart: unless-stopped
+
+  # Create MinIO bucket
+  minio-bucket:
+    image: minio/mc:latest
+    container_name: workflowpro-minio-bucket
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc config host add minio http://minio:9000 minioadmin minioadmin123; do echo 'Waiting for MinIO...' && sleep 1; done;
+      /usr/bin/mc mb minio/workflowpro-storage;
+      /usr/bin/mc policy set public minio/workflowpro-storage;
+      exit 0;
+      "
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workflowpro-app
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://workflowpro:workflowpro123@database:5432/workflowpro
+      - NEXTAUTH_URL=http://localhost:3000
+      - NEXTAUTH_SECRET=your-super-secret-key-change-this-in-production
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_BUCKET_NAME=workflowpro-storage
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+      - redis
+      - minio
+    restart: unless-stopped
+    volumes:
+      - ./uploads:/app/uploads
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
