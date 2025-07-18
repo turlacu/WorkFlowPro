@@ -239,7 +239,7 @@ export default function AssignmentsPage() {
         name: assignment.name,
         dueDate: assignment.dueDate.toISOString(),
         status: completed ? 'COMPLETED' as const : 'PENDING' as const,
-        priority: assignment.priority,
+        priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
         assignedToId: assignment.assignedToId || undefined,
         description: assignment.description || '',
         sourceLocation: assignment.sourceLocation || '',

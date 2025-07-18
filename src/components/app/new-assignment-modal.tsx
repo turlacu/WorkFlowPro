@@ -91,8 +91,8 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
           title: assignmentToEdit.name,
           description: assignmentToEdit.description || '',
           sourceLocation: assignmentToEdit.sourceLocation || '',
-          priority: assignmentToEdit.priority,
-          status: assignmentToEdit.status,
+          priority: assignmentToEdit.priority as 'LOW' | 'NORMAL' | 'URGENT',
+          status: assignmentToEdit.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED',
           assignedTo: assignmentToEdit.assignedTo?.id || 'unassigned',
           dueDate: new Date(assignmentToEdit.dueDate),
         });
