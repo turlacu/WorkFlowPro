@@ -38,7 +38,7 @@ RUN apk add --no-cache bash
 COPY --from=builder /app/package*.json ./
 
 # Install production dependencies and prisma CLI
-RUN npm ci --only=production && npm install -g prisma tsx && npm cache clean --force
+RUN npm ci --only=production && npm install prisma tsx && npm cache clean --force
 
 # Copy the public folder from the project as this is not included in the build process
 COPY --from=builder /app/public ./public
