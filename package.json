@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "npm run db:setup && node .next/standalone/server.js",
-    "db:setup": "prisma migrate deploy && tsx prisma/seed.ts",
+    "start": "node .next/standalone/server.js",
+    "db:setup": "prisma migrate deploy; tsx prisma/seed.ts",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "db:migrate": "prisma migrate deploy",
