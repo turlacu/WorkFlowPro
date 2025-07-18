@@ -11,7 +11,15 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ListChecks, PieChart as PieChartIcon, Users, AreaChart as AreaChartIcon, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getStatisticsAction } from '@/app/actions/statistics';
-import type { GenerateStatisticsOutput } from '@/ai/flows/generate-statistics';
+// Local type definition for statistics data
+type GenerateStatisticsOutput = {
+  producerStats: { producerId: string; assignmentsCreated: number; }[];
+  operatorStats: { operatorId: string; assignmentsCompleted: number; assignmentsCommented: number; }[];
+  totalAssignmentsCreated: number;
+  totalAssignmentsCompleted: number;
+  mostActiveProducer: string;
+  mostActiveOperator: string;
+};
 import { DailyCompletionsPieChart } from '@/components/app/charts/daily-completions-pie-chart';
 import { MonthlyCompletionsTrendChart } from '@/components/app/charts/monthly-completions-trend-chart';
 import { format, subMonths, addMonths, startOfMonth, endOfMonth } from 'date-fns';

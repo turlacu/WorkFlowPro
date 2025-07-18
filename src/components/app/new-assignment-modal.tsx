@@ -33,8 +33,8 @@ interface Operator {
   name: string;
 }
 
-const priorities: NewAssignmentFormValues['priority'][] = ['Low', 'Normal', 'Urgent'];
-const statuses: NewAssignmentFormValues['status'][] = ['Pending', 'In Progress', 'Completed'];
+const priorities = ['LOW', 'NORMAL', 'URGENT'] as const;
+const statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED'] as const;
 
 interface NewAssignmentModalProps {
   isOpen: boolean;
@@ -48,8 +48,8 @@ const getNewAssignmentFormSchema = (currentLang: string) => z.object({
   title: z.string().min(1, { message: getTranslation(currentLang, 'ZodAssignmentTitleRequired') }),
   description: z.string().optional(),
   sourceLocation: z.string().optional(),
-  priority: z.enum(priorities as [string, ...string[]], { required_error: getTranslation(currentLang, 'ZodAssignmentPriorityRequired')}),
-  status: z.enum(statuses as [string, ...string[]], { required_error: getTranslation(currentLang, 'ZodAssignmentStatusRequired')}),
+  priority: z.enum(priorities, { required_error: getTranslation(currentLang, 'ZodAssignmentPriorityRequired')}),
+  status: z.enum(statuses, { required_error: getTranslation(currentLang, 'ZodAssignmentStatusRequired')}),
   assignedTo: z.string().min(1, { message: getTranslation(currentLang, 'ZodAssignmentAssignedToRequired') }),
   dueDate: z.date({ required_error: getTranslation(currentLang, 'ZodAssignmentDueDateRequired') }),
 });
@@ -58,8 +58,8 @@ export type NewAssignmentFormValues = {
   title: string;
   description?: string;
   sourceLocation?: string;
-  priority: 'Low' | 'Normal' | 'Urgent';
-  status: 'Pending' | 'In Progress' | 'Completed';
+  priority: 'LOW' | 'NORMAL' | 'URGENT';
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   assignedTo: string; // Will be the operator ID
   dueDate: Date;
 };
@@ -77,9 +77,9 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
       title: '',
       description: '',
       sourceLocation: '',
-      priority: 'Normal',
-      status: 'Pending',
-      assignedTo: 'unassigned',
+      priority: 'NORMAL',
+      status: 'PENDING',
+      assignedTo: '',
       dueDate: new Date(),
     },
   });
@@ -93,7 +93,7 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
           sourceLocation: assignmentToEdit.sourceLocation || '',
           priority: assignmentToEdit.priority,
           status: assignmentToEdit.status,
-          assignedTo: assignmentToEdit.assignedTo,
+          assignedTo: assignmentToEdit.assignedTo?.id || 'unassigned',
           dueDate: new Date(assignmentToEdit.dueDate),
         });
       } else {
@@ -101,8 +101,8 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
           title: '',
           description: '',
           sourceLocation: '',
-          priority: 'Normal',
-          status: 'Pending',
+          priority: 'NORMAL',
+          status: 'PENDING',
           assignedTo: 'unassigned',
           dueDate: new Date(),
         });

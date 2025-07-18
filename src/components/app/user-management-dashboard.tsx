@@ -19,19 +19,19 @@ import { EditUserModal } from './edit-user-modal'; // Import the new modal
 
 // Mock user data - should be fetched or managed via state/context
 const initialUsersData: User[] = [
-  { id: 'admin1', name: 'Bogdan Turlacu', email: 'bogdan.turlacu@example.com', role: 'Admin' },
-  { id: 'prod1', name: 'Adrian Doroș', email: 'adriandoros@radioconstanta.ro', role: 'Producer' },
-  { id: 'op1', name: 'Alina Doncea', email: 'alinadoncea@radioconstanta.ro', role: 'Operator' },
+  { id: 'admin1', name: 'Bogdan Turlacu', email: 'bogdan.turlacu@example.com', role: 'ADMIN' },
+  { id: 'prod1', name: 'Adrian Doroș', email: 'adriandoros@radioconstanta.ro', role: 'PRODUCER' },
+  { id: 'op1', name: 'Alina Doncea', email: 'alinadoncea@radioconstanta.ro', role: 'OPERATOR' },
 ];
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'Admin' | 'Producer' | 'Operator';
+  role: 'ADMIN' | 'PRODUCER' | 'OPERATOR';
 }
 
-const userRoles: User['role'][] = ['Admin', 'Producer', 'Operator'];
+const userRoles = ['ADMIN', 'PRODUCER', 'OPERATOR'] as const;
 
 // Define Zod schema dynamically for translations
 const getUserFormSchema = (currentLang: string) => z.object({

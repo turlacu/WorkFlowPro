@@ -36,10 +36,10 @@ export default function AppHeader() {
     router.push('/login');
   };
   
-  const userRoleKey = mockUser.role as keyof Translations; 
-  const userRoleDisplay = getTranslation(currentLang, userRoleKey );
-  const appName = getTranslation(currentLang, 'AppName');
-  const homeAriaLabel = getTranslation(currentLang, 'AppHeaderHomeAriaLabel');
+  const userRoleKey = String(mockUser.role); 
+  const userRoleDisplay = getTranslation(String(currentLang), userRoleKey );
+  const appName = getTranslation(String(currentLang), 'AppName');
+  const homeAriaLabel = getTranslation(String(currentLang), 'AppHeaderHomeAriaLabel');
 
   let navButtonTextKey = '';
   let navButtonHref = '';
@@ -54,7 +54,7 @@ export default function AppHeader() {
     navButtonHref = '/assignments';
     NavButtonIcon = ClipboardList;
   }
-  const navButtonText = navButtonTextKey ? getTranslation(currentLang, navButtonTextKey) : '';
+  const navButtonText = navButtonTextKey ? getTranslation(String(currentLang), navButtonTextKey) : '';
 
 
   return (
@@ -76,7 +76,7 @@ export default function AppHeader() {
               <Button variant="outline" size="default" asChild className="h-10 text-xs"> 
                 <a>
                   <CalendarClock className="mr-2 h-4 w-4" />
-                  {getTranslation(currentLang, 'TodaysScheduleButton')}
+                  {getTranslation(String(currentLang), 'TodaysScheduleButton')}
                 </a>
               </Button>
             </Link>
@@ -116,12 +116,12 @@ export default function AppHeader() {
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>{getTranslation(currentLang, 'Settings')}</span>
+                <span>{getTranslation(String(currentLang), 'Settings')}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>{getTranslation(currentLang, 'Logout')}</span>
+                <span>{getTranslation(String(currentLang), 'Logout')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
