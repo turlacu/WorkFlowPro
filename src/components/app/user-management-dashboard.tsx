@@ -23,6 +23,8 @@ interface User {
   name: string;
   email: string;
   role: 'ADMIN' | 'PRODUCER' | 'OPERATOR';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const userRoles = ['ADMIN', 'PRODUCER', 'OPERATOR'] as const;
@@ -32,6 +34,7 @@ const getUserFormSchema = (currentLang: string) => z.object({
   name: z.string().min(1, { message: getTranslation(currentLang, 'ZodUserNameRequired') }),
   email: z.string().email({ message: getTranslation(currentLang, 'ZodEmailInvalid') })
            .min(1, { message: getTranslation(currentLang, 'ZodUserEmailRequired') }),
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   role: z.enum(userRoles, { 
     required_error: getTranslation(currentLang, 'ZodUserRoleRequired'),
   }),
@@ -44,9 +47,40 @@ export function UserManagementDashboard() {
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
   
   const [editingUser, setEditingUser] = React.useState<User | null>(null);
   const [isEditUserModalOpen, setIsEditUserModalOpen] = React.useState(false);
+
+  // Fetch users from API
+  const fetchUsers = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const userData = await response.json();
+        setUsers(userData);
+      } else {
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: 'Failed to fetch users',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while fetching users',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentLang, toast]);
+
+  // Load users on component mount
+  React.useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
 
   const formSchema = React.useMemo(() => getUserFormSchema(currentLang), [currentLang]);
@@ -56,25 +90,47 @@ export function UserManagementDashboard() {
     defaultValues: {
       name: '',
       email: '',
+      password: '',
       role: undefined, // Explicitly set to undefined or one of the enum values
     },
   });
   
   const handleCreateUserSubmit = async (data: UserFormValues) => {
     setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
 
-    const newUser: User = {
-      id: `user-${Date.now()}`, // Simple unique ID
-      ...data,
-    };
-    setUsers(prev => [...prev, newUser]);
-    toast({
-      title: getTranslation(currentLang, 'UserCreatedSuccessTitle'),
-      description: getTranslation(currentLang, 'UserCreatedSuccessDescription', { userName: newUser.name, userRole: getTranslation(currentLang, newUser.role) }),
-    });
-    form.reset({ name: '', email: '', role: undefined });
-    setIsSubmitting(false);
+      if (response.ok) {
+        const newUser = await response.json();
+        setUsers(prev => [...prev, newUser]);
+        toast({
+          title: getTranslation(currentLang, 'UserCreatedSuccessTitle'),
+          description: getTranslation(currentLang, 'UserCreatedSuccessDescription', { userName: newUser.name, userRole: getTranslation(currentLang, newUser.role) }),
+        });
+        form.reset({ name: '', email: '', password: '', role: undefined });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: errorData.error || 'Failed to create user',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while creating user',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const handleOpenEditModal = (user: User) => {
@@ -87,24 +143,78 @@ export function UserManagementDashboard() {
     setEditingUser(null);
   };
 
-  const handleSaveUserUpdates = async (updatedData: UserFormValues) => {
+  const handleSaveUserUpdates = async (updatedData: { name: string; email: string; role: 'ADMIN' | 'PRODUCER' | 'OPERATOR' }) => {
     if (!editingUser) return; // Should not happen
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    setUsers(prevUsers => prevUsers.map(u => u.id === editingUser.id ? { ...editingUser, ...updatedData } : u));
-    toast({
-      title: getTranslation(currentLang, 'UserUpdatedSuccessTitle'),
-      description: getTranslation(currentLang, 'UserUpdatedSuccessDescription', { userName: updatedData.name }),
-    });
-    handleCloseEditModal();
+    try {
+      const updateData = {
+        id: editingUser.id,
+        name: updatedData.name,
+        email: updatedData.email,
+        role: updatedData.role,
+      };
+
+      const response = await fetch('/api/users', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        setUsers(prevUsers => prevUsers.map(u => u.id === editingUser.id ? updatedUser : u));
+        toast({
+          title: getTranslation(currentLang, 'UserUpdatedSuccessTitle'),
+          description: getTranslation(currentLang, 'UserUpdatedSuccessDescription', { userName: updatedUser.name }),
+        });
+        handleCloseEditModal();
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: errorData.error || 'Failed to update user',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while updating user',
+        variant: 'destructive',
+      });
+    }
   };
 
 
-  const handleDeleteUser = (userId: string) => {
-      setUsers(prev => prev.filter(user => user.id !== userId));
-      toast({ title: getTranslation(currentLang, 'UserManagementDeleteButton'), description: `User with ID ${userId} has been removed (simulated).`});
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setUsers(prev => prev.filter(user => user.id !== userId));
+        toast({ 
+          title: getTranslation(currentLang, 'UserManagementDeleteButton'), 
+          description: `User has been deleted successfully.`
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: errorData.error || 'Failed to delete user',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while deleting user',
+        variant: 'destructive',
+      });
+    }
   };
 
   const formTitle = getTranslation(currentLang, 'UserManagementCreateUserTitle');
@@ -121,7 +231,7 @@ export function UserManagementDashboard() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleCreateUserSubmit)} className="space-y-6">
-              <div className="grid md:grid-cols-3 gap-4 items-start">
+              <div className="grid md:grid-cols-2 gap-4 items-start">
                 <FormField
                   control={form.control}
                   name="name"
@@ -143,6 +253,19 @@ export function UserManagementDashboard() {
                       <FormLabel>{getTranslation(currentLang, 'UserManagementUserEmailLabel')}</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder={getTranslation(currentLang, 'UserManagementUserEmailPlaceholder')} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Password</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Enter password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -189,7 +312,12 @@ export function UserManagementDashboard() {
           <CardTitle>{getTranslation(currentLang, 'UserManagementExistingUsersTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          {users.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Loading users...</span>
+            </div>
+          ) : users.length > 0 ? (
             <Table>
               <TableCaption>{getTranslation(currentLang, 'UserActivityTableCaption', { count: users.length.toString(), type: getTranslation(currentLang, 'UsersTitle')})}</TableCaption>
               <TableHeader>
