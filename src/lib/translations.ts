@@ -339,6 +339,16 @@ export const translations: AppTranslations = {
     NoScheduleUploadedYet: "No schedule document has been uploaded for today yet.",
     ReturnToAssignmentsDashboardButton: "Return to Assignments Dashboard",
 
+    // Assignment Status Translations
+    AssignmentStatusPENDING: "Pending",
+    AssignmentStatusIN_PROGRESS: "In Progress", 
+    AssignmentStatusCOMPLETED: "Completed",
+
+    // Priority Translations
+    PriorityLOW: "Low",
+    PriorityNORMAL: "Normal",
+    PriorityURGENT: "Urgent",
+
   },
   ro: {
     // General
@@ -659,6 +669,16 @@ export const translations: AppTranslations = {
     ScheduleContentTabTitle: "Conținut Program",
     NoScheduleUploadedYet: "Niciun document de program nu a fost încărcat pentru azi.",
     ReturnToAssignmentsDashboardButton: "Înapoi la Panoul de Sarcini",
+
+    // Assignment Status Translations
+    AssignmentStatusPENDING: "În Așteptare",
+    AssignmentStatusIN_PROGRESS: "În Progres", 
+    AssignmentStatusCOMPLETED: "Finalizat",
+
+    // Priority Translations
+    PriorityLOW: "Scăzută",
+    PriorityNORMAL: "Normală",
+    PriorityURGENT: "Urgentă",
   }
 };
 

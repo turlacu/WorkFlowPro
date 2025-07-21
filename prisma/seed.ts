@@ -91,75 +91,7 @@ async function main() {
     },
   });
 
-  // Create sample assignments
-  const assignment1 = await prisma.assignment.create({
-    data: {
-      name: 'Develop login feature',
-      description: 'Implement the full login flow including forgot password functionality.',
-      dueDate: new Date('2025-07-20'),
-      status: 'COMPLETED',
-      priority: 'NORMAL',
-      assignedToId: operator1.id,
-      createdById: producer1.id,
-      lastUpdatedById: producer1.id,
-      sourceLocation: 'Project Y > Backend Tasks',
-      completedAt: new Date('2025-07-20T15:00:00Z'),
-    },
-  });
-
-  const assignment2 = await prisma.assignment.create({
-    data: {
-      name: 'Design new dashboard UI',
-      description: 'Create mockups and prototypes for the new user dashboard.',
-      dueDate: new Date('2025-07-21'),
-      status: 'PENDING',
-      priority: 'URGENT',
-      assignedToId: operator2.id,
-      createdById: producer1.id,
-      lastUpdatedById: producer1.id,
-      sourceLocation: 'Design Files > Figma',
-    },
-  });
-
-  const assignment3 = await prisma.assignment.create({
-    data: {
-      name: 'Test payment gateway',
-      description: 'Thoroughly test all aspects of the payment gateway integration.',
-      dueDate: new Date('2025-07-21'),
-      status: 'IN_PROGRESS',
-      priority: 'NORMAL',
-      assignedToId: operator1.id,
-      createdById: producer2.id,
-      lastUpdatedById: operator1.id,
-    },
-  });
-
-  const assignment4 = await prisma.assignment.create({
-    data: {
-      name: 'Write API documentation',
-      description: 'Document all public API endpoints with examples.',
-      dueDate: new Date('2025-07-22'),
-      status: 'PENDING',
-      priority: 'NORMAL',
-      assignedToId: operator3.id,
-      createdById: producer2.id,
-      lastUpdatedById: producer2.id,
-      sourceLocation: 'Docs Repo > API',
-    },
-  });
-
-  const assignment5 = await prisma.assignment.create({
-    data: {
-      name: 'Fix navigation bug',
-      description: 'The main navigation menu is not working on mobile devices.',
-      dueDate: new Date('2025-07-23'),
-      status: 'PENDING',
-      priority: 'URGENT',
-      assignedToId: operator1.id,
-      createdById: producer3.id,
-      lastUpdatedById: producer3.id,
-    },
-  });
+  // No sample assignments - start with clean database
 
   console.log('Database seeded successfully!');
   console.log('Users created:');
