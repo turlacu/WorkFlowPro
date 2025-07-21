@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "prisma generate && prisma migrate deploy && tsx prisma/seed.ts && next build",
-    "start": "node .next/standalone/server.js",
+    "start": "next start",
     "db:setup": "prisma migrate deploy; tsx prisma/seed.ts",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
