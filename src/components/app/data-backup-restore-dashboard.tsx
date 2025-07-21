@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import { Archive, Upload, Download, Trash2, History, Loader2 } from 'lucide-react';
+import { Archive, Upload, Download, Trash2, History, Loader2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface BackupFile {
@@ -42,6 +42,8 @@ export function DataBackupRestoreDashboard() {
   const [backupHistory, setBackupHistory] = React.useState<BackupFile[]>(mockBackupHistory);
   const [isCreatingBackup, setIsCreatingBackup] = React.useState(false);
   const [isRestoring, setIsRestoring] = React.useState(false);
+  const [isClearingDatabase, setIsClearingDatabase] = React.useState(false);
+  const [clearConfirmationText, setClearConfirmationText] = React.useState('');
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -94,6 +96,56 @@ export function DataBackupRestoreDashboard() {
       title: getTranslation(currentLang, 'DeleteButton'), // Could be more specific like "Backup Deleted"
       description: `Backup file ${backupHistory.find(b=>b.id === backupId)?.fileName} deleted (simulated).`
     });
+  };
+
+  const handleClearDatabase = async () => {
+    if (clearConfirmationText !== 'CLEAR DATABASE') {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Please type "CLEAR DATABASE" exactly to confirm.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsClearingDatabase(true);
+    try {
+      const response = await fetch('/api/admin/clear-database', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ confirmationText: clearConfirmationText }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: 'Database Cleared Successfully',
+          description: 'All data has been cleared. Only admin user remains. You may need to refresh the page.',
+        });
+        setClearConfirmationText('');
+        // Optionally refresh the page or redirect
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: data.error || 'Failed to clear database',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error occurred while clearing database',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsClearingDatabase(false);
+    }
   };
 
   return (
@@ -208,6 +260,85 @@ export function DataBackupRestoreDashboard() {
           )}
         </CardContent>
       </Card>
+
+      {/* Clear Database - DANGER ZONE */}
+      <Card className="border-destructive border-2">
+        <CardHeader>
+          <CardTitle className="flex items-center text-destructive">
+            <AlertTriangle className="mr-2 h-5 w-5" />
+            Clear Database - DANGER ZONE
+          </CardTitle>
+          <CardDescription className="text-destructive">
+            <strong>⚠️ WARNING:</strong> This action will permanently delete ALL data from the database including:
+            <ul className="list-disc list-inside mt-2 space-y-1">
+              <li>All assignments and tasks</li>
+              <li>All users except the admin account</li>
+              <li>All team schedules</li>
+              <li>All uploaded files and documents</li>
+            </ul>
+            <br />
+            <strong>This action CANNOT be undone!</strong> Make sure you have created a backup before proceeding.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-destructive/10 p-4 rounded-lg border border-destructive/20">
+            <p className="text-sm font-medium mb-2">
+              To confirm this action, please type <strong>"CLEAR DATABASE"</strong> (without quotes) in the field below:
+            </p>
+            <Input
+              type="text"
+              placeholder="Type: CLEAR DATABASE"
+              value={clearConfirmationText}
+              onChange={(e) => setClearConfirmationText(e.target.value)}
+              disabled={isClearingDatabase}
+              className="mb-3"
+            />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="destructive" 
+                  disabled={clearConfirmationText !== 'CLEAR DATABASE' || isClearingDatabase}
+                  className="w-full"
+                >
+                  {isClearingDatabase && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isClearingDatabase ? 'Clearing Database...' : 'Clear Database - PERMANENT ACTION'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="text-destructive">
+                    ⚠️ Final Confirmation - Clear Database
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You are about to permanently delete ALL data from the database.
+                    <br /><br />
+                    <strong>This includes:</strong>
+                    <ul className="list-disc list-inside mt-2 space-y-1">
+                      <li>All assignments and tasks</li>
+                      <li>All users except admin account</li>
+                      <li>All schedules and uploaded content</li>
+                    </ul>
+                    <br />
+                    <strong className="text-destructive">This action CANNOT be reversed!</strong>
+                    <br /><br />
+                    Are you absolutely sure you want to proceed?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel - Keep Data Safe</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={handleClearDatabase}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Yes, Clear Database Forever
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </CardContent>
+      </Card>
+
        <CardDescription className="text-xs text-center text-muted-foreground pt-4">
         {getTranslation(currentLang, 'DataBackupRestoreTabDescription')}
       </CardDescription>
