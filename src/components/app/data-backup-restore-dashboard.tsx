@@ -39,6 +39,36 @@ export function DataBackupRestoreDashboard() {
   const [isRestoring, setIsRestoring] = React.useState(false);
   const [isClearingDatabase, setIsClearingDatabase] = React.useState(false);
   const [clearConfirmationText, setClearConfirmationText] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  // Fetch backup history on component mount
+  const fetchBackups = React.useCallback(async () => {
+    try {
+      const response = await fetch('/api/backup');
+      if (response.ok) {
+        const backups = await response.json();
+        setBackupHistory(backups);
+      } else {
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: 'Failed to fetch backup history',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while fetching backups',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentLang, toast]);
+
+  React.useEffect(() => {
+    fetchBackups();
+  }, [fetchBackups]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -50,19 +80,35 @@ export function DataBackupRestoreDashboard() {
 
   const handleCreateBackup = async () => {
     setIsCreatingBackup(true);
-    // Simulate API call for backup creation
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    const newBackup: BackupFile = {
-        id: `backup-${Date.now()}`,
-        fileName: `backup-${format(new Date(), 'yyyy-MM-dd_HH-mm-ss')}.json`,
-        createdAt: new Date(),
-        size: `${(Math.random() * 2 + 0.5).toFixed(1)} MB`
-    };
-    setBackupHistory(prev => [newBackup, ...prev]);
-    toast({
-      title: getTranslation(currentLang, 'BackupCreatedSuccess'),
-    });
-    setIsCreatingBackup(false);
+    try {
+      const response = await fetch('/api/backup', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const newBackup = await response.json();
+        await fetchBackups(); // Refresh backup list
+        toast({
+          title: getTranslation(currentLang, 'BackupCreatedSuccess'),
+          description: `Backup created: ${newBackup.fileName} (${newBackup.size})`,
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: errorData.error || 'Failed to create backup',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while creating backup',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCreatingBackup(false);
+    }
   };
 
   const handleRestoreFromFile = async () => {
@@ -75,22 +121,73 @@ export function DataBackupRestoreDashboard() {
       return;
     }
     setIsRestoring(true);
-    // Simulate API call for restore
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    toast({
-      title: getTranslation(currentLang, 'BackupRestoredSuccess', { fileName: selectedFile.name }),
-    });
-    setSelectedFile(null); // Reset file input
-    // Potentially refresh app data or redirect
-    setIsRestoring(false);
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const response = await fetch('/api/backup/restore', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'BackupRestoredSuccess', { fileName: selectedFile.name }),
+          description: `Restored: ${result.restored.users} users, ${result.restored.assignments} assignments, ${result.restored.teamSchedules} schedules`,
+        });
+        setSelectedFile(null); // Reset file input
+        // Refresh backup list and possibly redirect
+        await fetchBackups();
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: errorData.error || 'Failed to restore backup',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while restoring backup',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
-  const handleDeleteBackup = (backupId: string) => {
-    setBackupHistory(prev => prev.filter(backup => backup.id !== backupId));
-    toast({
-      title: getTranslation(currentLang, 'DeleteButton'), // Could be more specific like "Backup Deleted"
-      description: `Backup file ${backupHistory.find(b=>b.id === backupId)?.fileName} deleted (simulated).`
-    });
+  const handleDeleteBackup = async (backupId: string) => {
+    try {
+      const response = await fetch(`/api/backup/${backupId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        await fetchBackups(); // Refresh backup list
+        toast({
+          title: getTranslation(currentLang, 'DeleteButton'),
+          description: 'Backup file deleted successfully.',
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: errorData.error || 'Failed to delete backup',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while deleting backup',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleClearDatabase = async () => {
@@ -199,7 +296,12 @@ export function DataBackupRestoreDashboard() {
           <CardDescription>{getTranslation(currentLang, 'BackupHistoryCardDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
-          {backupHistory.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Loading backup history...</span>
+            </div>
+          ) : backupHistory.length > 0 ? (
             <Table>
               <TableCaption>{getTranslation(currentLang, 'UserActivityTableCaption', { count: backupHistory.length.toString(), type: "backups"})}</TableCaption>
               <TableHeader>
@@ -217,7 +319,12 @@ export function DataBackupRestoreDashboard() {
                     <TableCell className="font-medium">{backup.fileName}</TableCell>
                     <TableCell>{backup.size}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="outline" size="sm" onClick={() => alert('Download: ' + backup.fileName)} aria-label={getTranslation(currentLang, 'DownloadButton')}>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => window.open(`/api/backup/${backup.id}`, '_blank')} 
+                        aria-label={getTranslation(currentLang, 'DownloadButton')}
+                      >
                         <Download className="mr-1 h-4 w-4" />
                         {getTranslation(currentLang, 'DownloadButton')}
                       </Button>
