@@ -50,7 +50,7 @@ const getNewAssignmentFormSchema = (currentLang: string) => z.object({
   sourceLocation: z.string().optional(),
   priority: z.enum(priorities, { required_error: getTranslation(currentLang, 'ZodAssignmentPriorityRequired')}),
   status: z.enum(statuses, { required_error: getTranslation(currentLang, 'ZodAssignmentStatusRequired')}),
-  assignedTo: z.string().min(1, { message: getTranslation(currentLang, 'ZodAssignmentAssignedToRequired') }),
+  assignedTo: z.string().optional(),
   dueDate: z.date({ required_error: getTranslation(currentLang, 'ZodAssignmentDueDateRequired') }),
 });
 
@@ -60,7 +60,7 @@ export type NewAssignmentFormValues = {
   sourceLocation?: string;
   priority: 'LOW' | 'NORMAL' | 'URGENT';
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-  assignedTo: string; // Will be the operator ID
+  assignedTo?: string; // Will be the operator ID (optional)
   dueDate: Date;
 };
 

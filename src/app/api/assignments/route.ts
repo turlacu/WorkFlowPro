@@ -81,15 +81,24 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     
     if (!session) {
+      console.error('Assignment creation failed: No session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log('Assignment creation - Session user:', { id: session.user.id, role: session.user.role, email: session.user.email });
+
     if (session.user.role !== 'PRODUCER' && session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      console.error('Assignment creation failed: Insufficient permissions', { role: session.user.role });
+      return NextResponse.json({ error: 'Forbidden - Only producers and admins can create assignments' }, { status: 403 });
     }
 
     const body = await request.json();
+    console.log('Assignment creation - Request body:', body);
+    
     const validatedData = CreateAssignmentSchema.parse(body);
+
+    console.log('Assignment creation - Validated data:', validatedData);
+    console.log('Assignment creation - Creating assignment for user:', session.user.id);
 
     const assignment = await prisma.assignment.create({
       data: {
@@ -97,7 +106,7 @@ export async function POST(request: NextRequest) {
         description: validatedData.description,
         dueDate: new Date(validatedData.dueDate),
         priority: validatedData.priority,
-        assignedToId: validatedData.assignedToId,
+        assignedToId: validatedData.assignedToId || null,
         sourceLocation: validatedData.sourceLocation,
         createdById: session.user.id,
         lastUpdatedById: session.user.id,
@@ -118,10 +127,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(assignment);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Assignment validation error:', error.errors);
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
     }
     console.error('Error creating assignment:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
