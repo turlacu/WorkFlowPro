@@ -30,16 +30,11 @@ interface BackupFile {
   size: string; // e.g., "2.5 MB"
 }
 
-const mockBackupHistory: BackupFile[] = [
-  { id: 'backup1', fileName: 'backup-2024-07-28_10-30-00.json', createdAt: new Date(2024, 6, 28, 10, 30, 0), size: '1.2 MB' },
-  { id: 'backup2', fileName: 'backup-2024-07-27_15-45-10.json', createdAt: new Date(2024, 6, 27, 15, 45, 10), size: '1.1 MB' },
-];
-
 export function DataBackupRestoreDashboard() {
   const { currentLang } = useLanguage();
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
-  const [backupHistory, setBackupHistory] = React.useState<BackupFile[]>(mockBackupHistory);
+  const [backupHistory, setBackupHistory] = React.useState<BackupFile[]>([]);
   const [isCreatingBackup, setIsCreatingBackup] = React.useState(false);
   const [isRestoring, setIsRestoring] = React.useState(false);
   const [isClearingDatabase, setIsClearingDatabase] = React.useState(false);

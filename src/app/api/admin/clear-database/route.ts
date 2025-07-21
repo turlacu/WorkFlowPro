@@ -26,22 +26,26 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Clear all data except keep the admin user
+    // Clear ALL data including all users
     await prisma.assignment.deleteMany({});
     await prisma.teamSchedule.deleteMany({});
+    await prisma.user.deleteMany({});
     
-    // Delete all users except admin
-    await prisma.user.deleteMany({
-      where: {
-        role: {
-          not: 'ADMIN'
-        }
-      }
+    // Recreate the correct admin user
+    const adminPassword = await bcrypt.hash('admin123', 12);
+    await prisma.user.create({
+      data: {
+        email: 'admin@workflowpro.com',
+        name: 'Admin User',
+        password: adminPassword,
+        role: 'ADMIN',
+      },
     });
 
     return NextResponse.json({ 
-      message: 'Database cleared successfully. Only admin user remains.',
-      clearedTables: ['assignments', 'teamSchedules', 'non-admin users']
+      message: 'Database cleared successfully. New admin user created: admin@workflowpro.com / admin123',
+      clearedTables: ['assignments', 'teamSchedules', 'all users'],
+      newAdmin: 'admin@workflowpro.com'
     });
 
   } catch (error) {
