@@ -198,8 +198,8 @@ export default function AssignmentsPage() {
     } catch (error) {
       console.error('Error saving assignment:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to save assignment. Please try again.',
+        title: getTranslation(currentLang, 'Error'),
+        description: error instanceof Error ? error.message : 'Failed to save assignment. Please try again.',
         variant: 'destructive',
       });
     }

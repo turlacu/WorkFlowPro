@@ -56,6 +56,9 @@ export const translations: AppTranslations = {
     Admin: "Admin",
     Producer: "Producer",
     Operator: "Operator",
+    ADMIN: "Admin",
+    PRODUCER: "Producer",
+    OPERATOR: "Operator",
     Settings: "Settings",
     Logout: "Log out",
     AppHeaderHomeAriaLabel: "WorkSmart Scheduler Home",
@@ -391,8 +394,11 @@ export const translations: AppTranslations = {
 
     // Header dropdown & Navigation
     Admin: "Administrator",
-    Producer: "Producător",
+    Producer: "Producător", 
     Operator: "Operator",
+    ADMIN: "Administrator",
+    PRODUCER: "Producător",
+    OPERATOR: "Operator",
     Settings: "Setări",
     Logout: "Deconectare",
     AppHeaderHomeAriaLabel: "WorkSmart Planificator Acasă",
