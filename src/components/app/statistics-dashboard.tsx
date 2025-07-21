@@ -25,12 +25,12 @@ import { MonthlyCompletionsTrendChart } from '@/components/app/charts/monthly-co
 import { format, subMonths, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-// Mock data for charts where real data isn't available yet
-const mockPieData = [
-  { name: 'Pending', value: 1, fill: 'hsl(var(--chart-3))' },
+// Empty data structure for charts
+const emptyPieData = [
+  { name: 'Pending', value: 0, fill: 'hsl(var(--chart-3))' },
   { name: 'In Progress', value: 0, fill: 'hsl(var(--chart-4))' },
-  { name: 'Urgent', value: 1, fill: 'hsl(var(--chart-5))' },
-  { name: 'Completed', value: 12, fill: 'hsl(var(--chart-1))' },
+  { name: 'Urgent', value: 0, fill: 'hsl(var(--chart-5))' },
+  { name: 'Completed', value: 0, fill: 'hsl(var(--chart-1))' },
 ];
 
 export function StatisticsDashboard() {
@@ -65,23 +65,23 @@ export function StatisticsDashboard() {
     setTrendChartMonth(prev => addMonths(prev, 1));
   };
   
-  // Placeholder for actual status breakdown - AI flow needs update for this
+  // Status breakdown from actual data
   const statusBreakdown = {
-    pending: statsData?.totalAssignmentsCreated ? Math.floor(statsData.totalAssignmentsCreated * 0.1) : 1,
-    inProgress: statsData?.totalAssignmentsCreated ? Math.floor(statsData.totalAssignmentsCreated * 0.05) : 0,
-    urgent: statsData?.totalAssignmentsCreated ? Math.floor(statsData.totalAssignmentsCreated * 0.05) : 1, // Assuming 'urgent' is a priority, not a status itself for breakdown
-    completed: statsData?.totalAssignmentsCompleted || 12,
+    pending: 0,
+    inProgress: 0,
+    urgent: 0,
+    completed: statsData?.totalAssignmentsCompleted || 0,
   };
 
-  // Placeholders for overall activity - AI flow needs update for these
+  // Overall activity from actual data
   const overallActivity = {
-    totalAssignments: statsData?.totalAssignmentsCreated || 14,
-    firstAssignment: 'May 1st, 2025',
-    lastAssignment: 'May 16th, 2025',
-    uniqueDays: 9,
-    avgPerDay: 1.6,
-    busiestDay: 'May 16th, 2025 (3 assignments)',
-    busiestMonth: 'May 2025 (14 assignments)',
+    totalAssignments: statsData?.totalAssignmentsCreated || 0,
+    firstAssignment: '',
+    lastAssignment: '',
+    uniqueDays: 0,
+    avgPerDay: 0,
+    busiestDay: '',
+    busiestMonth: '',
   };
 
 
@@ -130,7 +130,7 @@ export function StatisticsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
-          <DailyCompletionsPieChart data={mockPieData} />
+          <DailyCompletionsPieChart data={emptyPieData} />
           <p className="text-xs text-muted-foreground mt-2">
             {getTranslation(currentLang, 'StatisticsMostCompletionsOn', { date: 'May 16', count: '3' })}
           </p>

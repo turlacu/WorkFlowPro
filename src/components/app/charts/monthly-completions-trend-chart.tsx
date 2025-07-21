@@ -20,8 +20,8 @@ export function MonthlyCompletionsTrendChart({ selectedMonth }: MonthlyCompletio
     const end = endOfMonth(selectedMonth);
     return eachDayOfInterval({ start, end }).map(day => ({
       date: format(day, 'MMM d'), // Format for X-axis label
-      // Mock data for completed trend
-      [getTranslation(currentLang, 'StatisticsChartLegendCompleted')]: Math.floor(Math.random() * 5), 
+      // Empty data for completed trend
+      [getTranslation(currentLang, 'StatisticsChartLegendCompleted')]: 0, 
     }));
   }, [selectedMonth, currentLang]);
 

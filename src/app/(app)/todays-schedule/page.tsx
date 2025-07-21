@@ -11,8 +11,8 @@ import { getTranslation } from '@/lib/translations';
 import { CalendarClock, UploadCloud, FileText, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-// Mock current user role - replace with actual auth context in a real app
-const MOCK_CURRENT_USER_ROLE: 'Admin' | 'Producer' | 'Operator' = 'Admin';
+// Default current user role - will be replaced with actual auth context
+const DEFAULT_CURRENT_USER_ROLE: 'ADMIN' | 'PRODUCER' | 'OPERATOR' = 'ADMIN';
 
 export default function TodaysSchedulePage() {
   const { currentLang } = useLanguage();
@@ -22,7 +22,7 @@ export default function TodaysSchedulePage() {
   const [isLoading, setIsLoading] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const canUpload = MOCK_CURRENT_USER_ROLE === 'Admin' || MOCK_CURRENT_USER_ROLE === 'Producer';
+  const canUpload = DEFAULT_CURRENT_USER_ROLE === 'ADMIN' || DEFAULT_CURRENT_USER_ROLE === 'PRODUCER';
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
@@ -51,19 +51,14 @@ export default function TodaysSchedulePage() {
     // Simulate file processing
     await new Promise(resolve => setTimeout(resolve, 2000));
 
-    // Placeholder for actual .doc/.docx parsing and conversion to HTML/text
-    // In a real app, this would involve sending the file to a backend service.
-    const placeholderContent = `
+    // File processing would normally parse .doc/.docx content server-side
+    // For now, just show a success message without content
+    const emptyContent = `
       <h2 style="font-weight: bold; font-size: 1.2em; margin-bottom: 10px;">${getTranslation(currentLang, 'ScheduleContentTabTitle')} for ${selectedFile.name}</h2>
       <p><em>${getTranslation(currentLang, 'DocUploadSuccess', { fileName: selectedFile.name })}</em></p>
-      <p style="margin-top: 15px;">Actual content of the .doc/.docx file would be processed server-side and displayed here. This is a placeholder.</p>
-      <ul style="list-style-type: disc; margin-left: 20px; margin-top: 10px;">
-        <li>Event 1: 09:00 AM - Morning Show</li>
-        <li>Event 2: 12:00 PM - Mid-day News</li>
-        <li>Event 3: 03:00 PM - Afternoon Interviews</li>
-      </ul>
+      <p style="margin-top: 15px;">No schedule content available. Upload processing needs backend implementation.</p>
     `;
-    setScheduleHtmlContent(placeholderContent);
+    setScheduleHtmlContent(emptyContent);
     setIsLoading(false);
     setSelectedFile(null);
     if (fileInputRef.current) {

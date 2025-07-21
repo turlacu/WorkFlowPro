@@ -41,25 +41,17 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     }
 
     // TODO: Replace with actual database queries
-    // For now, return mock statistics data
-    const mockStatistics: GenerateStatisticsOutput = {
-      producerStats: [
-        { producerId: 'p1', assignmentsCreated: 15 },
-        { producerId: 'p2', assignmentsCreated: 12 },
-        { producerId: 'p3', assignmentsCreated: 8 },
-      ],
-      operatorStats: [
-        { operatorId: 'o1', assignmentsCompleted: 20, assignmentsCommented: 5 },
-        { operatorId: 'o2', assignmentsCompleted: 18, assignmentsCommented: 8 },
-        { operatorId: 'o3', assignmentsCompleted: 15, assignmentsCommented: 3 },
-      ],
-      totalAssignmentsCreated: 35,
-      totalAssignmentsCompleted: 53,
-      mostActiveProducer: 'p1',
-      mostActiveOperator: 'o1',
+    // Return empty statistics data
+    const emptyStatistics: GenerateStatisticsOutput = {
+      producerStats: [],
+      operatorStats: [],
+      totalAssignmentsCreated: 0,
+      totalAssignmentsCompleted: 0,
+      mostActiveProducer: '',
+      mostActiveOperator: '',
     };
 
-    return mockStatistics;
+    return emptyStatistics;
   } catch (error) {
     console.error("Error generating statistics:", error);
     return { error: "Failed to generate statistics. Please try again later." };

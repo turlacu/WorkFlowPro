@@ -17,12 +17,6 @@ import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
 import { EditUserModal } from './edit-user-modal'; // Import the new modal
 
-// Mock user data - should be fetched or managed via state/context
-const initialUsersData: User[] = [
-  { id: 'admin1', name: 'Bogdan Turlacu', email: 'bogdan.turlacu@example.com', role: 'ADMIN' },
-  { id: 'prod1', name: 'Adrian Doroș', email: 'adriandoros@radioconstanta.ro', role: 'PRODUCER' },
-  { id: 'op1', name: 'Alina Doncea', email: 'alinadoncea@radioconstanta.ro', role: 'OPERATOR' },
-];
 
 interface User {
   id: string;
@@ -48,7 +42,7 @@ type UserFormValues = z.infer<ReturnType<typeof getUserFormSchema>>;
 export function UserManagementDashboard() {
   const { currentLang } = useLanguage();
   const { toast } = useToast();
-  const [users, setUsers] = React.useState<User[]>(initialUsersData);
+  const [users, setUsers] = React.useState<User[]>([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   const [editingUser, setEditingUser] = React.useState<User | null>(null);

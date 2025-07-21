@@ -28,12 +28,12 @@ export function AssignmentsCompletedDailyChart({ data, selectedMonth }: Assignme
   const chartData = React.useMemo(() => {
     if (data && data.length > 0) return data.map(d => ({ ...d, date: format(new Date(d.date), 'MMM d')})); 
     
-    // Fallback to mock data if no real data is provided
+    // Return empty data if no real data is provided
     const start = startOfMonth(selectedMonth);
     const end = endOfMonth(selectedMonth);
     return eachDayOfInterval({ start, end }).map(day => ({
       date: format(day, 'MMM d'),
-      completed: Math.floor(Math.random() * 15) + 1, 
+      completed: 0, 
     }));
   }, [data, selectedMonth]);
 

@@ -25,18 +25,7 @@ interface User {
   email: string;
 }
 
-const mockProducers: User[] = [
-  { id: 'p1', name: 'Adrian Doroș', email: 'adriandoros@radioconstanta.ro' },
-  { id: 'p2', name: 'Marian Cosor', email: 'mariancosor@radioconstanta.ro' },
-  { id: 'p3', name: 'Victorina Oancea', email: 'victorinaoancea@radioconstanta.ro' },
-];
-
-const mockOperators: User[] = [
-  { id: 'o1', name: 'Alina Doncea', email: 'alinadoncea@radioconstanta.ro' },
-  { id: 'o2', name: 'Manuela Carleciuc', email: 'manuelacarleciuc@radioconstanta.ro' },
-  { id: 'o3', name: 'Francesca Vintilescu', email: 'francescavintilescu@radioconstanta.ro' },
-  { id: 'o4', name: 'Mihaela Sixt', email: 'mihaelasixt@radioconstanta.ro' },
-];
+// Users will be fetched from the database
 
 interface UserCheckboxItemProps {
   user: User;
@@ -230,29 +219,13 @@ export default function DashboardPage() {
                     <div>
                       <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'ProducersTitle')}</h3>
                       <div className="space-y-3">
-                        {mockProducers.map(producer => (
-                          <UserCheckboxItem
-                            key={producer.id}
-                            user={producer}
-                            type="producer"
-                            isChecked={isSelected(producer.id, 'producer')}
-                            onToggleSelection={toggleSelection}
-                          />
-                        ))}
+                        <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
                       </div>
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'OperatorsTitle')}</h3>
                       <div className="space-y-3">
-                        {mockOperators.map(operator => (
-                           <UserCheckboxItem
-                            key={operator.id}
-                            user={operator}
-                            type="operator"
-                            isChecked={isSelected(operator.id, 'operator')}
-                            onToggleSelection={toggleSelection}
-                          />
-                        ))}
+                        <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
                       </div>
                     </div>
                   </CardContent>

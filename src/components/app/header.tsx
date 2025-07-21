@@ -20,11 +20,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import { getTranslation, type Translations } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 
-// Mock user data - replace with actual auth context later
-const mockUser = {
-  name: "Bogdan Turlacu",
-  email: "bogdan.turlacu@example.com",
-  role: "Admin", // Possible values: "Admin", "Producer", "Operator"
+// Default user data - will be replaced with NextAuth session
+const defaultUser = {
+  name: "Admin User",
+  email: "admin@workflowpro.com",
+  role: "ADMIN", // Possible values: "ADMIN", "PRODUCER", "OPERATOR"
 };
 
 export default function AppHeader() {
@@ -36,7 +36,7 @@ export default function AppHeader() {
     router.push('/login');
   };
   
-  const userRoleKey = String(mockUser.role); 
+  const userRoleKey = String(defaultUser.role); 
   const userRoleDisplay = getTranslation(String(currentLang), userRoleKey );
   const appName = getTranslation(String(currentLang), 'AppName');
   const homeAriaLabel = getTranslation(String(currentLang), 'AppHeaderHomeAriaLabel');
@@ -100,16 +100,16 @@ export default function AppHeader() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                 <Avatar className="h-10 w-10 border-2 border-accent bg-accent">
-                  <AvatarFallback>{mockUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                  <AvatarFallback>{defaultUser.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{mockUser.name}</p>
+                  <p className="text-sm font-medium leading-none">{defaultUser.name}</p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    {mockUser.email} ({userRoleDisplay})
+                    {defaultUser.email} ({userRoleDisplay})
                   </p>
                 </div>
               </DropdownMenuLabel>
