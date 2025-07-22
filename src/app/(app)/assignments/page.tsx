@@ -99,10 +99,12 @@ export default function AssignmentsPage() {
     try {
       const params: { date?: string; search?: string } = {};
       
+      // Include date filter when a date is selected and no search is active
       if (selectedDate && searchTerm.trim() === '') {
         params.date = format(selectedDate, 'yyyy-MM-dd');
       }
       
+      // Include search filter when search term exists
       if (searchTerm.trim() !== '') {
         params.search = searchTerm;
       }
