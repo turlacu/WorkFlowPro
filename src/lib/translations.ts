@@ -325,6 +325,7 @@ export const translations: AppTranslations = {
     DownloadButton: "Download",
     ConfirmDeleteBackupTitle: "Confirm Delete",
     ConfirmDeleteBackupDescription: "Are you sure you want to delete the backup file {fileName}? This action cannot be undone.",
+    NoUsersAvailable: "No users available.",
 
     // Today's Schedule Page
     TodaysScheduleDashboardTitle: "Today's Schedule Dashboard",
@@ -659,6 +660,7 @@ export const translations: AppTranslations = {
     DownloadButton: "Descarcă",
     ConfirmDeleteBackupTitle: "Confirmă Ștergerea",
     ConfirmDeleteBackupDescription: "Ești sigur că vrei să ștergi fișierul de backup {fileName}? Această acțiune nu poate fi anulată.",
+    NoUsersAvailable: "Niciun utilizator disponibil.",
 
     // Today's Schedule Page
     TodaysScheduleDashboardTitle: "Panoul Programului de Azi",
