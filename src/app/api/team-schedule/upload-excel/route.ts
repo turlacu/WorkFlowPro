@@ -36,12 +36,14 @@ function rgbToHex(r: number, g: number, b: number): string {
 
 // Helper function to parse Excel color
 function parseExcelColor(cell: any): string | undefined {
-  if (!cell?.s?.fgColor) return undefined;
+  if (!cell?.s) return undefined;
   
-  const color = cell.s.fgColor;
-  if (color.rgb) {
-    // Extract RGB from ARGB format
-    const rgb = color.rgb;
+  // Try different color properties that Excel might use
+  const style = cell.s;
+  
+  // Check background color (fill)
+  if (style.fill?.bgColor?.rgb) {
+    const rgb = style.fill.bgColor.rgb;
     if (rgb.length === 8) {
       const r = parseInt(rgb.substr(2, 2), 16);
       const g = parseInt(rgb.substr(4, 2), 16);
@@ -49,6 +51,24 @@ function parseExcelColor(cell: any): string | undefined {
       return rgbToHex(r, g, b);
     }
   }
+  
+  // Check foreground color
+  if (style.fgColor?.rgb) {
+    const rgb = style.fgColor.rgb;
+    if (rgb.length === 8) {
+      const r = parseInt(rgb.substr(2, 2), 16);
+      const g = parseInt(rgb.substr(4, 2), 16);
+      const b = parseInt(rgb.substr(6, 2), 16);
+      return rgbToHex(r, g, b);
+    }
+  }
+  
+  // Check indexed colors
+  if (style.fill?.bgColor?.indexed) {
+    // For now, return a placeholder - you might need to map indexed colors
+    return `#INDEX${style.fill.bgColor.indexed}`;
+  }
+  
   return undefined;
 }
 
@@ -99,15 +119,24 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
       return { success: false, errors: ['Could not find date row in Excel file'] };
     }
     
-    // Find name column (usually first column with text data)
+    // Find name column - look for columns with actual names, not "NUME" or day abbreviations
+    const invalidNames = ['NUME', 'NAME', 'L', 'M', 'J', 'V', 'S', 'D', 'l', 'm', 'j', 'v', 's', 'd'];
+    
     for (let col = range.s.c; col <= range.e.c; col++) {
       for (let row = dateRow + 1; row <= range.e.r; row++) {
         const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
         const cell = worksheet[cellRef];
         
-        if (cell && typeof cell.v === 'string' && cell.v.trim().length > 2) {
-          nameColumn = col;
-          break;
+        if (cell && typeof cell.v === 'string') {
+          const cellValue = cell.v.trim();
+          // Must be longer than 2 characters and not a header/day abbreviation
+          if (cellValue.length > 2 && !invalidNames.includes(cellValue) && !invalidNames.includes(cellValue.toUpperCase())) {
+            // Check if it looks like a real name (contains letters and possibly spaces)
+            if (/^[a-zA-ZăâîșțĂÂÎȘȚ\s]+$/.test(cellValue)) {
+              nameColumn = col;
+              break;
+            }
+          }
         }
       }
       if (nameColumn !== -1) break;
@@ -116,6 +145,8 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
     if (nameColumn === -1) {
       return { success: false, errors: ['Could not find name column in Excel file'] };
     }
+    
+    console.log(`Excel parsing: Found date row at ${dateRow}, name column at ${nameColumn}`);
     
     // Parse schedule data
     for (let row = dateRow + 1; row <= range.e.r; row++) {
@@ -138,6 +169,13 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
         
         // Extract shift information
         const shiftHours = String(scheduleCell.v).trim();
+        
+        // Skip day abbreviations and invalid shift data
+        const dayAbbreviations = ['l', 'm', 'j', 'v', 's', 'd', 'L', 'M', 'J', 'V', 'S', 'D'];
+        if (dayAbbreviations.includes(shiftHours) || shiftHours.length < 1) {
+          continue;
+        }
+        
         const shiftColor = parseExcelColor(scheduleCell);
         
         // Create date string for the target month/year and validate
@@ -204,6 +242,10 @@ export async function POST(request: NextRequest) {
     
     const parseResult = parseExcelSchedule(buffer, month, year);
     console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
+    
+    if (parseResult.success && parseResult.data && parseResult.data.length > 0) {
+      console.log('Sample parsed data:', parseResult.data.slice(0, 5));
+    }
     
     if (!parseResult.success || !parseResult.data) {
       return NextResponse.json({ error: 'Failed to parse Excel file', details: parseResult.errors }, { status: 400 });
