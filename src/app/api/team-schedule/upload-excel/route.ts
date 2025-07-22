@@ -38,35 +38,84 @@ function rgbToHex(r: number, g: number, b: number): string {
 function parseExcelColor(cell: any): string | undefined {
   if (!cell?.s) return undefined;
   
-  // Try different color properties that Excel might use
   const style = cell.s;
   
-  // Check background color (fill)
+  // Debug: log the style information
+  console.log('Cell style info:', JSON.stringify(style, null, 2));
+  
+  // Try different color properties that Excel might use
+  
+  // Method 1: Check background color (fill) - ARGB format
   if (style.fill?.bgColor?.rgb) {
     const rgb = style.fill.bgColor.rgb;
-    if (rgb.length === 8) {
+    if (typeof rgb === 'string' && rgb.length === 8) {
       const r = parseInt(rgb.substr(2, 2), 16);
       const g = parseInt(rgb.substr(4, 2), 16);
       const b = parseInt(rgb.substr(6, 2), 16);
-      return rgbToHex(r, g, b);
+      const colorHex = rgbToHex(r, g, b);
+      console.log(`Found background color: ${colorHex}`);
+      return colorHex;
     }
   }
   
-  // Check foreground color
+  // Method 2: Check pattern fill
+  if (style.fill?.patternFill?.bgColor?.rgb) {
+    const rgb = style.fill.patternFill.bgColor.rgb;
+    if (typeof rgb === 'string' && rgb.length === 8) {
+      const r = parseInt(rgb.substr(2, 2), 16);
+      const g = parseInt(rgb.substr(4, 2), 16);
+      const b = parseInt(rgb.substr(6, 2), 16);
+      const colorHex = rgbToHex(r, g, b);
+      console.log(`Found pattern background color: ${colorHex}`);
+      return colorHex;
+    }
+  }
+  
+  // Method 3: Check foreground color
   if (style.fgColor?.rgb) {
     const rgb = style.fgColor.rgb;
-    if (rgb.length === 8) {
+    if (typeof rgb === 'string' && rgb.length === 8) {
       const r = parseInt(rgb.substr(2, 2), 16);
       const g = parseInt(rgb.substr(4, 2), 16);
       const b = parseInt(rgb.substr(6, 2), 16);
-      return rgbToHex(r, g, b);
+      const colorHex = rgbToHex(r, g, b);
+      console.log(`Found foreground color: ${colorHex}`);
+      return colorHex;
     }
   }
   
-  // Check indexed colors
-  if (style.fill?.bgColor?.indexed) {
-    // For now, return a placeholder - you might need to map indexed colors
-    return `#INDEX${style.fill.bgColor.indexed}`;
+  // Method 4: Check indexed colors (common in .xls files)
+  if (style.fill?.bgColor?.indexed !== undefined) {
+    const index = style.fill.bgColor.indexed;
+    console.log(`Found indexed background color: ${index}`);
+    // Map common Excel color indices to hex colors
+    const indexedColors: { [key: number]: string } = {
+      2: '#FF0000', // red
+      3: '#00FF00', // green
+      4: '#0000FF', // blue
+      5: '#FFFF00', // yellow
+      6: '#FF00FF', // magenta
+      7: '#00FFFF', // cyan
+      10: '#99BB3B', // light green (approximation)
+      13: '#FFC000', // orange
+      14: '#043E1C', // dark green (approximation)
+      // Add more mappings as needed
+    };
+    
+    if (indexedColors[index]) {
+      console.log(`Mapped indexed color ${index} to ${indexedColors[index]}`);
+      return indexedColors[index];
+    }
+    
+    // Return a placeholder for unmapped indexed colors
+    return `#INDEX${index}`;
+  }
+  
+  // Method 5: Check pattern fill indexed color
+  if (style.fill?.patternFill?.bgColor?.indexed !== undefined) {
+    const index = style.fill.patternFill.bgColor.indexed;
+    console.log(`Found pattern indexed color: ${index}`);
+    return `#PATTERN${index}`;
   }
   
   return undefined;
@@ -97,64 +146,106 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
     // Get the range of cells
     const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z100');
     
-    // Look for date row (should contain numbers 1, 2, 3, etc.)
-    let dateRow = -1;
-    let nameColumn = -1;
-    
-    // Find the row with dates
+    // Step 1: Find header row (contains "NUME", "NAME", etc.)
+    let headerRow = -1;
     for (let row = range.s.r; row <= range.e.r; row++) {
       for (let col = range.s.c; col <= range.e.c; col++) {
         const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
         const cell = worksheet[cellRef];
         
-        if (cell && typeof cell.v === 'number' && cell.v >= 1 && cell.v <= 31) {
-          dateRow = row;
-          break;
+        if (cell && typeof cell.v === 'string') {
+          const value = cell.v.trim().toUpperCase();
+          if (value === 'NUME' || value === 'NAME') {
+            headerRow = row;
+            break;
+          }
         }
       }
-      if (dateRow !== -1) break;
+      if (headerRow !== -1) break;
+    }
+    
+    // Step 2: Find date row (should contain numbers 1, 2, 3, etc.)
+    let dateRow = -1;
+    const startSearchRow = headerRow !== -1 ? headerRow + 1 : range.s.r;
+    
+    for (let row = startSearchRow; row <= range.e.r; row++) {
+      let dateCount = 0;
+      for (let col = range.s.c; col <= range.e.c; col++) {
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
+        const cell = worksheet[cellRef];
+        
+        if (cell && typeof cell.v === 'number' && cell.v >= 1 && cell.v <= 31) {
+          dateCount++;
+        }
+      }
+      // If we find multiple date numbers in the same row, it's likely the date row
+      if (dateCount >= 3) {
+        dateRow = row;
+        break;
+      }
     }
     
     if (dateRow === -1) {
       return { success: false, errors: ['Could not find date row in Excel file'] };
     }
     
-    // Find name column - look for columns with actual names, not "NUME" or day abbreviations
+    // Step 3: Find name column (first column with actual employee names after date row)
+    let nameColumn = -1;
     const invalidNames = ['NUME', 'NAME', 'L', 'M', 'J', 'V', 'S', 'D', 'l', 'm', 'j', 'v', 's', 'd'];
     
+    // Start looking from the first data row (after date row)
+    const firstDataRow = dateRow + 1;
+    
     for (let col = range.s.c; col <= range.e.c; col++) {
-      for (let row = dateRow + 1; row <= range.e.r; row++) {
+      let validNameCount = 0;
+      
+      // Check multiple rows in this column to see if it contains names
+      for (let row = firstDataRow; row <= Math.min(firstDataRow + 5, range.e.r); row++) {
         const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
         const cell = worksheet[cellRef];
         
         if (cell && typeof cell.v === 'string') {
           const cellValue = cell.v.trim();
-          // Must be longer than 2 characters and not a header/day abbreviation
-          if (cellValue.length > 2 && !invalidNames.includes(cellValue) && !invalidNames.includes(cellValue.toUpperCase())) {
-            // Check if it looks like a real name (contains letters and possibly spaces)
-            if (/^[a-zA-ZăâîșțĂÂÎȘȚ\s]+$/.test(cellValue)) {
-              nameColumn = col;
-              break;
-            }
+          
+          // Skip invalid names and check if it looks like a real name
+          if (cellValue.length > 2 && 
+              !invalidNames.includes(cellValue) && 
+              !invalidNames.includes(cellValue.toUpperCase()) &&
+              /^[a-zA-ZăâîșțĂÂÎȘȚ\s\-\.]+$/.test(cellValue)) {
+            validNameCount++;
           }
         }
       }
-      if (nameColumn !== -1) break;
+      
+      // If we found multiple valid names in this column, it's our name column
+      if (validNameCount >= 2) {
+        nameColumn = col;
+        break;
+      }
     }
     
     if (nameColumn === -1) {
       return { success: false, errors: ['Could not find name column in Excel file'] };
     }
     
-    console.log(`Excel parsing: Found date row at ${dateRow}, name column at ${nameColumn}`);
+    console.log(`Excel parsing: Found header row at ${headerRow}, date row at ${dateRow}, name column at ${nameColumn}`);
     
-    // Parse schedule data
-    for (let row = dateRow + 1; row <= range.e.r; row++) {
+    // Parse schedule data - only process rows after the date row
+    const dataStartRow = dateRow + 1;
+    
+    for (let row = dataStartRow; row <= range.e.r; row++) {
       const nameCell = worksheet[XLSX.utils.encode_cell({ r: row, c: nameColumn })];
       if (!nameCell || !nameCell.v) continue;
       
       const employeeName = String(nameCell.v).trim();
-      if (employeeName.length < 2) continue;
+      
+      // Skip invalid names (headers, day abbreviations, empty, too short)
+      if (employeeName.length < 3 || 
+          ['NUME', 'NAME', 'L', 'M', 'J', 'V', 'S', 'D'].includes(employeeName.toUpperCase()) ||
+          !(/^[a-zA-ZăâîșțĂÂÎȘȚ\s\-\.]+$/.test(employeeName))) {
+        console.log(`Skipping invalid name: "${employeeName}"`);
+        continue;
+      }
       
       // Process each day of the month
       for (let col = nameColumn + 1; col <= range.e.c; col++) {
@@ -260,6 +351,7 @@ export async function POST(request: NextRequest) {
         select: { id: true, name: true, email: true }
       });
       console.log('Found operators:', operators.length);
+      console.log('Operator names in database:', operators.map(op => `"${op.name}"`).join(', '));
     } catch (dbError) {
       console.error('Database error fetching operators:', dbError);
       throw new Error(`Database error: ${dbError instanceof Error ? dbError.message : 'Unknown database error'}`);
@@ -277,6 +369,10 @@ export async function POST(request: NextRequest) {
     const processedEntries: ScheduleEntry[] = [];
     const duplicateCheck = new Set<string>();
 
+    // Log the unique names extracted from Excel
+    const uniqueNamesFromExcel = [...new Set(parseResult.data.map(entry => entry.name))];
+    console.log('Unique names extracted from Excel:', uniqueNamesFromExcel.map(name => `"${name}"`).join(', '));
+
     for (const entry of parseResult.data) {
       matchingReport.totalEntries++;
       
@@ -284,6 +380,7 @@ export async function POST(request: NextRequest) {
       const matchedUser = findMatchingUser(entry.name, operators);
       
       if (matchedUser) {
+        console.log(`✓ Matched "${entry.name}" to "${matchedUser.name}" (${matchedUser.id})`);
         entry.matchedUserId = matchedUser.id;
         entry.matchedUserName = matchedUser.name;
         
@@ -297,6 +394,7 @@ export async function POST(request: NextRequest) {
         
         matchingReport.matchedUsers++;
       } else {
+        console.log(`✗ No match found for "${entry.name}"`);
         matchingReport.unmatchedNames.push(entry.name);
         matchingReport.unmatchedUsers++;
       }
