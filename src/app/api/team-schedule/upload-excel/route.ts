@@ -238,20 +238,21 @@ export async function POST(request: NextRequest) {
     for (const entry of parseResult.data) {
       matchingReport.totalEntries++;
       
-      // Check for duplicates
-      const duplicateKey = `${entry.name}-${entry.date}`;
-      if (duplicateCheck.has(duplicateKey)) {
-        matchingReport.duplicates.push(`${entry.name} on ${entry.date}`);
-        continue;
-      }
-      duplicateCheck.add(duplicateKey);
-
-      // Try to match user
+      // Try to match user first
       const matchedUser = findMatchingUser(entry.name, operators);
       
       if (matchedUser) {
         entry.matchedUserId = matchedUser.id;
         entry.matchedUserName = matchedUser.name;
+        
+        // Check for duplicates using userId and date (same as DB constraint)
+        const duplicateKey = `${entry.matchedUserId}-${entry.date}`;
+        if (duplicateCheck.has(duplicateKey)) {
+          matchingReport.duplicates.push(`${entry.name} on ${entry.date}`);
+          continue;
+        }
+        duplicateCheck.add(duplicateKey);
+        
         matchingReport.matchedUsers++;
       } else {
         matchingReport.unmatchedNames.push(entry.name);
@@ -280,13 +281,23 @@ export async function POST(request: NextRequest) {
 
     // Clear existing schedules for the month (simplified approach)
     console.log('Clearing existing schedules for month:', { year, month });
+    
+    // Create proper date range - be more explicit about timezone
+    const startOfMonth = new Date(year, month - 1, 1); // First day of month
+    const endOfMonth = new Date(year, month, 1); // First day of next month
+    
+    console.log('Date range for deletion:', { 
+      start: startOfMonth.toISOString(), 
+      end: endOfMonth.toISOString() 
+    });
+    
     let deleteResult;
     try {
       deleteResult = await prisma.teamSchedule.deleteMany({
         where: {
           date: {
-            gte: new Date(year, month - 1, 1),
-            lt: new Date(year, month, 1)
+            gte: startOfMonth,
+            lt: endOfMonth
           }
         }
       });
@@ -296,23 +307,36 @@ export async function POST(request: NextRequest) {
       throw new Error(`Delete error: ${deleteError instanceof Error ? deleteError.message : 'Unknown delete error'}`);
     }
 
-    // Insert new schedule entries
-    const scheduleData = matchedEntries.map(entry => ({
-      date: new Date(entry.date),
-      userId: entry.matchedUserId!,
-      shiftColor: entry.shiftColor,
-      shiftHours: entry.shiftHours
-    }));
+    // Insert new schedule entries using individual creates to handle duplicates better
+    console.log('Creating schedule entries:', matchedEntries.length);
+    console.log('Sample entry data:', matchedEntries.slice(0, 3));
     
-    console.log('Creating schedule entries:', scheduleData.length);
-    console.log('Sample schedule data:', scheduleData.slice(0, 3));
+    let createdCount = 0;
+    let skippedCount = 0;
     
-    let createResult;
     try {
-      createResult = await prisma.teamSchedule.createMany({
-        data: scheduleData
-      });
-      console.log('Created schedule entries:', createResult.count);
+      for (const entry of matchedEntries) {
+        try {
+          await prisma.teamSchedule.create({
+            data: {
+              date: new Date(entry.date),
+              userId: entry.matchedUserId!,
+              shiftColor: entry.shiftColor,
+              shiftHours: entry.shiftHours
+            }
+          });
+          createdCount++;
+        } catch (createError: any) {
+          if (createError.code === 'P2002') {
+            // Unique constraint violation - skip this entry
+            console.log(`Skipping duplicate entry: ${entry.matchedUserName} on ${entry.date}`);
+            skippedCount++;
+          } else {
+            throw createError;
+          }
+        }
+      }
+      console.log(`Created ${createdCount} schedule entries, skipped ${skippedCount} duplicates`);
     } catch (createError) {
       console.error('Database error creating schedules:', createError);
       throw new Error(`Create error: ${createError instanceof Error ? createError.message : 'Unknown create error'}`);
@@ -320,7 +344,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      imported: matchedEntries.length,
+      imported: createdCount,
+      skipped: skippedCount,
       matchingReport
     });
 
