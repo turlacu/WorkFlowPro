@@ -15,7 +15,9 @@ import Link from 'next/link';
 import { getTranslation } from '@/lib/translations';
 import { StatisticsDashboard } from '@/components/app/statistics-dashboard';
 import { UserManagementDashboard } from '@/components/app/user-management-dashboard';
-import { DataBackupRestoreDashboard } from '@/components/app/data-backup-restore-dashboard'; 
+import { DataBackupRestoreDashboard } from '@/components/app/data-backup-restore-dashboard';
+import { ShiftColorLegendManager } from '@/components/app/shift-color-legend-manager';
+import { ExcelScheduleUploader } from '@/components/app/excel-schedule-uploader'; 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -160,94 +162,98 @@ export default function DashboardPage() {
         </TabsContent>
 
         <TabsContent value="team-scheduling">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-3xl font-bold">{getTranslation(currentLang, 'ManageTeamScheduleTitle')}</CardTitle>
-              <CardDescription>{getTranslation(currentLang, 'ManageTeamScheduleDescription')}</CardDescription>
-            </CardHeader>
-            <CardContent className="grid md:grid-cols-3 gap-6">
-              <div className="md:col-span-1 space-y-4">
-                <Card className="shadow-md">
-                  <CardHeader><CardTitle>{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle></CardHeader>
-                  <CardContent className="p-0 flex justify-center">
-                    <InteractiveCalendar onDateSelect={handleDateSelect} initialDate={selectedDate} />
-                  </CardContent>
-                </Card>
-                <Card className="shadow-md">
-                  <CardContent className="p-4 space-y-2 text-sm">
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full bg-[hsl(var(--calendar-selected-day-bg))] mr-2"></div>
-                      <span>{getTranslation(currentLang, 'CalendarSelectedDayLegend')}</span>
-                    </div>
-                    <div className="flex items-center">
-                      <div className="w-3 h-3 rounded-full border-2 border-primary mr-2"></div>
-                      <span>{getTranslation(currentLang, 'CalendarTodayLegend')}</span>
-                    </div>
-                  </CardContent>
-                </Card>
-                <Card className="shadow-md">
-                  <CardHeader>
-                    <CardTitle className="text-lg">{getTranslation(currentLang, 'UploadScheduleFileLabel')}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="grid w-full items-center gap-2">
-                      <Input
-                        id="schedule-file-upload"
-                        type="file"
-                        accept=".xls,.xlsx,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                        onChange={handleScheduleFileChange}
-                        className="mb-2"
-                      />
-                      {selectedScheduleFile && (
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {getTranslation(currentLang, 'FileSelectedMessage', { fileName: selectedScheduleFile.name })}
-                        </p>
-                      )}
-                      <Button onClick={handleUploadScheduleFile} disabled={!selectedScheduleFile} className="w-full">
-                        <Upload className="mr-2 h-4 w-4" />
-                        {getTranslation(currentLang, 'UploadScheduleButton')}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-3xl font-bold">{getTranslation(currentLang, 'ManageTeamScheduleTitle')}</h2>
+              <p className="text-muted-foreground">{getTranslation(currentLang, 'ManageTeamScheduleDescription')}</p>
+            </div>
+            
+            <Tabs defaultValue="manual-scheduling" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="manual-scheduling">Manual Scheduling</TabsTrigger>
+                <TabsTrigger value="excel-upload">Excel Upload</TabsTrigger>
+                <TabsTrigger value="color-legend">Color Legend</TabsTrigger>
+              </TabsList>
 
-              <div className="md:col-span-2 space-y-6">
-                <Card className="shadow-md">
-                  <CardHeader><CardTitle>{getTranslation(currentLang, 'AssignRolesForDateTitle', { date: formattedSelectedDate })}</CardTitle></CardHeader>
-                  <CardContent className="grid sm:grid-cols-2 gap-6">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'ProducersTitle')}</h3>
-                      <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
+              <TabsContent value="manual-scheduling" className="mt-6">
+                <Card className="shadow-lg">
+                  <CardContent className="grid md:grid-cols-3 gap-6 p-6">
+                    <div className="md:col-span-1 space-y-4">
+                      <Card className="shadow-md">
+                        <CardHeader><CardTitle>{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle></CardHeader>
+                        <CardContent className="p-0 flex justify-center">
+                          <InteractiveCalendar onDateSelect={handleDateSelect} initialDate={selectedDate} />
+                        </CardContent>
+                      </Card>
+                      <Card className="shadow-md">
+                        <CardContent className="p-4 space-y-2 text-sm">
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 rounded-full bg-[hsl(var(--calendar-selected-day-bg))] mr-2"></div>
+                            <span>{getTranslation(currentLang, 'CalendarSelectedDayLegend')}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <div className="w-3 h-3 rounded-full border-2 border-primary mr-2"></div>
+                            <span>{getTranslation(currentLang, 'CalendarTodayLegend')}</span>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div className="md:col-span-2 space-y-6">
+                      <Card className="shadow-md">
+                        <CardHeader><CardTitle>{getTranslation(currentLang, 'AssignRolesForDateTitle', { date: formattedSelectedDate })}</CardTitle></CardHeader>
+                        <CardContent className="grid sm:grid-cols-2 gap-6">
+                          <div>
+                            <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'ProducersTitle')}</h3>
+                            <div className="space-y-3">
+                              <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
+                            </div>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'OperatorsTitle')}</h3>
+                            <div className="space-y-3">
+                              <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="shadow-md">
+                        <CardHeader><CardTitle>{getTranslation(currentLang, 'SummaryForDateTitle', {date: formattedSelectedDate})}</CardTitle></CardHeader>
+                        <CardContent className="space-y-1 text-sm">
+                          <p><strong>{getTranslation(currentLang, 'ProducersOnDutySummary')}</strong> {producersOnDutyText}</p>
+                          <p><strong>{getTranslation(currentLang, 'OperatorsOnDutySummary')}</strong> {operatorsOnDutyText}</p>
+                        </CardContent>
+                      </Card>
+
+                      <div className="flex justify-end">
+                        <Button size="lg">
+                          <Save className="mr-2 h-5 w-5" /> {getTranslation(currentLang, 'SaveScheduleButton')}
+                        </Button>
                       </div>
                     </div>
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'OperatorsTitle')}</h3>
-                      <div className="space-y-3">
-                        <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
 
-                <Card className="shadow-md">
-                  <CardHeader><CardTitle>{getTranslation(currentLang, 'SummaryForDateTitle', {date: formattedSelectedDate})}</CardTitle></CardHeader>
-                  <CardContent className="space-y-1 text-sm">
-                    <p><strong>{getTranslation(currentLang, 'ProducersOnDutySummary')}</strong> {producersOnDutyText}</p>
-                    <p><strong>{getTranslation(currentLang, 'OperatorsOnDutySummary')}</strong> {operatorsOnDutyText}</p>
-                  </CardContent>
-                </Card>
+              <TabsContent value="excel-upload" className="mt-6">
+                <ExcelScheduleUploader 
+                  selectedDate={selectedDate}
+                  onUploadComplete={() => {
+                    // Refresh any data if needed
+                    toast({
+                      title: 'Upload Complete',
+                      description: 'Schedule has been updated successfully.',
+                    });
+                  }}
+                />
+              </TabsContent>
 
-                <div className="flex justify-end">
-                  <Button size="lg">
-                    <Save className="mr-2 h-5 w-5" /> {getTranslation(currentLang, 'SaveScheduleButton')}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-            {/* CardFooter removed from here as its content is moved */}
-          </Card>
+              <TabsContent value="color-legend" className="mt-6">
+                <ShiftColorLegendManager />
+              </TabsContent>
+            </Tabs>
+          </div>
         </TabsContent>
 
         <TabsContent value="statistics">
