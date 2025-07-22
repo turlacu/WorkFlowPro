@@ -40,9 +40,6 @@ function parseExcelColor(cell: any): string | undefined {
   
   const style = cell.s;
   
-  // Debug: log the style information
-  console.log('Cell style info:', JSON.stringify(style, null, 2));
-  
   // Try different color properties that Excel might use
   
   // Method 1: Check background color (fill) - ARGB format
@@ -133,7 +130,7 @@ function findMatchingUser(searchName: string, users: any[]): any | null {
   return results.length > 0 && results[0].score! < 0.4 ? results[0].item : null;
 }
 
-// Parse Excel file and extract schedule data
+// Parse Excel file and extract schedule data using specific known locations
 function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number): ExcelParseResult {
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true });
@@ -143,157 +140,111 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
     const scheduleEntries: ScheduleEntry[] = [];
     const errors: string[] = [];
     
-    // Get the range of cells
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z100');
+    console.log('Using specific Excel layout: Names in B15:B18, Dates in C13:AG13');
     
-    // Step 1: Find header row (contains "NUME", "NAME", etc.)
-    let headerRow = -1;
-    for (let row = range.s.r; row <= range.e.r; row++) {
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-        const cell = worksheet[cellRef];
+    // Define the specific cell locations based on your Excel structure
+    const DATE_ROW = 12; // Row 13 in Excel (0-based = 12)
+    const NAME_COLUMN = 1; // Column B in Excel (0-based = 1)
+    const FIRST_NAME_ROW = 14; // Row 15 in Excel (0-based = 14)
+    const LAST_NAME_ROW = 17; // Row 18 in Excel (0-based = 17)
+    const FIRST_DATE_COLUMN = 2; // Column C in Excel (0-based = 2)
+    const LAST_DATE_COLUMN = 32; // Column AG in Excel (0-based = 32)
+    
+    console.log(`Parsing Excel with fixed structure:
+      - Date row: ${DATE_ROW + 1} (Excel row 13)
+      - Name column: ${String.fromCharCode(65 + NAME_COLUMN)} (Excel column B)
+      - Name rows: ${FIRST_NAME_ROW + 1}-${LAST_NAME_ROW + 1} (Excel rows 15-18)
+      - Date columns: ${String.fromCharCode(65 + FIRST_DATE_COLUMN)}-${String.fromCharCode(65 + LAST_DATE_COLUMN)} (Excel columns C-AG)`);
+    
+    // First, extract and validate the date row
+    const dates: { [col: number]: number } = {};
+    for (let col = FIRST_DATE_COLUMN; col <= LAST_DATE_COLUMN; col++) {
+      const dateCell = worksheet[XLSX.utils.encode_cell({ r: DATE_ROW, c: col })];
+      if (dateCell && typeof dateCell.v === 'number' && dateCell.v >= 1 && dateCell.v <= 31) {
+        dates[col] = dateCell.v;
+      }
+    }
+    
+    console.log(`Found ${Object.keys(dates).length} valid dates in date row`);
+    
+    if (Object.keys(dates).length === 0) {
+      return { success: false, errors: ['No valid dates found in row 13 (C13:AG13)'] };
+    }
+    
+    // Extract names from the name column
+    const operators: { [row: number]: string } = {};
+    for (let row = FIRST_NAME_ROW; row <= LAST_NAME_ROW; row++) {
+      const nameCell = worksheet[XLSX.utils.encode_cell({ r: row, c: NAME_COLUMN })];
+      if (nameCell && typeof nameCell.v === 'string') {
+        const employeeName = nameCell.v.trim();
         
-        if (cell && typeof cell.v === 'string') {
-          const value = cell.v.trim().toUpperCase();
-          if (value === 'NUME' || value === 'NAME') {
-            headerRow = row;
-            break;
-          }
+        // Validate it's a real name
+        if (employeeName.length > 2 && 
+            /^[a-zA-ZăâîșțĂÂÎȘȚ\s\-\.]+$/.test(employeeName)) {
+          operators[row] = employeeName;
+          console.log(`Found operator "${employeeName}" in row ${row + 1} (Excel row ${row + 1})`);
         }
       }
-      if (headerRow !== -1) break;
     }
     
-    // Step 2: Find date row (should contain numbers 1, 2, 3, etc.)
-    let dateRow = -1;
-    const startSearchRow = headerRow !== -1 ? headerRow + 1 : range.s.r;
+    console.log(`Found ${Object.keys(operators).length} operators in name column`);
     
-    for (let row = startSearchRow; row <= range.e.r; row++) {
-      let dateCount = 0;
-      for (let col = range.s.c; col <= range.e.c; col++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-        const cell = worksheet[cellRef];
-        
-        if (cell && typeof cell.v === 'number' && cell.v >= 1 && cell.v <= 31) {
-          dateCount++;
-        }
-      }
-      // If we find multiple date numbers in the same row, it's likely the date row
-      if (dateCount >= 3) {
-        dateRow = row;
-        break;
-      }
+    if (Object.keys(operators).length === 0) {
+      return { success: false, errors: ['No valid operator names found in column B (B15:B18)'] };
     }
     
-    if (dateRow === -1) {
-      return { success: false, errors: ['Could not find date row in Excel file'] };
-    }
-    
-    // Step 3: Find name column (first column with actual employee names after date row)
-    let nameColumn = -1;
-    const invalidNames = ['NUME', 'NAME', 'L', 'M', 'J', 'V', 'S', 'D', 'l', 'm', 'j', 'v', 's', 'd'];
-    
-    // Start looking from the first data row (after date row)
-    const firstDataRow = dateRow + 1;
-    
-    for (let col = range.s.c; col <= range.e.c; col++) {
-      let validNameCount = 0;
+    // Now parse the schedule grid
+    for (const [rowStr, operatorName] of Object.entries(operators)) {
+      const row = parseInt(rowStr);
       
-      // Check multiple rows in this column to see if it contains names
-      for (let row = firstDataRow; row <= Math.min(firstDataRow + 5, range.e.r); row++) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: col });
-        const cell = worksheet[cellRef];
-        
-        if (cell && typeof cell.v === 'string') {
-          const cellValue = cell.v.trim();
-          
-          // Skip invalid names and check if it looks like a real name
-          if (cellValue.length > 2 && 
-              !invalidNames.includes(cellValue) && 
-              !invalidNames.includes(cellValue.toUpperCase()) &&
-              /^[a-zA-ZăâîșțĂÂÎȘȚ\s\-\.]+$/.test(cellValue)) {
-            validNameCount++;
-          }
-        }
-      }
-      
-      // If we found multiple valid names in this column, it's our name column
-      if (validNameCount >= 2) {
-        nameColumn = col;
-        break;
-      }
-    }
-    
-    if (nameColumn === -1) {
-      return { success: false, errors: ['Could not find name column in Excel file'] };
-    }
-    
-    console.log(`Excel parsing: Found header row at ${headerRow}, date row at ${dateRow}, name column at ${nameColumn}`);
-    
-    // Parse schedule data - only process rows after the date row
-    const dataStartRow = dateRow + 1;
-    
-    for (let row = dataStartRow; row <= range.e.r; row++) {
-      const nameCell = worksheet[XLSX.utils.encode_cell({ r: row, c: nameColumn })];
-      if (!nameCell || !nameCell.v) continue;
-      
-      const employeeName = String(nameCell.v).trim();
-      
-      // Skip invalid names (headers, day abbreviations, empty, too short)
-      if (employeeName.length < 3 || 
-          ['NUME', 'NAME', 'L', 'M', 'J', 'V', 'S', 'D'].includes(employeeName.toUpperCase()) ||
-          !(/^[a-zA-ZăâîșțĂÂÎȘȚ\s\-\.]+$/.test(employeeName))) {
-        console.log(`Skipping invalid name: "${employeeName}"`);
-        continue;
-      }
-      
-      // Process each day of the month
-      for (let col = nameColumn + 1; col <= range.e.c; col++) {
-        const dateCell = worksheet[XLSX.utils.encode_cell({ r: dateRow, c: col })];
-        if (!dateCell || typeof dateCell.v !== 'number') continue;
-        
-        const day = dateCell.v;
-        if (day < 1 || day > 31) continue;
+      for (const [colStr, day] of Object.entries(dates)) {
+        const col = parseInt(colStr);
         
         const scheduleCell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
-        if (!scheduleCell || !scheduleCell.v) continue;
         
-        // Extract shift information
-        const shiftHours = String(scheduleCell.v).trim();
-        
-        // Skip day abbreviations and invalid shift data
-        const dayAbbreviations = ['l', 'm', 'j', 'v', 's', 'd', 'L', 'M', 'J', 'V', 'S', 'D'];
-        if (dayAbbreviations.includes(shiftHours) || shiftHours.length < 1) {
-          continue;
-        }
-        
-        const shiftColor = parseExcelColor(scheduleCell);
-        
-        // Create date string for the target month/year and validate
-        try {
-          const dateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          const testDate = new Date(dateStr);
+        // Check if there's any content in this cell (shift data)
+        if (scheduleCell && scheduleCell.v !== undefined && scheduleCell.v !== null && scheduleCell.v !== '') {
+          const shiftHours = String(scheduleCell.v).trim();
+          const shiftColor = parseExcelColor(scheduleCell);
           
-          // Validate the date is valid
-          if (isNaN(testDate.getTime()) || testDate.getMonth() !== targetMonth - 1) {
-            console.warn(`Invalid date created: ${dateStr} for day ${day}, month ${targetMonth}, year ${targetYear}`);
-            continue;
+          // Skip empty cells and day abbreviations
+          const dayAbbreviations = ['l', 'm', 'j', 'v', 's', 'd', 'L', 'M', 'J', 'V', 'S', 'D'];
+          if (shiftHours.length > 0 && !dayAbbreviations.includes(shiftHours)) {
+            
+            // Create date string for the target month/year
+            try {
+              const dateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const testDate = new Date(dateStr);
+              
+              // Validate the date is valid
+              if (isNaN(testDate.getTime()) || testDate.getMonth() !== targetMonth - 1) {
+                console.warn(`Invalid date created: ${dateStr} for day ${day}, month ${targetMonth}, year ${targetYear}`);
+                continue;
+              }
+              
+              scheduleEntries.push({
+                name: operatorName,
+                date: dateStr,
+                shiftHours,
+                shiftColor
+              });
+              
+              if (shiftColor) {
+                console.log(`✓ Entry with color: ${operatorName} on ${dateStr} - ${shiftHours} (Color: ${shiftColor})`);
+              }
+              
+            } catch (dateError) {
+              console.error(`Error creating date for ${operatorName} on day ${day}:`, dateError);
+              continue;
+            }
           }
-          
-          scheduleEntries.push({
-            name: employeeName,
-            date: dateStr,
-            shiftHours,
-            shiftColor
-          });
-        } catch (dateError) {
-          console.error(`Error creating date for ${employeeName} on day ${day}:`, dateError);
-          continue;
         }
       }
     }
     
+    console.log(`Total schedule entries extracted: ${scheduleEntries.length}`);
     return { success: true, data: scheduleEntries };
+    
   } catch (error) {
     console.error('Error parsing Excel file:', error);
     return { success: false, errors: [`Failed to parse Excel file: ${error instanceof Error ? error.message : 'Unknown error'}`] };
