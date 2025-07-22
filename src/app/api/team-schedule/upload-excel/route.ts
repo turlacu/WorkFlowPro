@@ -140,15 +140,27 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
         const shiftHours = String(scheduleCell.v).trim();
         const shiftColor = parseExcelColor(scheduleCell);
         
-        // Create date string for the target month/year
-        const dateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        
-        scheduleEntries.push({
-          name: employeeName,
-          date: dateStr,
-          shiftHours,
-          shiftColor
-        });
+        // Create date string for the target month/year and validate
+        try {
+          const dateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const testDate = new Date(dateStr);
+          
+          // Validate the date is valid
+          if (isNaN(testDate.getTime()) || testDate.getMonth() !== targetMonth - 1) {
+            console.warn(`Invalid date created: ${dateStr} for day ${day}, month ${targetMonth}, year ${targetYear}`);
+            continue;
+          }
+          
+          scheduleEntries.push({
+            name: employeeName,
+            date: dateStr,
+            shiftHours,
+            shiftColor
+          });
+        } catch (dateError) {
+          console.error(`Error creating date for ${employeeName} on day ${day}:`, dateError);
+          continue;
+        }
       }
     }
     
@@ -177,6 +189,8 @@ export async function POST(request: NextRequest) {
     const year = parseInt(formData.get('year') as string);
     const preview = formData.get('preview') === 'true';
 
+    console.log('Excel upload request:', { filename: file?.name, month, year, preview });
+
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
@@ -186,17 +200,22 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+    console.log('File parsed, buffer size:', buffer.length);
+    
     const parseResult = parseExcelSchedule(buffer, month, year);
+    console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
     
     if (!parseResult.success || !parseResult.data) {
       return NextResponse.json({ error: 'Failed to parse Excel file', details: parseResult.errors }, { status: 400 });
     }
 
     // Get all operators from database for fuzzy matching
+    console.log('Fetching operators from database...');
     const operators = await prisma.user.findMany({
       where: { role: 'OPERATOR' },
       select: { id: true, name: true, email: true }
     });
+    console.log('Found operators:', operators.length);
 
     // Match names with existing users
     const matchingReport: MatchingReport = {
@@ -254,7 +273,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Clear existing schedules for the month
-    await prisma.teamSchedule.deleteMany({
+    console.log('Clearing existing schedules for month:', { year, month });
+    const deleteResult = await prisma.teamSchedule.deleteMany({
       where: {
         date: {
           gte: new Date(year, month - 1, 1),
@@ -263,6 +283,7 @@ export async function POST(request: NextRequest) {
         user: { role: 'OPERATOR' }
       }
     });
+    console.log('Deleted existing schedules:', deleteResult.count);
 
     // Insert new schedule entries
     const scheduleData = matchedEntries.map(entry => ({
@@ -271,10 +292,12 @@ export async function POST(request: NextRequest) {
       shiftColor: entry.shiftColor,
       shiftHours: entry.shiftHours
     }));
-
-    await prisma.teamSchedule.createMany({
+    
+    console.log('Creating schedule entries:', scheduleData.length);
+    const createResult = await prisma.teamSchedule.createMany({
       data: scheduleData
     });
+    console.log('Created schedule entries:', createResult.count);
 
     return NextResponse.json({
       success: true,
@@ -284,6 +307,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error uploading schedule:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
