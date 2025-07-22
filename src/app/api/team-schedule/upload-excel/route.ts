@@ -211,11 +211,17 @@ export async function POST(request: NextRequest) {
 
     // Get all operators from database for fuzzy matching
     console.log('Fetching operators from database...');
-    const operators = await prisma.user.findMany({
-      where: { role: 'OPERATOR' },
-      select: { id: true, name: true, email: true }
-    });
-    console.log('Found operators:', operators.length);
+    let operators;
+    try {
+      operators = await prisma.user.findMany({
+        where: { role: 'OPERATOR' },
+        select: { id: true, name: true, email: true }
+      });
+      console.log('Found operators:', operators.length);
+    } catch (dbError) {
+      console.error('Database error fetching operators:', dbError);
+      throw new Error(`Database error: ${dbError instanceof Error ? dbError.message : 'Unknown database error'}`);
+    }
 
     // Match names with existing users
     const matchingReport: MatchingReport = {
@@ -272,18 +278,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No entries could be matched to existing operators' }, { status: 400 });
     }
 
-    // Clear existing schedules for the month
+    // Clear existing schedules for the month (simplified approach)
     console.log('Clearing existing schedules for month:', { year, month });
-    const deleteResult = await prisma.teamSchedule.deleteMany({
-      where: {
-        date: {
-          gte: new Date(year, month - 1, 1),
-          lt: new Date(year, month, 1)
-        },
-        user: { role: 'OPERATOR' }
-      }
-    });
-    console.log('Deleted existing schedules:', deleteResult.count);
+    let deleteResult;
+    try {
+      deleteResult = await prisma.teamSchedule.deleteMany({
+        where: {
+          date: {
+            gte: new Date(year, month - 1, 1),
+            lt: new Date(year, month, 1)
+          }
+        }
+      });
+      console.log('Deleted existing schedules:', deleteResult.count);
+    } catch (deleteError) {
+      console.error('Database error deleting schedules:', deleteError);
+      throw new Error(`Delete error: ${deleteError instanceof Error ? deleteError.message : 'Unknown delete error'}`);
+    }
 
     // Insert new schedule entries
     const scheduleData = matchedEntries.map(entry => ({
@@ -294,10 +305,18 @@ export async function POST(request: NextRequest) {
     }));
     
     console.log('Creating schedule entries:', scheduleData.length);
-    const createResult = await prisma.teamSchedule.createMany({
-      data: scheduleData
-    });
-    console.log('Created schedule entries:', createResult.count);
+    console.log('Sample schedule data:', scheduleData.slice(0, 3));
+    
+    let createResult;
+    try {
+      createResult = await prisma.teamSchedule.createMany({
+        data: scheduleData
+      });
+      console.log('Created schedule entries:', createResult.count);
+    } catch (createError) {
+      console.error('Database error creating schedules:', createError);
+      throw new Error(`Create error: ${createError instanceof Error ? createError.message : 'Unknown create error'}`);
+    }
 
     return NextResponse.json({
       success: true,
