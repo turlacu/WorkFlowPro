@@ -32,6 +32,7 @@ import {
 export default function AssignmentsPage() {
   const { data: session } = useSession();
   const [allAssignments, setAllAssignments] = useState<AssignmentWithUsers[]>([]);
+  const [calendarAssignments, setCalendarAssignments] = useState<AssignmentWithUsers[]>([]);
   const [operators, setOperators] = useState<User[]>([]);
   const [producers, setProducers] = useState<User[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
@@ -123,6 +124,16 @@ export default function AssignmentsPage() {
     }
   }, [selectedDate, searchTerm, toast]);
 
+  // Fetch all assignments for calendar colors (no date filter)
+  const fetchCalendarAssignments = useCallback(async () => {
+    try {
+      const assignments = await api.getAssignments(); // No filters - get all assignments
+      setCalendarAssignments(assignments);
+    } catch (error) {
+      console.error('Error fetching calendar assignments:', error);
+    }
+  }, []);
+
   // Fetch assignments when search term or date changes
   useEffect(() => {
     if (session) {
@@ -134,6 +145,13 @@ export default function AssignmentsPage() {
     }
   }, [searchTerm, selectedDate, session, fetchAssignments]);
 
+  // Fetch calendar assignments on initial load and when assignments change
+  useEffect(() => {
+    if (session) {
+      fetchCalendarAssignments();
+    }
+  }, [session, fetchCalendarAssignments]);
+
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
@@ -144,17 +162,53 @@ export default function AssignmentsPage() {
     return allAssignments;
   }, [allAssignments]);
 
-  const completedTaskDays = useMemo(() =>
-    allAssignments
-      .filter(a => a.status === 'COMPLETED')
-      .map(a => new Date(a.dueDate))
-  , [allAssignments]);
+  const completedTaskDays = useMemo(() => {
+    // Group assignments by date
+    const assignmentsByDate = new Map<string, AssignmentWithUsers[]>();
+    
+    calendarAssignments.forEach(assignment => {
+      const dateKey = format(new Date(assignment.dueDate), 'yyyy-MM-dd');
+      if (!assignmentsByDate.has(dateKey)) {
+        assignmentsByDate.set(dateKey, []);
+      }
+      assignmentsByDate.get(dateKey)!.push(assignment);
+    });
 
-  const incompleteTaskDays = useMemo(() =>
-    allAssignments
-      .filter(a => a.status === 'PENDING' || a.status === 'IN_PROGRESS')
-      .map(a => new Date(a.dueDate))
-  , [allAssignments]);
+    // Find dates where ALL assignments are completed
+    const fullyCompletedDates: Date[] = [];
+    assignmentsByDate.forEach((assignments, dateKey) => {
+      const allCompleted = assignments.every(a => a.status === 'COMPLETED');
+      if (allCompleted && assignments.length > 0) {
+        fullyCompletedDates.push(new Date(dateKey));
+      }
+    });
+
+    return fullyCompletedDates;
+  }, [calendarAssignments]);
+
+  const incompleteTaskDays = useMemo(() => {
+    // Group assignments by date
+    const assignmentsByDate = new Map<string, AssignmentWithUsers[]>();
+    
+    calendarAssignments.forEach(assignment => {
+      const dateKey = format(new Date(assignment.dueDate), 'yyyy-MM-dd');
+      if (!assignmentsByDate.has(dateKey)) {
+        assignmentsByDate.set(dateKey, []);
+      }
+      assignmentsByDate.get(dateKey)!.push(assignment);
+    });
+
+    // Find dates where NOT ALL assignments are completed
+    const incompleteDates: Date[] = [];
+    assignmentsByDate.forEach((assignments, dateKey) => {
+      const hasIncomplete = assignments.some(a => a.status === 'PENDING' || a.status === 'IN_PROGRESS');
+      if (hasIncomplete && assignments.length > 0) {
+        incompleteDates.push(new Date(dateKey));
+      }
+    });
+
+    return incompleteDates;
+  }, [calendarAssignments]);
 
   const handleSaveAssignment = useCallback(async (data: NewAssignmentFormValues, assignmentIdToUpdate?: string) => {
     try {
@@ -194,7 +248,10 @@ export default function AssignmentsPage() {
       
       setIsAssignmentModalOpen(false);
       setEditingAssignment(null);
-      await fetchAssignments(); // Refresh assignments
+      await Promise.all([
+        fetchAssignments(), // Refresh filtered assignments
+        fetchCalendarAssignments() // Refresh calendar assignments for colors
+      ]);
     } catch (error) {
       console.error('Error saving assignment:', error);
       toast({
@@ -218,7 +275,10 @@ export default function AssignmentsPage() {
         description: getTranslation(currentLang, 'AssignmentDeletedSuccessDescription', { assignmentName }),
         variant: "destructive"
       });
-      await fetchAssignments(); // Refresh assignments
+      await Promise.all([
+        fetchAssignments(), // Refresh filtered assignments
+        fetchCalendarAssignments() // Refresh calendar assignments for colors
+      ]);
     } catch (error) {
       console.error('Error deleting assignment:', error);
       toast({
@@ -227,7 +287,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [currentLang, toast]);
+  }, [currentLang, toast, fetchAssignments, fetchCalendarAssignments]);
 
   const handleToggleComplete = useCallback(async (assignmentId: string, completed: boolean) => {
     try {
@@ -246,7 +306,10 @@ export default function AssignmentsPage() {
       };
 
       await api.updateAssignment(updateData);
-      await fetchAssignments(); // Refresh assignments
+      await Promise.all([
+        fetchAssignments(), // Refresh filtered assignments
+        fetchCalendarAssignments() // Refresh calendar assignments for colors
+      ]);
     } catch (error) {
       console.error('Error toggling assignment completion:', error);
       toast({
@@ -255,7 +318,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, toast]);
+  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments]);
 
   const displaySelectedDateString = selectedDate ? format(selectedDate, 'MMMM do, yyyy') : getTranslation(currentLang, 'None');
   const displayActualCurrentDateString = actualCurrentDate ? formattedActualCurrentDateString : getTranslation(currentLang, 'LoadingDate');
