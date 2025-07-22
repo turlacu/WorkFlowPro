@@ -25,6 +25,7 @@ interface User {
   id: string;
   name: string;
   email: string;
+  role?: string;
 }
 
 // Users will be fetched from the database
@@ -66,9 +67,92 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [selectedProducers, setSelectedProducers] = React.useState<User[]>([]);
   const [selectedOperators, setSelectedOperators] = React.useState<User[]>([]);
+  const [users, setUsers] = React.useState<User[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const { currentLang } = useLanguage();
   const [selectedScheduleFile, setSelectedScheduleFile] = React.useState<File | null>(null);
   const { toast } = useToast();
+
+  // Fetch users for manual role assignment
+  React.useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/users');
+        if (response.ok) {
+          const userData = await response.json();
+          setUsers(userData.filter((user: User & { role: string }) => 
+            user.role === 'PRODUCER' || user.role === 'OPERATOR'
+          ));
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: 'Failed to load users',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [currentLang, toast]);
+
+  const handleSaveSchedule = React.useCallback(async () => {
+    if (!selectedDate) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Please select a date',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const allSelectedUsers = [...selectedProducers, ...selectedOperators];
+    
+    if (allSelectedUsers.length === 0) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Please select at least one user',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/team-schedule', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          date: selectedDate.toISOString(),
+          userIds: allSelectedUsers.map(user => user.id),
+        }),
+      });
+
+      if (response.ok) {
+        toast({
+          title: getTranslation(currentLang, 'Success'),
+          description: 'Schedule saved successfully',
+        });
+        // Reset selections
+        setSelectedProducers([]);
+        setSelectedOperators([]);
+      } else {
+        throw new Error('Failed to save schedule');
+      }
+    } catch (error) {
+      console.error('Error saving schedule:', error);
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Failed to save schedule',
+        variant: 'destructive',
+      });
+    }
+  }, [selectedDate, selectedProducers, selectedOperators, currentLang, toast]);
 
   const handleDateSelect = React.useCallback((date: Date | undefined) => {
     setSelectedDate(date);
@@ -205,14 +289,46 @@ export default function DashboardPage() {
                         <CardContent className="grid sm:grid-cols-2 gap-6">
                           <div>
                             <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'ProducersTitle')}</h3>
-                            <div className="space-y-3">
-                              <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
+                            <div className="space-y-3 max-h-64 overflow-y-auto">
+                              {loading ? (
+                                <p className="text-sm text-muted-foreground">Loading users...</p>
+                              ) : users.filter(user => user.role === 'PRODUCER').length > 0 ? (
+                                users
+                                  .filter(user => user.role === 'PRODUCER')
+                                  .map(user => (
+                                    <UserCheckboxItem
+                                      key={`producer-${user.id}`}
+                                      user={user}
+                                      type="producer"
+                                      isChecked={isSelected(user.id, 'producer')}
+                                      onToggleSelection={toggleSelection}
+                                    />
+                                  ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
+                              )}
                             </div>
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'OperatorsTitle')}</h3>
-                            <div className="space-y-3">
-                              <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
+                            <div className="space-y-3 max-h-64 overflow-y-auto">
+                              {loading ? (
+                                <p className="text-sm text-muted-foreground">Loading users...</p>
+                              ) : users.filter(user => user.role === 'OPERATOR').length > 0 ? (
+                                users
+                                  .filter(user => user.role === 'OPERATOR')
+                                  .map(user => (
+                                    <UserCheckboxItem
+                                      key={`operator-${user.id}`}
+                                      user={user}
+                                      type="operator"
+                                      isChecked={isSelected(user.id, 'operator')}
+                                      onToggleSelection={toggleSelection}
+                                    />
+                                  ))
+                              ) : (
+                                <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'NoUsersAvailable')}</p>
+                              )}
                             </div>
                           </div>
                         </CardContent>
@@ -227,7 +343,7 @@ export default function DashboardPage() {
                       </Card>
 
                       <div className="flex justify-end">
-                        <Button size="lg">
+                        <Button size="lg" onClick={handleSaveSchedule}>
                           <Save className="mr-2 h-5 w-5" /> {getTranslation(currentLang, 'SaveScheduleButton')}
                         </Button>
                       </div>

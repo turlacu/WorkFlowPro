@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     await ensureBackupsDir();
 
     // Export all data from database
-    const [users, assignments, teamSchedules] = await Promise.all([
+    const [users, assignments, teamSchedules, shiftColorLegends] = await Promise.all([
       prisma.user.findMany({
         select: {
           id: true,
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
           },
         },
       }),
+      prisma.shiftColorLegend.findMany(),
     ]);
 
     const backupData = {
@@ -74,12 +75,13 @@ export async function POST(request: NextRequest) {
           email: session.user.email,
         },
         version: '1.0',
-        totalRecords: users.length + assignments.length + teamSchedules.length,
+        totalRecords: users.length + assignments.length + teamSchedules.length + shiftColorLegends.length,
       },
       data: {
         users,
         assignments,
         teamSchedules,
+        shiftColorLegends,
       },
     };
 

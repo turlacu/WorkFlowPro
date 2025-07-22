@@ -40,6 +40,7 @@ export default function AssignmentsPage() {
   const [editingAssignment, setEditingAssignment] = useState<AssignmentWithUsers | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
   const [actualCurrentDate, setActualCurrentDate] = useState<Date | null>(null);
   const [teamForActualCurrentDay, setTeamForActualCurrentDay] = useState<{ producers: User[], operators: User[] }>({ producers: [], operators: [] });
@@ -87,13 +88,14 @@ export default function AssignmentsPage() {
         });
       } finally {
         setLoading(false);
+        setInitialDataLoaded(true);
       }
     };
 
-    if (session) {
+    if (session && !initialDataLoaded) {
       fetchInitialData();
     }
-  }, [session]); // Only depend on session, not selectedDate
+  }, [session, initialDataLoaded]); // Only run once when session is available
 
   const fetchAssignments = useCallback(async () => {
     try {
@@ -135,7 +137,7 @@ export default function AssignmentsPage() {
 
   // Fetch assignments when search term or selected date changes
   useEffect(() => {
-    if (session) {
+    if (session && initialDataLoaded) {
       // If there's a search term, use debounce
       if (searchTerm.trim() !== '') {
         const delayedFetch = setTimeout(() => {
@@ -148,17 +150,17 @@ export default function AssignmentsPage() {
         fetchAssignments();
       }
     }
-  }, [searchTerm, selectedDate, session, fetchAssignments]);
+  }, [searchTerm, selectedDate, session, initialDataLoaded, fetchAssignments]);
 
   // Initial fetch of assignments and calendar assignments
   useEffect(() => {
-    if (session) {
+    if (session && initialDataLoaded) {
       Promise.all([
         fetchAssignments(),
         fetchCalendarAssignments()
       ]);
     }
-  }, [session, fetchAssignments, fetchCalendarAssignments]);
+  }, [session, initialDataLoaded, fetchAssignments, fetchCalendarAssignments]);
 
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
@@ -347,7 +349,7 @@ export default function AssignmentsPage() {
   const workAssignmentsTitle = getTranslation(currentLang, workAssignmentsCardTitleKey, workAssignmentsCardTitleParams);
   const workAssignmentsDescription = getTranslation(currentLang, workAssignmentsCardDescriptionKey);
 
-  if (loading || !session) {
+  if ((loading && !initialDataLoaded) || !session) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <p>{getTranslation(currentLang, 'Loading')}</p>

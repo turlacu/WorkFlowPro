@@ -19,6 +19,7 @@ interface BackupData {
     users: any[];
     assignments: any[];
     teamSchedules: any[];
+    shiftColorLegends?: any[];
   };
 }
 
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
     // Clear existing data (but keep current admin user)
     await prisma.assignment.deleteMany({});
     await prisma.teamSchedule.deleteMany({});
+    await prisma.shiftColorLegend.deleteMany({});
     
     // Delete all users except current admin
     await prisma.user.deleteMany({
@@ -77,6 +79,7 @@ export async function POST(request: NextRequest) {
       users: 0,
       assignments: 0,
       teamSchedules: 0,
+      shiftColorLegends: 0,
     };
 
     // Restore users (skip if they would conflict with current admin)
@@ -145,6 +148,8 @@ export async function POST(request: NextRequest) {
               id: schedule.id,
               date: new Date(schedule.date),
               userId: schedule.userId,
+              shiftColor: schedule.shiftColor,
+              shiftHours: schedule.shiftHours,
               createdAt: new Date(schedule.createdAt),
               updatedAt: new Date(schedule.updatedAt),
             },
@@ -153,6 +158,31 @@ export async function POST(request: NextRequest) {
         } catch (scheduleError) {
           console.error(`Failed to restore team schedule:`, scheduleError);
           // Continue with other schedules
+        }
+      }
+    }
+
+    // Restore shift color legends
+    if (backupData.data.shiftColorLegends && Array.isArray(backupData.data.shiftColorLegends)) {
+      for (const legend of backupData.data.shiftColorLegends) {
+        try {
+          await prisma.shiftColorLegend.create({
+            data: {
+              id: legend.id,
+              colorCode: legend.colorCode,
+              colorName: legend.colorName,
+              shiftName: legend.shiftName,
+              startTime: legend.startTime,
+              endTime: legend.endTime,
+              description: legend.description,
+              createdAt: new Date(legend.createdAt),
+              updatedAt: new Date(legend.updatedAt),
+            },
+          });
+          restoredCounts.shiftColorLegends++;
+        } catch (legendError) {
+          console.error(`Failed to restore shift color legend:`, legendError);
+          // Continue with other legends
         }
       }
     }
