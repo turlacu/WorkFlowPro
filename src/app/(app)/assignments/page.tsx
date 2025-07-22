@@ -129,23 +129,22 @@ export default function AssignmentsPage() {
     }
   }, []);
 
-  // Fetch assignments when search term changes
+  // Fetch assignments when search term or selected date changes
   useEffect(() => {
     if (session) {
-      const delayedFetch = setTimeout(() => {
+      // If there's a search term, use debounce
+      if (searchTerm.trim() !== '') {
+        const delayedFetch = setTimeout(() => {
+          fetchAssignments();
+        }, 300);
+        return () => clearTimeout(delayedFetch);
+      } 
+      // If no search term but there's a selected date, fetch immediately
+      else if (selectedDate) {
         fetchAssignments();
-      }, 300); // Debounce search
-
-      return () => clearTimeout(delayedFetch);
+      }
     }
-  }, [searchTerm, session, fetchAssignments]);
-
-  // Fetch assignments when selected date changes (without debounce)
-  useEffect(() => {
-    if (session && selectedDate) {
-      fetchAssignments();
-    }
-  }, [selectedDate, session, fetchAssignments]);
+  }, [searchTerm, selectedDate, session, fetchAssignments]);
 
   // Initial fetch of assignments and calendar assignments
   useEffect(() => {
@@ -160,8 +159,11 @@ export default function AssignmentsPage() {
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
-    setSearchTerm(''); // Clear search when a new date is selected
-  }, []);
+    // Only clear search if it's not already empty to avoid triggering search useEffect
+    if (searchTerm.trim() !== '') {
+      setSearchTerm('');
+    }
+  }, [searchTerm]);
 
   const assignmentsToDisplay = useMemo(() => {
     return allAssignments;
