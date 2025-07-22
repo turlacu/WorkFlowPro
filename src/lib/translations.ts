@@ -278,8 +278,8 @@ export const translations: AppTranslations = {
     StatisticsLastAssignment: "Last Assignment",
     StatisticsUniqueDaysWithActivity: "Unique Days with Activity",
     StatisticsAvgAssignmentsPerActiveDay: "Avg. Assignments per Active Day",
-    StatisticsBusiestDay: "Cea Mai Aglomerată Zi",
-    StatisticsBusiestMonth: "Cea Mai Aglomerată Lună",
+    StatisticsBusiestDay: "Busiest Day",
+    StatisticsBusiestMonth: "Busiest Month",
 
     StatisticsDailyCompletionsTitle: "Daily Completions",
     StatisticsDailyCompletionsDescription: "Assignments scheduled and completed each day of {month}. Hover for details.",
