@@ -110,12 +110,14 @@ export default function AssignmentsPage() {
       }
 
       const assignments = await api.getAssignments(params);
-      setAllAssignments(assignments);
+      setAllAssignments(assignments || []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
+      // Set empty array on error to prevent UI issues
+      setAllAssignments([]);
       toast({
         title: 'Error',
-        description: 'Failed to load assignments. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to load assignments. Please try again.',
         variant: 'destructive',
       });
     }
