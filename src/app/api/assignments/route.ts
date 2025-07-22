@@ -34,9 +34,10 @@ export async function GET(request: NextRequest) {
     let whereClause: any = {};
 
     if (date) {
-      const targetDate = new Date(date);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
+      // Parse date as local date to avoid timezone issues
+      const [year, month, day] = date.split('-').map(Number);
+      const targetDate = new Date(year, month - 1, day); // month is 0-indexed
+      const nextDay = new Date(year, month - 1, day + 1);
       
       whereClause.dueDate = {
         gte: targetDate,
