@@ -33,14 +33,14 @@ export function InteractiveCalendar({
     alwaysToday: (day: Date) => isSameDay(day, todayDate),
     isTodayNotSelected: (day: Date) =>
       isSameDay(day, todayDate) &&
-      (!date || !isSameDay(day, date)) &&
+      (!initialDate || !isSameDay(day, initialDate)) &&
       !completedDays.some(d => isSameDay(d, day)) &&
       !incompleteDays.some(d => isSameDay(d, day)),
     tasksCompleted: (day: Date) =>
-      completedDays.some(d => isSameDay(d, day)) && (!date || !isSameDay(day, date)),
+      completedDays.some(d => isSameDay(d, day)) && (!initialDate || !isSameDay(day, initialDate)),
     tasksIncomplete: (day: Date) =>
-      incompleteDays.some(d => isSameDay(d, day)) && (!date || !isSameDay(day, date)),
-  }), [completedDays, incompleteDays, date, todayDate]);
+      incompleteDays.some(d => isSameDay(d, day)) && (!initialDate || !isSameDay(day, initialDate)),
+  }), [completedDays, incompleteDays, initialDate, todayDate]);
 
   const modifiersStyles = React.useMemo(() => ({
     alwaysToday: {

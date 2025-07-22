@@ -129,7 +129,7 @@ export default function AssignmentsPage() {
     }
   }, []);
 
-  // Fetch assignments when search term or date changes
+  // Fetch assignments when search term changes
   useEffect(() => {
     if (session) {
       const delayedFetch = setTimeout(() => {
@@ -138,7 +138,14 @@ export default function AssignmentsPage() {
 
       return () => clearTimeout(delayedFetch);
     }
-  }, [searchTerm, selectedDate, session, fetchAssignments]);
+  }, [searchTerm, session, fetchAssignments]);
+
+  // Fetch assignments when selected date changes (without debounce)
+  useEffect(() => {
+    if (session && selectedDate) {
+      fetchAssignments();
+    }
+  }, [selectedDate, session, fetchAssignments]);
 
   // Initial fetch of assignments and calendar assignments
   useEffect(() => {
