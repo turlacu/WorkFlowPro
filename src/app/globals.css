@@ -52,48 +52,48 @@
   }
  
   .dark {
-    --background: 222 47% 11.2%;
-    --foreground: 210 40% 98%;
+    --background: 210 11% 9%; /* Very dark charcoal background (#171a1f) */
+    --foreground: 210 40% 95%; /* Light text */
  
-    --card: 222 47% 11.2%;
-    --card-foreground: 210 40% 98%;
+    --card: 210 11% 12%; /* Dark gray cards (#1f2328) */
+    --card-foreground: 210 40% 95%;
  
-    --popover: 222 47% 11.2%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 210 11% 12%;
+    --popover-foreground: 210 40% 95%;
  
-    --primary: 208 62% 54%; /* Lighter blue for dark mode */
+    --primary: 208 100% 65%; /* Bright blue for buttons and links (#337ab7) */
     --primary-foreground: 0 0% 100%;
  
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 210 15% 18%; /* Darker secondary elements (#2d3339) */
+    --secondary-foreground: 210 40% 85%;
  
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 210 15% 18%; /* Muted backgrounds */
+    --muted-foreground: 215 15% 60%; /* Muted text */
  
-    --accent: 47 100% 58%; /* Lighter yellow for dark mode */
-    --accent-foreground: 222 47.4% 11.2%;
+    --accent: 45 100% 65%; /* Orange/Yellow accent (#ffb347) */
+    --accent-foreground: 210 11% 9%;
  
-    --destructive: 0 62.8% 50.6%;
+    --destructive: 0 75% 60%;
     --destructive-foreground: 0 0% 98%;
  
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 208 62% 54%;
+    --border: 210 15% 20%; /* Subtle borders */
+    --input: 210 15% 18%; /* Input backgrounds */
+    --ring: 208 100% 65%;
 
     /* Chart Colors */
-    --chart-1: 208 62% 54%;
-    --chart-2: 47 100% 58%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 0 72% 51%;
-    --chart-5: 262 74% 61%;
+    --chart-1: 208 100% 65%; /* Blue */
+    --chart-2: 45 100% 65%; /* Orange/Yellow */
+    --chart-3: 142 60% 50%; /* Green */
+    --chart-4: 0 75% 60%;   /* Red */
+    --chart-5: 262 70% 65%; /* Purple */
 
     /* Calendar specific colors */
-    --calendar-selected-day-bg: 262 74% 55%; /* Vibrant Purple for dark mode */
-    --calendar-selected-day-text: 0 0% 100%; /* White text */
-    --calendar-tasks-completed-bg: 142 71% 20%;
-    --calendar-tasks-completed-text: 142 71% 80%;
-    --calendar-tasks-incomplete-bg: 0 84% 25%;
-    --calendar-tasks-incomplete-text: 0 84% 85%;
+    --calendar-selected-day-bg: 45 100% 65%; /* Orange/Yellow for selected date */
+    --calendar-selected-day-text: 210 11% 9%; /* Dark text on orange */
+    --calendar-tasks-completed-bg: 142 60% 25%; /* Dark green */
+    --calendar-tasks-completed-text: 142 60% 80%; /* Light green text */
+    --calendar-tasks-incomplete-bg: 0 75% 30%; /* Dark red */
+    --calendar-tasks-incomplete-text: 0 75% 85%; /* Light red text */
   }
 }
  
