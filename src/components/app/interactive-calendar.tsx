@@ -37,9 +37,17 @@ export function InteractiveCalendar({
       !completedDays.some(d => isSameDay(d, day)) &&
       !incompleteDays.some(d => isSameDay(d, day)),
     tasksCompleted: (day: Date) =>
-      completedDays.some(d => isSameDay(d, day)) && (!initialDate || !isSameDay(day, initialDate)),
+      completedDays.some(d => isSameDay(d, day)),
     tasksIncomplete: (day: Date) =>
-      incompleteDays.some(d => isSameDay(d, day)) && (!initialDate || !isSameDay(day, initialDate)),
+      incompleteDays.some(d => isSameDay(d, day)),
+    selectedCompleted: (day: Date) =>
+      !!initialDate && isSameDay(day, initialDate) && completedDays.some(d => isSameDay(d, day)),
+    selectedIncomplete: (day: Date) =>
+      !!initialDate && isSameDay(day, initialDate) && incompleteDays.some(d => isSameDay(d, day)),
+    selectedNoStatus: (day: Date) =>
+      !!initialDate && isSameDay(day, initialDate) && 
+      !completedDays.some(d => isSameDay(d, day)) && 
+      !incompleteDays.some(d => isSameDay(d, day)),
   }), [completedDays, incompleteDays, initialDate, todayDate]);
 
   const modifiersStyles = React.useMemo(() => ({
@@ -67,6 +75,26 @@ export function InteractiveCalendar({
       color: 'hsl(var(--calendar-tasks-incomplete-text))',
       borderRadius: 'var(--radius)',
     },
+    selectedCompleted: {
+      backgroundColor: 'hsl(var(--calendar-tasks-completed-bg))',
+      color: 'hsl(var(--calendar-tasks-completed-text))',
+      borderRadius: 'var(--radius)',
+      border: '2px solid hsl(var(--calendar-selected-day-bg))',
+      fontWeight: 'bold',
+    },
+    selectedIncomplete: {
+      backgroundColor: 'hsl(var(--calendar-tasks-incomplete-bg))',
+      color: 'hsl(var(--calendar-tasks-incomplete-text))',
+      borderRadius: 'var(--radius)',
+      border: '2px solid hsl(var(--calendar-selected-day-bg))',
+      fontWeight: 'bold',
+    },
+    selectedNoStatus: {
+      backgroundColor: 'hsl(var(--calendar-selected-day-bg))',
+      color: 'hsl(var(--calendar-selected-day-text))',
+      borderRadius: 'var(--radius)',
+      fontWeight: 'bold',
+    },
   }), []);
 
   return (
@@ -86,9 +114,8 @@ export function InteractiveCalendar({
       onMonthChange={setMonth} 
       classNames={{
         day_selected: cn(
-          "bg-[hsl(var(--calendar-selected-day-bg))] text-[hsl(var(--calendar-selected-day-text))] rounded-lg",
-          "hover:bg-[hsl(var(--calendar-selected-day-bg))] hover:text-[hsl(var(--calendar-selected-day-text))] hover:opacity-90", // Example hover, adjust as needed
-          "focus:bg-[hsl(var(--calendar-selected-day-bg))] focus:text-[hsl(var(--calendar-selected-day-text))] focus:ring-2 focus:ring-ring" // Example focus
+          // Disable default selected styling - we handle it with custom modifiers
+          "bg-transparent text-inherit"
         ),
         // day_today styling is primarily handled by isTodayNotSelected and alwaysToday via modifiersStyles
       }}
