@@ -20,6 +20,7 @@ export function InteractiveCalendar({
   incompleteDays = []
 }: InteractiveCalendarProps) {
   const [date, setDate] = React.useState<Date | undefined>(initialDate);
+  const [month, setMonth] = React.useState<Date>(initialDate || new Date());
   const todayDate = React.useMemo(() => new Date(), []);
 
   React.useEffect(() => {
@@ -81,8 +82,8 @@ export function InteractiveCalendar({
       className="p-3 rounded-md"
       modifiers={modifiers}
       modifiersStyles={modifiersStyles}
-      month={date} 
-      onMonthChange={setDate} 
+      month={month} 
+      onMonthChange={setMonth} 
       classNames={{
         day_selected: cn(
           "bg-[hsl(var(--calendar-selected-day-bg))] text-[hsl(var(--calendar-selected-day-text))] rounded-lg",

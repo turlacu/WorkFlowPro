@@ -99,7 +99,7 @@ export default function AssignmentsPage() {
     }
   }, [session, selectedDate]);
 
-  const fetchAssignments = async () => {
+  const fetchAssignments = useCallback(async () => {
     try {
       const params: { date?: string; search?: string } = {};
       
@@ -121,7 +121,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  };
+  }, [selectedDate, searchTerm, toast]);
 
   // Fetch assignments when search term or date changes
   useEffect(() => {
@@ -132,7 +132,7 @@ export default function AssignmentsPage() {
 
       return () => clearTimeout(delayedFetch);
     }
-  }, [searchTerm, selectedDate, session]);
+  }, [searchTerm, selectedDate, session, fetchAssignments]);
 
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
