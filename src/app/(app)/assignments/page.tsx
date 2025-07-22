@@ -48,9 +48,9 @@ export default function AssignmentsPage() {
   const { currentLang } = useLanguage();
   const { toast } = useToast();
 
-  // Fetch initial data
+  // Fetch initial data (only once on session load)
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInitialData = async () => {
       try {
         setLoading(true);
         
@@ -62,11 +62,6 @@ export default function AssignmentsPage() {
         
         setOperators(operatorsList);
         setProducers(producersList);
-
-        // Fetch assignments for selected date
-        if (selectedDate) {
-          await fetchAssignments();
-        }
 
         // Set up current date info
         const today = new Date();
@@ -96,9 +91,9 @@ export default function AssignmentsPage() {
     };
 
     if (session) {
-      fetchData();
+      fetchInitialData();
     }
-  }, [session, selectedDate]);
+  }, [session]); // Only depend on session, not selectedDate
 
   const fetchAssignments = useCallback(async () => {
     try {
@@ -145,12 +140,15 @@ export default function AssignmentsPage() {
     }
   }, [searchTerm, selectedDate, session, fetchAssignments]);
 
-  // Fetch calendar assignments on initial load and when assignments change
+  // Initial fetch of assignments and calendar assignments
   useEffect(() => {
     if (session) {
-      fetchCalendarAssignments();
+      Promise.all([
+        fetchAssignments(),
+        fetchCalendarAssignments()
+      ]);
     }
-  }, [session, fetchCalendarAssignments]);
+  }, [session, fetchAssignments, fetchCalendarAssignments]);
 
 
   const handleDateSelect = useCallback((date: Date | undefined) => {

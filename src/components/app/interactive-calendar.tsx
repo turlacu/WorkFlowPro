@@ -23,11 +23,6 @@ export function InteractiveCalendar({
   const [month, setMonth] = React.useState<Date>(initialDate || new Date());
   const todayDate = React.useMemo(() => new Date(), []);
 
-  React.useEffect(() => {
-    if (onDateSelect) {
-      onDateSelect(date);
-    }
-  }, [date, onDateSelect]);
 
   const modifiers = React.useMemo(() => ({
     alwaysToday: (day: Date) => isSameDay(day, todayDate),
