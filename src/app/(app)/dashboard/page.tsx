@@ -26,6 +26,8 @@ interface User {
   name: string;
   email: string;
   role?: string;
+  shiftColor?: string;
+  shiftHours?: string;
 }
 
 // Users will be fetched from the database
@@ -113,9 +115,16 @@ export default function DashboardPage() {
       
       if (response.ok) {
         const scheduleData = await response.json();
-        const scheduledUsers = scheduleData.map((schedule: any) => schedule.user);
-        const scheduledProducers = scheduledUsers.filter((user: User) => user.role === 'PRODUCER');
-        const scheduledOperators = scheduledUsers.filter((user: User) => user.role === 'OPERATOR');
+        console.log('Fetched schedule data:', scheduleData);
+        
+        // Store full schedule data including shift information
+        const scheduledUsers = scheduleData.map((schedule: any) => ({
+          ...schedule.user,
+          shiftColor: schedule.shiftColor,
+          shiftHours: schedule.shiftHours
+        }));
+        const scheduledProducers = scheduledUsers.filter((user: any) => user.role === 'PRODUCER');
+        const scheduledOperators = scheduledUsers.filter((user: any) => user.role === 'OPERATOR');
         
         setExistingSchedule({
           producers: scheduledProducers,
@@ -393,12 +402,50 @@ export default function DashboardPage() {
                           <p><strong>{getTranslation(currentLang, 'OperatorsOnDutySummary')}</strong> {operatorsOnDutyText}</p>
                           {(existingSchedule.producers.length > 0 || existingSchedule.operators.length > 0) && (
                             <div className="mt-4 p-3 bg-muted rounded-md">
-                              <p className="font-medium text-sm text-primary mb-1">Existing Schedule:</p>
+                              <p className="font-medium text-sm text-primary mb-2">Existing Schedule:</p>
                               {existingSchedule.producers.length > 0 && (
-                                <p className="text-xs">Producers: {existingSchedule.producers.map(p => p.name).join(', ')}</p>
+                                <div className="mb-2">
+                                  <p className="text-xs font-medium mb-1">Producers:</p>
+                                  <div className="space-y-1">
+                                    {existingSchedule.producers.map(p => (
+                                      <div key={p.id} className="flex items-center gap-2 text-xs">
+                                        {p.shiftColor && (
+                                          <div
+                                            className="w-3 h-3 rounded border"
+                                            style={{ backgroundColor: p.shiftColor }}
+                                            title={p.shiftColor}
+                                          />
+                                        )}
+                                        <span>{p.name}</span>
+                                        {p.shiftHours && (
+                                          <span className="text-muted-foreground">({p.shiftHours})</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                               {existingSchedule.operators.length > 0 && (
-                                <p className="text-xs">Operators: {existingSchedule.operators.map(o => o.name).join(', ')}</p>
+                                <div>
+                                  <p className="text-xs font-medium mb-1">Operators:</p>
+                                  <div className="space-y-1">
+                                    {existingSchedule.operators.map(o => (
+                                      <div key={o.id} className="flex items-center gap-2 text-xs">
+                                        {o.shiftColor && (
+                                          <div
+                                            className="w-3 h-3 rounded border"
+                                            style={{ backgroundColor: o.shiftColor }}
+                                            title={o.shiftColor}
+                                          />
+                                        )}
+                                        <span>{o.name}</span>
+                                        {o.shiftHours && (
+                                          <span className="text-muted-foreground">({o.shiftHours})</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
                               )}
                             </div>
                           )}

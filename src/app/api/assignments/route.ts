@@ -100,6 +100,39 @@ export async function POST(request: NextRequest) {
     console.log('Assignment creation - Validated data:', validatedData);
     console.log('Assignment creation - Creating assignment for user:', session.user.id);
 
+    // Check if user exists in database
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.user.id }
+    });
+    
+    if (!userExists) {
+      console.error('Assignment creation failed: User not found in database', session.user.id);
+      return NextResponse.json({ error: 'User not found' }, { status: 400 });
+    }
+
+    // If assignedToId is provided, check if that user exists
+    if (validatedData.assignedToId) {
+      const assignedUserExists = await prisma.user.findUnique({
+        where: { id: validatedData.assignedToId }
+      });
+      
+      if (!assignedUserExists) {
+        console.error('Assignment creation failed: Assigned user not found', validatedData.assignedToId);
+        return NextResponse.json({ error: 'Assigned user not found' }, { status: 400 });
+      }
+    }
+
+    console.log('Creating assignment with data:', {
+      name: validatedData.name,
+      description: validatedData.description,
+      dueDate: new Date(validatedData.dueDate),
+      priority: validatedData.priority,
+      assignedToId: validatedData.assignedToId || null,
+      sourceLocation: validatedData.sourceLocation,
+      createdById: session.user.id,
+      lastUpdatedById: session.user.id,
+    });
+
     const assignment = await prisma.assignment.create({
       data: {
         name: validatedData.name,

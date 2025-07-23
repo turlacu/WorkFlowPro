@@ -354,31 +354,83 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
           </DialogHeader>
 
           {matchingReport && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold">{matchingReport.totalEntries}</div>
-                  <div className="text-sm text-muted-foreground">Total Entries</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{matchingReport.matchedUsers}</div>
-                  <div className="text-sm text-muted-foreground">Matched Users</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-red-600">{matchingReport.unmatchedUsers}</div>
-                  <div className="text-sm text-muted-foreground">Unmatched Users</div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-yellow-600">{matchingReport.duplicates.length}</div>
-                  <div className="text-sm text-muted-foreground">Duplicates</div>
-                </CardContent>
-              </Card>
+            <div className="space-y-4 mb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold">{matchingReport.totalEntries}</div>
+                    <div className="text-sm text-muted-foreground">Total Entries</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-green-600">{matchingReport.matchedUsers}</div>
+                    <div className="text-sm text-muted-foreground">Matched Users</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-red-600">{matchingReport.unmatchedUsers}</div>
+                    <div className="text-sm text-muted-foreground">Unmatched Users</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold text-yellow-600">{matchingReport.duplicates.length}</div>
+                    <div className="text-sm text-muted-foreground">Duplicates</div>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              {detectedColors.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Palette className="h-4 w-4" />
+                      Detected Colors & Shift Mappings
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {detectedColors.map(color => {
+                        const colorEntries = previewData.filter(entry => entry.shiftColor === color);
+                        const mappedShift = colorEntries.find(entry => entry.colorLegendMatch);
+                        const shiftName = mappedShift ? (mappedShift.colorLegendMatch as any)?.shiftName : null;
+                        
+                        return (
+                          <div key={color} className="flex items-center gap-3 p-3 border rounded-lg">
+                            <div
+                              className="w-6 h-6 rounded border"
+                              style={{ 
+                                backgroundColor: color.startsWith('#INDEX') || color.startsWith('#PATTERN') 
+                                  ? '#f3f4f6' 
+                                  : color 
+                              }}
+                              title={color}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate">{color}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {colorEntries.length} entries
+                              </div>
+                              {shiftName && (
+                                <div className="text-xs text-green-600 font-medium">
+                                  → {shiftName}
+                                </div>
+                              )}
+                              {!shiftName && !color.startsWith('#INDEX') && !color.startsWith('#PATTERN') && (
+                                <div className="text-xs text-amber-600">
+                                  → Not mapped
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           )}
 
@@ -410,7 +462,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                     <TableCell>
                       <div className="space-y-1">
                         {entry.shiftName && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge variant="default" className="text-xs">
                             {entry.shiftName}
                           </Badge>
                         )}
@@ -418,9 +470,26 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                           <div className="flex items-center gap-2">
                             <div
                               className="w-4 h-4 rounded border"
-                              style={{ backgroundColor: entry.shiftColor }}
+                              style={{ 
+                                backgroundColor: entry.shiftColor.startsWith('#INDEX') || entry.shiftColor.startsWith('#PATTERN') 
+                                  ? '#f3f4f6' 
+                                  : entry.shiftColor 
+                              }}
+                              title={entry.shiftColor}
                             />
-                            <span className="text-xs">{entry.shiftColor}</span>
+                            <div className="flex flex-col">
+                              <span className="text-xs font-medium">{entry.shiftColor}</span>
+                              {entry.colorLegendMatch && (
+                                <span className="text-xs text-green-600">
+                                  → {(entry.colorLegendMatch as any).shiftName}
+                                </span>
+                              )}
+                              {entry.shiftColor && !entry.colorLegendMatch && !entry.shiftColor.startsWith('#INDEX') && !entry.shiftColor.startsWith('#PATTERN') && (
+                                <span className="text-xs text-amber-600">
+                                  → Unmapped color
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                         {!entry.shiftColor && (
