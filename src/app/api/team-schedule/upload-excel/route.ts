@@ -17,8 +17,10 @@ interface ScheduleEntry {
   date: string;
   shiftHours?: string;
   shiftColor?: string;
+  shiftName?: string;
   matchedUserId?: string;
   matchedUserName?: string;
+  colorLegendMatch?: any;
 }
 
 interface MatchingReport {
@@ -34,13 +36,12 @@ function rgbToHex(r: number, g: number, b: number): string {
   return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
-// Helper function to parse Excel color
-function parseExcelColor(cell: any): string | undefined {
+// Helper function to parse Excel color with enhanced detection
+function parseExcelColor(cell: any, workbook: any): string | undefined {
   if (!cell?.s) return undefined;
   
   const style = cell.s;
-  
-  // Try different color properties that Excel might use
+  console.log('Cell style object:', JSON.stringify(style, null, 2));
   
   // Method 1: Check background color (fill) - ARGB format
   if (style.fill?.bgColor?.rgb) {
@@ -50,12 +51,17 @@ function parseExcelColor(cell: any): string | undefined {
       const g = parseInt(rgb.substr(4, 2), 16);
       const b = parseInt(rgb.substr(6, 2), 16);
       const colorHex = rgbToHex(r, g, b);
-      console.log(`Found background color: ${colorHex}`);
+      console.log(`✓ Found ARGB background color: ${colorHex}`);
+      return colorHex;
+    } else if (typeof rgb === 'string' && rgb.length === 6) {
+      // Handle RGB format (6 chars)
+      const colorHex = `#${rgb.toUpperCase()}`;
+      console.log(`✓ Found RGB background color: ${colorHex}`);
       return colorHex;
     }
   }
   
-  // Method 2: Check pattern fill
+  // Method 2: Check pattern fill background
   if (style.fill?.patternFill?.bgColor?.rgb) {
     const rgb = style.fill.patternFill.bgColor.rgb;
     if (typeof rgb === 'string' && rgb.length === 8) {
@@ -63,12 +69,16 @@ function parseExcelColor(cell: any): string | undefined {
       const g = parseInt(rgb.substr(4, 2), 16);
       const b = parseInt(rgb.substr(6, 2), 16);
       const colorHex = rgbToHex(r, g, b);
-      console.log(`Found pattern background color: ${colorHex}`);
+      console.log(`✓ Found pattern fill background color: ${colorHex}`);
+      return colorHex;
+    } else if (typeof rgb === 'string' && rgb.length === 6) {
+      const colorHex = `#${rgb.toUpperCase()}`;
+      console.log(`✓ Found pattern fill RGB color: ${colorHex}`);
       return colorHex;
     }
   }
-  
-  // Method 3: Check foreground color
+
+  // Method 3: Check foreground color (font color, but sometimes used for cell highlighting)
   if (style.fgColor?.rgb) {
     const rgb = style.fgColor.rgb;
     if (typeof rgb === 'string' && rgb.length === 8) {
@@ -76,35 +86,69 @@ function parseExcelColor(cell: any): string | undefined {
       const g = parseInt(rgb.substr(4, 2), 16);
       const b = parseInt(rgb.substr(6, 2), 16);
       const colorHex = rgbToHex(r, g, b);
-      console.log(`Found foreground color: ${colorHex}`);
+      console.log(`✓ Found foreground color: ${colorHex}`);
       return colorHex;
     }
   }
   
-  // Method 4: Check indexed colors (common in .xls files)
+  // Method 4: Enhanced indexed color mapping with workbook theme support
   if (style.fill?.bgColor?.indexed !== undefined) {
     const index = style.fill.bgColor.indexed;
     console.log(`Found indexed background color: ${index}`);
-    // Map common Excel color indices to hex colors
+    
+    // First try to get color from workbook theme
+    let themeColor = undefined;
+    if (workbook.Themes && workbook.Themes[0] && workbook.Themes[0].themeElements) {
+      const theme = workbook.Themes[0].themeElements;
+      if (theme.clrScheme && theme.clrScheme.colors && theme.clrScheme.colors[index]) {
+        themeColor = theme.clrScheme.colors[index];
+        console.log(`Found theme color for index ${index}:`, themeColor);
+      }
+    }
+    
+    // Extended indexed color mapping for common Excel colors
     const indexedColors: { [key: number]: string } = {
+      0: '#000000', // black
+      1: '#FFFFFF', // white
       2: '#FF0000', // red
-      3: '#00FF00', // green
+      3: '#00FF00', // green  
       4: '#0000FF', // blue
       5: '#FFFF00', // yellow
       6: '#FF00FF', // magenta
       7: '#00FFFF', // cyan
-      10: '#99BB3B', // light green (approximation)
-      13: '#FFC000', // orange
-      14: '#043E1C', // dark green (approximation)
-      // Add more mappings as needed
+      8: '#000000', // black
+      9: '#FFFFFF', // white
+      10: '#FF0000', // red
+      11: '#00FF00', // green
+      12: '#0000FF', // blue  
+      13: '#FFFF00', // yellow
+      14: '#FF00FF', // magenta
+      15: '#00FFFF', // cyan
+      16: '#800000', // dark red
+      17: '#008000', // dark green
+      18: '#000080', // dark blue
+      19: '#808000', // olive
+      20: '#800080', // purple
+      21: '#008080', // teal
+      22: '#C0C0C0', // silver
+      23: '#808080', // gray
+      // Add more common Excel indexed colors
+      40: '#FF99CC', // light pink
+      41: '#FFCC99', // light orange
+      42: '#FFFF99', // light yellow
+      43: '#CCFFCC', // light green
+      44: '#CCFFFF', // light cyan
+      45: '#99CCFF', // light blue
+      46: '#CC99FF', // light purple
     };
     
     if (indexedColors[index]) {
-      console.log(`Mapped indexed color ${index} to ${indexedColors[index]}`);
+      console.log(`✓ Mapped indexed color ${index} to ${indexedColors[index]}`);
       return indexedColors[index];
     }
     
-    // Return a placeholder for unmapped indexed colors
+    // Return a placeholder for unmapped indexed colors for debugging
+    console.log(`⚠ Unmapped indexed color: ${index}`);
     return `#INDEX${index}`;
   }
   
@@ -112,9 +156,29 @@ function parseExcelColor(cell: any): string | undefined {
   if (style.fill?.patternFill?.bgColor?.indexed !== undefined) {
     const index = style.fill.patternFill.bgColor.indexed;
     console.log(`Found pattern indexed color: ${index}`);
+    // Use same mapping as above
+    const indexedColors: { [key: number]: string } = {
+      2: '#FF0000', 3: '#00FF00', 4: '#0000FF', 5: '#FFFF00',
+      6: '#FF00FF', 7: '#00FFFF', 10: '#99BB3B', 13: '#FFC000'
+    };
+    if (indexedColors[index]) {
+      console.log(`✓ Mapped pattern indexed color ${index} to ${indexedColors[index]}`);
+      return indexedColors[index];
+    }
     return `#PATTERN${index}`;
   }
+
+  // Method 6: Check for modern Excel color formats
+  if (style.fill?.fgColor?.rgb) {
+    const rgb = style.fill.fgColor.rgb;
+    if (typeof rgb === 'string') {
+      let colorHex = rgb.length === 8 ? `#${rgb.substr(2)}` : `#${rgb}`;
+      console.log(`✓ Found fill foreground color: ${colorHex}`);
+      return colorHex.toUpperCase();
+    }
+  }
   
+  console.log('❌ No color found in cell style');
   return undefined;
 }
 
@@ -130,12 +194,76 @@ function findMatchingUser(searchName: string, users: any[]): any | null {
   return results.length > 0 && results[0].score! < 0.4 ? results[0].item : null;
 }
 
+// Helper function to find closest matching color legend
+function findMatchingColorLegend(detectedColor: string, colorLegends: any[]): any | null {
+  if (!detectedColor || !colorLegends.length) return null;
+  
+  console.log(`🎨 Looking for color legend match for: ${detectedColor}`);
+  console.log(`Available legends: ${colorLegends.map(l => `${l.colorCode} (${l.shiftName})`).join(', ')}`);
+  
+  // First try exact match
+  const exactMatch = colorLegends.find(legend => 
+    legend.colorCode.toLowerCase() === detectedColor.toLowerCase()
+  );
+  
+  if (exactMatch) {
+    console.log(`✓ Exact color legend match: ${exactMatch.colorCode} -> ${exactMatch.shiftName}`);
+    return exactMatch;
+  }
+  
+  // For indexed colors like #INDEX42, try to find a reasonable match
+  if (detectedColor.startsWith('#INDEX') || detectedColor.startsWith('#PATTERN')) {
+    console.log(`⚠ Detected indexed/pattern color: ${detectedColor}, no exact match found`);
+    return null;
+  }
+  
+  // If no exact match, could implement color similarity matching here
+  // For now, return null to avoid incorrect mappings
+  console.log(`❌ No matching color legend found for: ${detectedColor}`);
+  return null;
+}
+
+// Helper function to convert hex to RGB for color comparison
+function hexToRgb(hex: string): {r: number, g: number, b: number} | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+// Helper function to calculate color distance
+function colorDistance(color1: string, color2: string): number {
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  
+  if (!rgb1 || !rgb2) return Infinity;
+  
+  return Math.sqrt(
+    Math.pow(rgb1.r - rgb2.r, 2) + 
+    Math.pow(rgb1.g - rgb2.g, 2) + 
+    Math.pow(rgb1.b - rgb2.b, 2)
+  );
+}
+
 // Parse Excel file and extract schedule data using specific known locations
-function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number): ExcelParseResult {
+async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number): Promise<ExcelParseResult> {
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
+    
+    // Fetch color legends from database
+    let colorLegends: any[] = [];
+    try {
+      colorLegends = await prisma.shiftColorLegend.findMany({
+        orderBy: { createdAt: 'asc' }
+      });
+      console.log(`📊 Loaded ${colorLegends.length} color legends from database`);
+    } catch (error) {
+      console.warn('Could not load color legends from database:', error);
+    }
     
     const scheduleEntries: ScheduleEntry[] = [];
     const errors: string[] = [];
@@ -205,11 +333,23 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
         // Check if there's any content in this cell (shift data)
         if (scheduleCell && scheduleCell.v !== undefined && scheduleCell.v !== null && scheduleCell.v !== '') {
           const shiftHours = String(scheduleCell.v).trim();
-          const shiftColor = parseExcelColor(scheduleCell);
+          const shiftColor = parseExcelColor(scheduleCell, workbook);
           
           // Skip empty cells and day abbreviations
           const dayAbbreviations = ['l', 'm', 'j', 'v', 's', 'd', 'L', 'M', 'J', 'V', 'S', 'D'];
           if (shiftHours.length > 0 && !dayAbbreviations.includes(shiftHours)) {
+            
+            // Try to match color with legend
+            let colorLegendMatch = null;
+            let shiftName = undefined;
+            
+            if (shiftColor) {
+              colorLegendMatch = findMatchingColorLegend(shiftColor, colorLegends);
+              if (colorLegendMatch) {
+                shiftName = colorLegendMatch.shiftName;
+                console.log(`🎯 Color ${shiftColor} matched to shift: ${shiftName}`);
+              }
+            }
             
             // Create date string for the target month/year
             try {
@@ -226,11 +366,17 @@ function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: num
                 name: operatorName,
                 date: dateStr,
                 shiftHours,
-                shiftColor
+                shiftColor,
+                shiftName,
+                colorLegendMatch
               });
               
-              if (shiftColor) {
-                console.log(`✓ Entry with color: ${operatorName} on ${dateStr} - ${shiftHours} (Color: ${shiftColor})`);
+              if (shiftColor && shiftName) {
+                console.log(`✓ Entry with matched shift: ${operatorName} on ${dateStr} - ${shiftHours} (${shiftName}, Color: ${shiftColor})`);
+              } else if (shiftColor) {
+                console.log(`⚠ Entry with unmatched color: ${operatorName} on ${dateStr} - ${shiftHours} (Color: ${shiftColor})`);
+              } else {
+                console.log(`❌ Entry without color: ${operatorName} on ${dateStr} - ${shiftHours}`);
               }
               
             } catch (dateError) {
@@ -282,7 +428,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     console.log('File parsed, buffer size:', buffer.length);
     
-    const parseResult = parseExcelSchedule(buffer, month, year);
+    const parseResult = await parseExcelSchedule(buffer, month, year);
     console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
     
     if (parseResult.success && parseResult.data && parseResult.data.length > 0) {

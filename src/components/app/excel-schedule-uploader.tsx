@@ -19,8 +19,10 @@ interface ScheduleEntry {
   date: string;
   shiftHours?: string;
   shiftColor?: string;
+  shiftName?: string;
   matchedUserId?: string;
   matchedUserName?: string;
+  colorLegendMatch?: any;
 }
 
 interface MatchingReport {
@@ -282,7 +284,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                   <TableHead>Name</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Shift Hours</TableHead>
-                  <TableHead>Color</TableHead>
+                  <TableHead>Shift & Color</TableHead>
                   <TableHead>Matched User</TableHead>
                 </TableRow>
               </TableHeader>
@@ -300,15 +302,25 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                     <TableCell>{formatDate(entry.date)}</TableCell>
                     <TableCell>{entry.shiftHours}</TableCell>
                     <TableCell>
-                      {entry.shiftColor && (
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded border"
-                            style={{ backgroundColor: entry.shiftColor }}
-                          />
-                          <span className="text-xs">{entry.shiftColor}</span>
-                        </div>
-                      )}
+                      <div className="space-y-1">
+                        {entry.shiftName && (
+                          <Badge variant="outline" className="text-xs">
+                            {entry.shiftName}
+                          </Badge>
+                        )}
+                        {entry.shiftColor && (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded border"
+                              style={{ backgroundColor: entry.shiftColor }}
+                            />
+                            <span className="text-xs">{entry.shiftColor}</span>
+                          </div>
+                        )}
+                        {!entry.shiftColor && (
+                          <span className="text-xs text-muted-foreground">No color detected</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {entry.matchedUserName ? (
