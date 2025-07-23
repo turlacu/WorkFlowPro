@@ -532,6 +532,50 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Collect unique colors for auto-detection and legend management
+    const detectedColors = [...new Set(processedEntries
+      .filter(entry => entry.shiftColor && !entry.shiftColor.startsWith('#INDEX') && !entry.shiftColor.startsWith('#PATTERN'))
+      .map(entry => entry.shiftColor!)
+    )];
+    
+    // Fetch existing color legends to check for new colors
+    let existingColorLegends: any[] = [];
+    try {
+      existingColorLegends = await prisma.shiftColorLegend.findMany({
+        select: { colorCode: true },
+        orderBy: { createdAt: 'asc' }
+      });
+    } catch (error) {
+      console.warn('Could not load color legends from database:', error);
+    }
+    
+    // Check for new colors not in legend
+    const newColors = detectedColors.filter(color => 
+      !existingColorLegends.some((legend: any) => legend.colorCode.toLowerCase() === color.toLowerCase())
+    );
+    
+    // Auto-save new colors to legend for user to configure later
+    if (newColors.length > 0) {
+      console.log(`🎨 Auto-detecting ${newColors.length} new colors:`, newColors);
+      for (const color of newColors) {
+        try {
+          await prisma.shiftColorLegend.create({
+            data: {
+              colorCode: color,
+              colorName: `Auto-detected ${color}`,
+              shiftName: 'Unnamed Shift',
+              startTime: '00:00',
+              endTime: '00:00',
+              description: `Automatically detected from Excel import. Please configure this color meaning.`
+            }
+          });
+          console.log(`✓ Created auto-legend entry for color: ${color}`);
+        } catch (error) {
+          console.warn(`Could not create legend for color ${color}:`, error);
+        }
+      }
+    }
+    
     // Save to database - only entries with matched users
     const matchedEntries = processedEntries.filter(entry => entry.matchedUserId);
     
@@ -606,7 +650,9 @@ export async function POST(request: NextRequest) {
       success: true,
       imported: createdCount,
       skipped: skippedCount,
-      matchingReport
+      matchingReport,
+      newColorsDetected: newColors.length,
+      detectedColors: newColors
     });
 
   } catch (error) {

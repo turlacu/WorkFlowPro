@@ -43,8 +43,8 @@ export default function AssignmentsPage() {
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
   const [actualCurrentDate, setActualCurrentDate] = useState<Date | null>(null);
-  const [teamForActualCurrentDay, setTeamForActualCurrentDay] = useState<{ producers: User[], operators: User[] }>({ producers: [], operators: [] });
-  const [formattedActualCurrentDateString, setFormattedActualCurrentDateString] = useState<string>('');
+  const [teamForSelectedDay, setTeamForSelectedDay] = useState<{ producers: User[], operators: User[] }>({ producers: [], operators: [] });
+  const [formattedSelectedDateString, setFormattedSelectedDateString] = useState<string>('');
 
   const { currentLang } = useLanguage();
   const { toast } = useToast();
@@ -67,18 +67,11 @@ export default function AssignmentsPage() {
         // Set up current date info
         const today = new Date();
         setActualCurrentDate(today);
-        setFormattedActualCurrentDateString(format(today, 'MMMM do, yyyy'));
-
-        // Fetch team schedule for today
-        const teamSchedule = await api.getTeamSchedule(format(today, 'yyyy-MM-dd'));
-        const scheduledUsers = teamSchedule.map(schedule => schedule.user);
-        const scheduledProducers = scheduledUsers.filter(user => user.role === 'PRODUCER');
-        const scheduledOperators = scheduledUsers.filter(user => user.role === 'OPERATOR');
         
-        setTeamForActualCurrentDay({
-          producers: scheduledProducers,
-          operators: scheduledOperators,
-        });
+        // Initial load - set selected date if not already set
+        if (!selectedDate) {
+          setSelectedDate(today);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -135,6 +128,28 @@ export default function AssignmentsPage() {
     }
   }, []);
 
+  // Fetch team schedule for the selected date
+  const fetchTeamScheduleForDate = useCallback(async (date: Date) => {
+    try {
+      const dateString = format(date, 'yyyy-MM-dd');
+      const teamSchedule = await api.getTeamSchedule(dateString);
+      const scheduledUsers = teamSchedule.map(schedule => schedule.user);
+      const scheduledProducers = scheduledUsers.filter(user => user.role === 'PRODUCER');
+      const scheduledOperators = scheduledUsers.filter(user => user.role === 'OPERATOR');
+      
+      setTeamForSelectedDay({
+        producers: scheduledProducers,
+        operators: scheduledOperators,
+      });
+      setFormattedSelectedDateString(format(date, 'MMMM do, yyyy'));
+    } catch (error) {
+      console.error('Error fetching team schedule for date:', error);
+      // Reset team on error
+      setTeamForSelectedDay({ producers: [], operators: [] });
+      setFormattedSelectedDateString(format(date, 'MMMM do, yyyy'));
+    }
+  }, []);
+
   // Fetch assignments when search term or selected date changes
   useEffect(() => {
     if (session && initialDataLoaded) {
@@ -161,6 +176,13 @@ export default function AssignmentsPage() {
       ]);
     }
   }, [session, initialDataLoaded, fetchAssignments, fetchCalendarAssignments]);
+
+  // Fetch team schedule when selected date changes
+  useEffect(() => {
+    if (session && initialDataLoaded && selectedDate) {
+      fetchTeamScheduleForDate(selectedDate);
+    }
+  }, [session, initialDataLoaded, selectedDate, fetchTeamScheduleForDate]);
 
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
@@ -334,7 +356,6 @@ export default function AssignmentsPage() {
   }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments]);
 
   const displaySelectedDateString = selectedDate ? format(selectedDate, 'MMMM do, yyyy') : getTranslation(currentLang, 'None');
-  const displayActualCurrentDateString = actualCurrentDate ? formattedActualCurrentDateString : getTranslation(currentLang, 'LoadingDate');
 
   let workAssignmentsCardTitleKey = 'WorkAssignmentsForDate';
   let workAssignmentsCardTitleParams: Record<string, string> = { date: displaySelectedDateString };
@@ -462,7 +483,7 @@ export default function AssignmentsPage() {
                 {getTranslation(currentLang, 'TeamScheduleTitle')}
               </CardTitle>
               <CardDescription>
-                 {getTranslation(currentLang, 'TeamScheduleDescription', { date: displayActualCurrentDateString })}
+                 {getTranslation(currentLang, 'TeamScheduleDescription', { date: formattedSelectedDateString || displaySelectedDateString })}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -470,9 +491,9 @@ export default function AssignmentsPage() {
                 <h4 className="text-sm font-medium text-primary flex items-center">
                   <Users className="mr-2 h-4 w-4" /> {getTranslation(currentLang, 'ProducersOnDuty')}
                 </h4>
-                {teamForActualCurrentDay.producers.length > 0 ? (
+                {teamForSelectedDay.producers.length > 0 ? (
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
-                    {teamForActualCurrentDay.producers.map(p => <li key={p.id}>{p.name}</li>)}
+                    {teamForSelectedDay.producers.map(p => <li key={p.id}>{p.name}</li>)}
                   </ul>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">{getTranslation(currentLang, 'NoneScheduled')}</p>
@@ -483,15 +504,15 @@ export default function AssignmentsPage() {
                 <h4 className="text-sm font-medium text-primary flex items-center">
                   <Users className="mr-2 h-4 w-4" /> {getTranslation(currentLang, 'OperatorsOnDuty')}
                 </h4>
-                {teamForActualCurrentDay.operators.length > 0 ? (
+                {teamForSelectedDay.operators.length > 0 ? (
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
-                    {teamForActualCurrentDay.operators.map(o => <li key={o.id}>{o.name}</li>)}
+                    {teamForSelectedDay.operators.map(o => <li key={o.id}>{o.name}</li>)}
                   </ul>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">{getTranslation(currentLang, 'NoneScheduled')}</p>
                 )}
               </div>
-              {(teamForActualCurrentDay.producers.length === 0 && teamForActualCurrentDay.operators.length === 0) && (
+              {(teamForSelectedDay.producers.length === 0 && teamForSelectedDay.operators.length === 0) && (
                 <p className="text-xs text-muted-foreground text-center pt-2">
                   {getTranslation(currentLang, 'NoProducersOrOperatorsScheduled')}
                 </p>

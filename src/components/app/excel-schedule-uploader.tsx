@@ -135,9 +135,15 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
 
       const result = await response.json();
       
+      let description = `Successfully imported ${result.imported} schedule entries for ${getMonthName(currentMonth)} ${currentYear}.`;
+      
+      if (result.newColorsDetected && result.newColorsDetected > 0) {
+        description += ` ${result.newColorsDetected} new colors were detected and added to the color legend. Please configure them in the Color Legend tab.`;
+      }
+      
       toast({
         title: 'Import Successful',
-        description: `Successfully imported ${result.imported} schedule entries for ${getMonthName(currentMonth)} ${currentYear}.`,
+        description: description,
       });
 
       // Reset form
