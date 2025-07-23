@@ -395,7 +395,9 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                       {detectedColors.map(color => {
                         const colorEntries = previewData.filter(entry => entry.shiftColor === color);
                         const mappedShift = colorEntries.find(entry => entry.colorLegendMatch);
-                        const shiftName = mappedShift ? (mappedShift.colorLegendMatch as any)?.shiftName : null;
+                        const shiftName = mappedShift 
+                          ? String((mappedShift.colorLegendMatch as any)?.shiftName || '') 
+                          : null;
                         
                         return (
                           <div key={color} className="flex items-center gap-3 p-3 border rounded-lg">
@@ -413,16 +415,16 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                               <div className="text-xs text-muted-foreground">
                                 {colorEntries.length} entries
                               </div>
-                              {shiftName && (
+                              {shiftName && shiftName.trim() ? (
                                 <div className="text-xs text-green-600 font-medium">
                                   → {shiftName}
                                 </div>
-                              )}
-                              {!shiftName && !color.startsWith('#INDEX') && !color.startsWith('#PATTERN') && (
+                              ) : null}
+                              {(!shiftName || !shiftName.trim()) && !color.startsWith('#INDEX') && !color.startsWith('#PATTERN') ? (
                                 <div className="text-xs text-amber-600">
                                   → Not mapped
                                 </div>
-                              )}
+                              ) : null}
                             </div>
                           </div>
                         );
@@ -479,11 +481,11 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                             />
                             <div className="flex flex-col">
                               <span className="text-xs font-medium">{entry.shiftColor}</span>
-                              {entry.colorLegendMatch && (
+                              {entry.colorLegendMatch ? (
                                 <span className="text-xs text-green-600">
-                                  → {(entry.colorLegendMatch as any).shiftName}
+                                  → {String((entry.colorLegendMatch as any)?.shiftName || 'Unknown Shift')}
                                 </span>
-                              )}
+                              ) : null}
                               {entry.shiftColor && !entry.colorLegendMatch && !entry.shiftColor.startsWith('#INDEX') && !entry.shiftColor.startsWith('#PATTERN') && (
                                 <span className="text-xs text-amber-600">
                                   → Unmapped color
