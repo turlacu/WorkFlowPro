@@ -53,17 +53,45 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    console.log('Received color legend data:', body);
+    
     const validatedData = CreateShiftColorLegendSchema.parse(body);
+    console.log('Validated data:', validatedData);
+
+    // Check if color code already exists
+    const existingLegend = await prisma.shiftColorLegend.findUnique({
+      where: { colorCode: validatedData.colorCode }
+    });
+
+    if (existingLegend) {
+      console.log('Color code already exists:', validatedData.colorCode);
+      return NextResponse.json({ 
+        error: 'Color code already exists', 
+        details: `A legend with color code "${validatedData.colorCode}" already exists.` 
+      }, { status: 400 });
+    }
 
     const colorLegend = await prisma.shiftColorLegend.create({
       data: validatedData
     });
 
+    console.log('Created color legend:', colorLegend);
     return NextResponse.json(colorLegend);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.log('Validation error:', error.errors);
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
     }
+    
+    // Handle Prisma unique constraint error
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
+      console.log('Unique constraint violation:', error);
+      return NextResponse.json({ 
+        error: 'Color code already exists', 
+        details: 'A legend with this color code already exists.' 
+      }, { status: 400 });
+    }
+    
     console.error('Error creating color legend:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

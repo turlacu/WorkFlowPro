@@ -204,16 +204,55 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
 
   const handleColorMappingSave = async (mappings: any[]) => {
     try {
-      // Save each mapping
+      const errors: string[] = [];
+      
+      // Save each mapping with proper error handling
       for (const mapping of mappings) {
-        const response = await fetch('/api/shift-color-legend', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(mapping),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to save mapping for ${mapping.colorCode}`);
+        try {
+          // Check if mapping already exists
+          const existingMapping = existingColorMappings.find(
+            existing => existing.colorCode.toLowerCase() === mapping.colorCode.toLowerCase()
+          );
+          
+          const method = existingMapping ? 'PUT' : 'POST';
+          const body = existingMapping ? { ...mapping, id: existingMapping.id } : mapping;
+          
+          console.log(`${method} request for color mapping:`, body);
+          
+          const response = await fetch('/api/shift-color-legend', {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error(`Failed to save mapping for ${mapping.colorCode}:`, errorData);
+            
+            if (response.status === 400 && errorData.error === 'Color code already exists') {
+              // Try to update instead
+              if (method === 'POST') {
+                console.log('Attempting to update existing color instead...');
+                const updateResponse = await fetch('/api/shift-color-legend', {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ...mapping, id: existingMapping?.id }),
+                });
+                
+                if (!updateResponse.ok) {
+                  const updateError = await updateResponse.json();
+                  errors.push(`${mapping.colorCode}: ${updateError.details || updateError.error}`);
+                }
+              } else {
+                errors.push(`${mapping.colorCode}: ${errorData.details || errorData.error}`);
+              }
+            } else {
+              errors.push(`${mapping.colorCode}: ${errorData.details || errorData.error}`);
+            }
+          }
+        } catch (mappingError) {
+          console.error(`Error processing mapping for ${mapping.colorCode}:`, mappingError);
+          errors.push(`${mapping.colorCode}: ${mappingError instanceof Error ? mappingError.message : 'Unknown error'}`);
         }
       }
       
@@ -223,7 +262,13 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
         const updated = await response.json();
         setExistingColorMappings(updated);
       }
+      
+      // If there were errors, throw them
+      if (errors.length > 0) {
+        throw new Error(`Some mappings failed to save:\n${errors.join('\n')}`);
+      }
     } catch (error) {
+      console.error('Error in handleColorMappingSave:', error);
       throw error;
     }
   };

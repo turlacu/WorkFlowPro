@@ -104,9 +104,11 @@ export function ShiftColorLegendManager() {
 
   const handleSave = async () => {
     try {
-      const url = editingLegend ? '/api/shift-color-legend' : '/api/shift-color-legend';
+      const url = '/api/shift-color-legend';
       const method = editingLegend ? 'PUT' : 'POST';
       const body = editingLegend ? { ...formData, id: editingLegend.id } : formData;
+
+      console.log('Saving color legend:', { method, body });
 
       const response = await fetch(url, {
         method,
@@ -114,7 +116,19 @@ export function ShiftColorLegendManager() {
         body: JSON.stringify(body),
       });
 
-      if (!response.ok) throw new Error('Failed to save legend');
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Save error response:', errorData);
+        
+        if (errorData.error === 'Validation error' && errorData.details) {
+          const validationErrors = errorData.details.map((err: any) => `${err.path.join('.')}: ${err.message}`).join(', ');
+          throw new Error(`Validation failed: ${validationErrors}`);
+        } else if (errorData.error === 'Color code already exists') {
+          throw new Error(errorData.details || 'A color legend with this color code already exists.');
+        } else {
+          throw new Error(errorData.error || 'Failed to save legend');
+        }
+      }
 
       toast({
         title: 'Success',
@@ -127,7 +141,7 @@ export function ShiftColorLegendManager() {
       console.error('Error saving legend:', error);
       toast({
         title: 'Error',
-        description: `Failed to ${editingLegend ? 'update' : 'create'} color legend.`,
+        description: error instanceof Error ? error.message : `Failed to ${editingLegend ? 'update' : 'create'} color legend.`,
         variant: 'destructive',
       });
     }

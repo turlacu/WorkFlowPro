@@ -102,6 +102,7 @@ export function ColorMappingDialog({
       });
       onOpenChange(false);
     } catch (error) {
+      console.error('Error saving mappings:', error);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to save mappings.',
