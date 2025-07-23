@@ -358,6 +358,12 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card>
                   <CardContent className="p-4 text-center">
+                    <div className="text-2xl font-bold">{[...new Set(previewData.map(entry => entry.matchedUserId).filter(Boolean))].length}</div>
+                    <div className="text-sm text-muted-foreground">Unique Users</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold">{matchingReport.totalEntries}</div>
                     <div className="text-sm text-muted-foreground">Total Entries</div>
                   </CardContent>
@@ -365,19 +371,13 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-green-600">{matchingReport.matchedUsers}</div>
-                    <div className="text-sm text-muted-foreground">Matched Users</div>
+                    <div className="text-sm text-muted-foreground">Matched Entries</div>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-4 text-center">
                     <div className="text-2xl font-bold text-red-600">{matchingReport.unmatchedUsers}</div>
-                    <div className="text-sm text-muted-foreground">Unmatched Users</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <div className="text-2xl font-bold text-yellow-600">{matchingReport.duplicates.length}</div>
-                    <div className="text-sm text-muted-foreground">Duplicates</div>
+                    <div className="text-sm text-muted-foreground">Unmatched Entries</div>
                   </CardContent>
                 </Card>
               </div>
@@ -468,7 +468,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                             {entry.shiftName}
                           </Badge>
                         )}
-                        {entry.shiftColor && (
+                        {entry.shiftColor ? (
                           <div className="flex items-center gap-2">
                             <div
                               className="w-4 h-4 rounded border"
@@ -486,17 +486,17 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                                   → {String((entry.colorLegendMatch as any)?.shiftName || 'Unknown Shift')}
                                 </span>
                               ) : null}
-                              {entry.shiftColor && !entry.colorLegendMatch && !entry.shiftColor.startsWith('#INDEX') && !entry.shiftColor.startsWith('#PATTERN') && (
+                              {entry.shiftColor && !entry.colorLegendMatch && !entry.shiftColor.startsWith('#INDEX') && !entry.shiftColor.startsWith('#PATTERN') ? (
                                 <span className="text-xs text-amber-600">
                                   → Unmapped color
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                           </div>
-                        )}
-                        {!entry.shiftColor && (
+                        ) : null}
+                        {!entry.shiftColor ? (
                           <span className="text-xs text-muted-foreground">No color detected</span>
-                        )}
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell>
