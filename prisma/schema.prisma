@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +7,6 @@ datasource db {
   url      = "file:./data.db"
 }
 
-// NextAuth.js models
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -24,8 +20,7 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
   @@map("accounts")
@@ -42,22 +37,21 @@ model Session {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
-  role          String    @default("OPERATOR")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  accounts    Account[]
-  sessions    Session[]
-  assignments Assignment[]
-  createdAssignments Assignment[] @relation("CreatedByUser")
-  updatedAssignments Assignment[] @relation("UpdatedByUser")
-  teamSchedules TeamSchedule[]
+  id                 String         @id @default(cuid())
+  name               String?
+  email              String         @unique
+  emailVerified      DateTime?
+  image              String?
+  password           String?
+  role               String         @default("OPERATOR")
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  accounts           Account[]
+  updatedAssignments Assignment[]   @relation("UpdatedByUser")
+  createdAssignments Assignment[]   @relation("CreatedByUser")
+  assignments        Assignment[]
+  sessions           Session[]
+  teamSchedules      TeamSchedule[]
 
   @@map("users")
 }
@@ -71,39 +65,37 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-// Application models
 model Assignment {
-  id               String            @id @default(cuid())
-  name             String
-  description      String?
-  dueDate          DateTime
-  status           String            @default("PENDING")
-  priority         String            @default("NORMAL")
-  sourceLocation   String?
-  comment          String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  completedAt      DateTime?
-  
-  assignedToId     String?
-  assignedTo       User?             @relation(fields: [assignedToId], references: [id])
-  createdById      String
-  createdBy        User              @relation("CreatedByUser", fields: [createdById], references: [id])
-  lastUpdatedById  String
-  lastUpdatedBy    User              @relation("UpdatedByUser", fields: [lastUpdatedById], references: [id])
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+  dueDate         DateTime
+  status          String    @default("PENDING")
+  priority        String    @default("NORMAL")
+  sourceLocation  String?
+  comment         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  completedAt     DateTime?
+  assignedToId    String?
+  createdById     String
+  lastUpdatedById String
+  lastUpdatedBy   User      @relation("UpdatedByUser", fields: [lastUpdatedById], references: [id])
+  createdBy       User      @relation("CreatedByUser", fields: [createdById], references: [id])
+  assignedTo      User?     @relation(fields: [assignedToId], references: [id])
 
   @@map("assignments")
 }
 
 model TeamSchedule {
-  id          String   @id @default(cuid())
-  date        DateTime
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  shiftColor  String?  // Color code from Excel (hex color)
-  shiftHours  String?  // Hours information from Excel
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  date       DateTime
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  shiftColor String?
+  shiftHours String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([date, userId])
   @@map("team_schedules")
@@ -111,19 +103,14 @@ model TeamSchedule {
 
 model ShiftColorLegend {
   id          String   @id @default(cuid())
-  colorCode   String   @unique // Hex color code (e.g., "#FF0000")
-  colorName   String   // Human readable name (e.g., "Red")
-  shiftName   String   // Shift name (e.g., "Morning Shift")
-  startTime   String   // Start time (e.g., "08:00")
-  endTime     String   // End time (e.g., "16:00")
-  description String?  // Optional description
+  colorCode   String   @unique
+  colorName   String
+  shiftName   String
+  startTime   String
+  endTime     String
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("shift_color_legends")
 }
-
-// SQLite doesn't support enums, using strings instead
-// UserRole: ADMIN, PRODUCER, OPERATOR
-// AssignmentStatus: PENDING, IN_PROGRESS, COMPLETED  
-// AssignmentPriority: LOW, NORMAL, URGENT

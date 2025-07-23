@@ -120,14 +120,14 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
       7: '#00FFFF', // cyan
       8: '#000000', // black
       9: '#FFFFFF', // white
-      10: '#FF0000', // red
+      10: '#99BB3B', // light green - matches your color legend
       11: '#00FF00', // green
       12: '#0000FF', // blue  
-      13: '#FFFF00', // yellow
+      13: '#FFC000', // orange - matches your color legend  
       14: '#FF00FF', // magenta
       15: '#00FFFF', // cyan
       16: '#800000', // dark red
-      17: '#008000', // dark green
+      17: '#843E1C', // dark green - matches your color legend
       18: '#000080', // dark blue
       19: '#808000', // olive
       20: '#800080', // purple
@@ -137,11 +137,16 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
       // Add more common Excel indexed colors
       40: '#FF99CC', // light pink
       41: '#FFCC99', // light orange
-      42: '#FFFF99', // light yellow
-      43: '#CCFFCC', // light green
+      42: '#FFFF00', // yellow - matches your color legend
+      43: '#99BB3B', // light green - duplicate for safety
       44: '#CCFFFF', // light cyan
       45: '#99CCFF', // light blue
       46: '#CC99FF', // light purple
+      // Add specific mappings for your color legend
+      50: '#99BB3B', // light green Morning Shift
+      51: '#843E1C', // dark green Day Shift
+      52: '#FFFF00', // yellow Weekend Night
+      53: '#FFC000', // orange Weekend Morning
     };
     
     if (indexedColors[index]) {
@@ -208,7 +213,7 @@ function findMatchingColorLegend(detectedColor: string, colorLegends: unknown[])
   console.log(`🎨 Looking for color legend match for: ${detectedColor}`);
   console.log(`Available legends: ${colorLegends.map((l: unknown) => `${(l as {colorCode: string, shiftName: string}).colorCode} (${(l as {colorCode: string, shiftName: string}).shiftName})`).join(', ')}`);
   
-  // First try exact match
+  // First try exact match (case insensitive)
   const exactMatch = colorLegends.find((legend: unknown) => 
     (legend as {colorCode: string}).colorCode.toLowerCase() === detectedColor.toLowerCase()
   );
@@ -225,10 +230,32 @@ function findMatchingColorLegend(detectedColor: string, colorLegends: unknown[])
     return null;
   }
   
-  // If no exact match, could implement color similarity matching here
-  // For now, return null to avoid incorrect mappings
+  // Try color similarity matching for slight variations
+  const colorLegendsList = colorLegends as {colorCode: string, shiftName: string}[];
+  for (const legend of colorLegendsList) {
+    const distance = calculateColorDistance(detectedColor, legend.colorCode);
+    if (distance < 50) { // Allow small color variations
+      console.log(`✓ Similar color legend match: ${detectedColor} ≈ ${legend.colorCode} -> ${legend.shiftName} (distance: ${distance})`);
+      return legend;
+    }
+  }
+  
   console.log(`❌ No matching color legend found for: ${detectedColor}`);
   return null;
+}
+
+// Helper function to calculate color distance between two hex colors
+function calculateColorDistance(color1: string, color2: string): number {
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+  
+  if (!rgb1 || !rgb2) return Infinity;
+  
+  return Math.sqrt(
+    Math.pow(rgb1.r - rgb2.r, 2) + 
+    Math.pow(rgb1.g - rgb2.g, 2) + 
+    Math.pow(rgb1.b - rgb2.b, 2)
+  );
 }
 
 // Helper function to convert hex to RGB for color comparison
@@ -241,19 +268,6 @@ function hexToRgb(hex: string): {r: number, g: number, b: number} | null {
   } : null;
 }
 
-// Helper function to calculate color distance (currently unused but may be needed for future enhancements)
-// function colorDistance(color1: string, color2: string): number {
-//   const rgb1 = hexToRgb(color1);
-//   const rgb2 = hexToRgb(color2);
-//   
-//   if (!rgb1 || !rgb2) return Infinity;
-//   
-//   return Math.sqrt(
-//     Math.pow(rgb1.r - rgb2.r, 2) + 
-//     Math.pow(rgb1.g - rgb2.g, 2) + 
-//     Math.pow(rgb1.b - rgb2.b, 2)
-//   );
-// }
 
 // Parse Excel file and extract schedule data using specific known locations
 async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number): Promise<ExcelParseResult> {

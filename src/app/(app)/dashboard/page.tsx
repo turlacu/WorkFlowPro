@@ -142,13 +142,15 @@ export default function DashboardPage() {
         setSelectedProducers([]);
         setSelectedOperators([]);
       } else {
-        throw new Error('Failed to save schedule');
+        const errorData = await response.json();
+        console.error('Schedule save error response:', errorData);
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to save schedule`);
       }
     } catch (error) {
       console.error('Error saving schedule:', error);
       toast({
         title: getTranslation(currentLang, 'Error'),
-        description: 'Failed to save schedule',
+        description: error instanceof Error ? error.message : 'Failed to save schedule',
         variant: 'destructive',
       });
     }

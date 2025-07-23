@@ -57,6 +57,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  let requestBody: unknown;
+  let validatedData: z.infer<typeof CreateTeamScheduleSchema>;
+  
   try {
     const session = await getServerSession(authOptions);
     
@@ -68,8 +71,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const validatedData = CreateTeamScheduleSchema.parse(body);
+    requestBody = await request.json();
+    validatedData = CreateTeamScheduleSchema.parse(requestBody);
 
     const date = new Date(validatedData.date);
     
@@ -114,9 +117,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(createdSchedules);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error('Validation error creating team schedule:', error.errors);
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
     }
+    
     console.error('Error creating team schedule:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Request body:', requestBody);
+    
+    // Handle specific Prisma errors
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as { code: string, message: string };
+      if (prismaError.code === 'P2002') {
+        return NextResponse.json({ error: 'Duplicate schedule entry for the same user and date' }, { status: 409 });
+      }
+      if (prismaError.code === 'P2003') {
+        return NextResponse.json({ error: 'Invalid user ID provided' }, { status: 400 });
+      }
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    return NextResponse.json({ error: `Internal server error: ${errorMessage}` }, { status: 500 });
   }
 }
