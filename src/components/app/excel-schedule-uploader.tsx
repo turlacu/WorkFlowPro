@@ -22,7 +22,7 @@ interface ScheduleEntry {
   shiftName?: string;
   matchedUserId?: string;
   matchedUserName?: string;
-  colorLegendMatch?: any;
+  colorLegendMatch?: unknown;
 }
 
 interface MatchingReport {

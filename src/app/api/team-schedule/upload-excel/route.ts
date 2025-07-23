@@ -20,7 +20,7 @@ interface ScheduleEntry {
   shiftName?: string;
   matchedUserId?: string;
   matchedUserName?: string;
-  colorLegendMatch?: any;
+  colorLegendMatch?: unknown;
 }
 
 interface MatchingReport {
@@ -37,15 +37,16 @@ function rgbToHex(r: number, g: number, b: number): string {
 }
 
 // Helper function to parse Excel color with enhanced detection
-function parseExcelColor(cell: any, workbook: any): string | undefined {
-  if (!cell?.s) return undefined;
+function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
+  if (!(cell as {s?: unknown})?.s) return undefined;
   
-  const style = cell.s;
+  const style = (cell as {s: unknown}).s;
   console.log('Cell style object:', JSON.stringify(style, null, 2));
   
   // Method 1: Check background color (fill) - ARGB format
-  if (style.fill?.bgColor?.rgb) {
-    const rgb = style.fill.bgColor.rgb;
+  const styleObj = style as {fill?: {bgColor?: {rgb?: unknown, indexed?: number}, fgColor?: {rgb?: unknown}, patternFill?: {bgColor?: {rgb?: unknown, indexed?: number}}}, fgColor?: {rgb?: unknown}};
+  if (styleObj.fill?.bgColor?.rgb) {
+    const rgb = styleObj.fill.bgColor.rgb;
     if (typeof rgb === 'string' && rgb.length === 8) {
       const r = parseInt(rgb.substr(2, 2), 16);
       const g = parseInt(rgb.substr(4, 2), 16);
@@ -62,8 +63,8 @@ function parseExcelColor(cell: any, workbook: any): string | undefined {
   }
   
   // Method 2: Check pattern fill background
-  if (style.fill?.patternFill?.bgColor?.rgb) {
-    const rgb = style.fill.patternFill.bgColor.rgb;
+  if (styleObj.fill?.patternFill?.bgColor?.rgb) {
+    const rgb = styleObj.fill.patternFill.bgColor.rgb;
     if (typeof rgb === 'string' && rgb.length === 8) {
       const r = parseInt(rgb.substr(2, 2), 16);
       const g = parseInt(rgb.substr(4, 2), 16);
@@ -79,8 +80,8 @@ function parseExcelColor(cell: any, workbook: any): string | undefined {
   }
 
   // Method 3: Check foreground color (font color, but sometimes used for cell highlighting)
-  if (style.fgColor?.rgb) {
-    const rgb = style.fgColor.rgb;
+  if (styleObj.fgColor?.rgb) {
+    const rgb = styleObj.fgColor.rgb;
     if (typeof rgb === 'string' && rgb.length === 8) {
       const r = parseInt(rgb.substr(2, 2), 16);
       const g = parseInt(rgb.substr(4, 2), 16);
@@ -92,16 +93,17 @@ function parseExcelColor(cell: any, workbook: any): string | undefined {
   }
   
   // Method 4: Enhanced indexed color mapping with workbook theme support
-  if (style.fill?.bgColor?.indexed !== undefined) {
-    const index = style.fill.bgColor.indexed;
+  if (styleObj.fill?.bgColor?.indexed !== undefined) {
+    const index = styleObj.fill.bgColor.indexed;
     console.log(`Found indexed background color: ${index}`);
     
     // First try to get color from workbook theme
     let themeColor = undefined;
-    if (workbook.Themes && workbook.Themes[0] && workbook.Themes[0].themeElements) {
-      const theme = workbook.Themes[0].themeElements;
-      if (theme.clrScheme && theme.clrScheme.colors && theme.clrScheme.colors[index]) {
-        themeColor = theme.clrScheme.colors[index];
+    const wb = workbook as {Themes?: unknown[]};
+    if (wb.Themes && wb.Themes[0]) {
+      const themeElement = wb.Themes[0] as {themeElements?: {clrScheme?: {colors?: unknown[]}}};
+      if (themeElement.themeElements?.clrScheme?.colors?.[index]) {
+        themeColor = themeElement.themeElements.clrScheme.colors[index];
         console.log(`Found theme color for index ${index}:`, themeColor);
       }
     }
@@ -153,8 +155,8 @@ function parseExcelColor(cell: any, workbook: any): string | undefined {
   }
   
   // Method 5: Check pattern fill indexed color
-  if (style.fill?.patternFill?.bgColor?.indexed !== undefined) {
-    const index = style.fill.patternFill.bgColor.indexed;
+  if (styleObj.fill?.patternFill?.bgColor?.indexed !== undefined) {
+    const index = styleObj.fill.patternFill.bgColor.indexed;
     console.log(`Found pattern indexed color: ${index}`);
     // Use same mapping as above
     const indexedColors: { [key: number]: string } = {
@@ -169,10 +171,10 @@ function parseExcelColor(cell: any, workbook: any): string | undefined {
   }
 
   // Method 6: Check for modern Excel color formats
-  if (style.fill?.fgColor?.rgb) {
-    const rgb = style.fill.fgColor.rgb;
+  if (styleObj.fill?.fgColor?.rgb) {
+    const rgb = styleObj.fill.fgColor.rgb;
     if (typeof rgb === 'string') {
-      let colorHex = rgb.length === 8 ? `#${rgb.substr(2)}` : `#${rgb}`;
+      const colorHex = rgb.length === 8 ? `#${rgb.substr(2)}` : `#${rgb}`;
       console.log(`✓ Found fill foreground color: ${colorHex}`);
       return colorHex.toUpperCase();
     }
@@ -183,8 +185,13 @@ function parseExcelColor(cell: any, workbook: any): string | undefined {
 }
 
 // Fuzzy match user names
-function findMatchingUser(searchName: string, users: any[]): any | null {
-  const fuse = new Fuse(users, {
+function findMatchingUser(searchName: string, users: {id: string, name: string | null, email: string}[]): {id: string, name: string | null, email: string} | null {
+  // Filter out users without names before searching
+  const usersWithNames = users.filter((user): user is {id: string, name: string, email: string} => 
+    user.name !== null && user.name.trim().length > 0
+  );
+  
+  const fuse = new Fuse(usersWithNames, {
     keys: ['name'],
     threshold: 0.4, // Adjust for fuzzy matching sensitivity
     includeScore: true
@@ -195,19 +202,20 @@ function findMatchingUser(searchName: string, users: any[]): any | null {
 }
 
 // Helper function to find closest matching color legend
-function findMatchingColorLegend(detectedColor: string, colorLegends: any[]): any | null {
+function findMatchingColorLegend(detectedColor: string, colorLegends: unknown[]): unknown | null {
   if (!detectedColor || !colorLegends.length) return null;
   
   console.log(`🎨 Looking for color legend match for: ${detectedColor}`);
-  console.log(`Available legends: ${colorLegends.map(l => `${l.colorCode} (${l.shiftName})`).join(', ')}`);
+  console.log(`Available legends: ${colorLegends.map((l: unknown) => `${(l as {colorCode: string, shiftName: string}).colorCode} (${(l as {colorCode: string, shiftName: string}).shiftName})`).join(', ')}`);
   
   // First try exact match
-  const exactMatch = colorLegends.find(legend => 
-    legend.colorCode.toLowerCase() === detectedColor.toLowerCase()
+  const exactMatch = colorLegends.find((legend: unknown) => 
+    (legend as {colorCode: string}).colorCode.toLowerCase() === detectedColor.toLowerCase()
   );
   
   if (exactMatch) {
-    console.log(`✓ Exact color legend match: ${exactMatch.colorCode} -> ${exactMatch.shiftName}`);
+    const match = exactMatch as {colorCode: string, shiftName: string};
+    console.log(`✓ Exact color legend match: ${match.colorCode} -> ${match.shiftName}`);
     return exactMatch;
   }
   
@@ -233,19 +241,19 @@ function hexToRgb(hex: string): {r: number, g: number, b: number} | null {
   } : null;
 }
 
-// Helper function to calculate color distance
-function colorDistance(color1: string, color2: string): number {
-  const rgb1 = hexToRgb(color1);
-  const rgb2 = hexToRgb(color2);
-  
-  if (!rgb1 || !rgb2) return Infinity;
-  
-  return Math.sqrt(
-    Math.pow(rgb1.r - rgb2.r, 2) + 
-    Math.pow(rgb1.g - rgb2.g, 2) + 
-    Math.pow(rgb1.b - rgb2.b, 2)
-  );
-}
+// Helper function to calculate color distance (currently unused but may be needed for future enhancements)
+// function colorDistance(color1: string, color2: string): number {
+//   const rgb1 = hexToRgb(color1);
+//   const rgb2 = hexToRgb(color2);
+//   
+//   if (!rgb1 || !rgb2) return Infinity;
+//   
+//   return Math.sqrt(
+//     Math.pow(rgb1.r - rgb2.r, 2) + 
+//     Math.pow(rgb1.g - rgb2.g, 2) + 
+//     Math.pow(rgb1.b - rgb2.b, 2)
+//   );
+// }
 
 // Parse Excel file and extract schedule data using specific known locations
 async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number): Promise<ExcelParseResult> {
@@ -266,7 +274,7 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
     }
     
     const scheduleEntries: ScheduleEntry[] = [];
-    const errors: string[] = [];
+    // const errors: string[] = []; // Uncomment if error handling is added later
     
     console.log('Using specific Excel layout: Names in B15:B18, Dates in C13:AG13');
     
@@ -346,7 +354,8 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
             if (shiftColor) {
               colorLegendMatch = findMatchingColorLegend(shiftColor, colorLegends);
               if (colorLegendMatch) {
-                shiftName = colorLegendMatch.shiftName;
+                const legend = colorLegendMatch as {shiftName: string};
+                shiftName = legend.shiftName;
                 console.log(`🎯 Color ${shiftColor} matched to shift: ${shiftName}`);
               }
             }
@@ -441,7 +450,7 @@ export async function POST(request: NextRequest) {
 
     // Get all operators from database for fuzzy matching
     console.log('Fetching operators from database...');
-    let operators;
+    let operators: {id: string, name: string | null, email: string}[];
     try {
       operators = await prisma.user.findMany({
         where: { role: 'OPERATOR' },
@@ -479,7 +488,7 @@ export async function POST(request: NextRequest) {
       if (matchedUser) {
         console.log(`✓ Matched "${entry.name}" to "${matchedUser.name}" (${matchedUser.id})`);
         entry.matchedUserId = matchedUser.id;
-        entry.matchedUserName = matchedUser.name;
+        entry.matchedUserName = matchedUser.name || matchedUser.email;
         
         // Check for duplicates using userId and date (same as DB constraint)
         const duplicateKey = `${entry.matchedUserId}-${entry.date}`;
