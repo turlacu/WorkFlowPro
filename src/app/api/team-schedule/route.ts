@@ -22,13 +22,13 @@ export async function GET(request: NextRequest) {
 
     let whereClause: any = {};
     if (date) {
-      const targetDate = new Date(date);
-      const nextDay = new Date(targetDate);
-      nextDay.setDate(nextDay.getDate() + 1);
+      // Parse date as local date without timezone conversion
+      const targetDate = new Date(date + 'T00:00:00');
+      const nextDay = new Date(date + 'T23:59:59.999');
       
       whereClause.date = {
         gte: targetDate,
-        lt: nextDay,
+        lte: nextDay,
       };
     }
 
@@ -74,14 +74,17 @@ export async function POST(request: NextRequest) {
     requestBody = await request.json();
     validatedData = CreateTeamScheduleSchema.parse(requestBody);
 
-    const date = new Date(validatedData.date);
+    // Parse date without timezone issues
+    const dateStr = validatedData.date.split('T')[0];
+    const date = new Date(dateStr + 'T00:00:00');
+    const endOfDay = new Date(dateStr + 'T23:59:59.999');
     
     // Remove existing schedules for this date
     await prisma.teamSchedule.deleteMany({
       where: {
         date: {
           gte: date,
-          lt: new Date(date.getTime() + 24 * 60 * 60 * 1000), // next day
+          lte: endOfDay,
         },
       },
     });
@@ -99,7 +102,7 @@ export async function POST(request: NextRequest) {
       where: {
         date: {
           gte: date,
-          lt: new Date(date.getTime() + 24 * 60 * 60 * 1000),
+          lte: endOfDay,
         },
       },
       include: {

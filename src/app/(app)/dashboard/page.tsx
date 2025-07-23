@@ -69,6 +69,8 @@ export default function DashboardPage() {
   const [selectedOperators, setSelectedOperators] = React.useState<User[]>([]);
   const [users, setUsers] = React.useState<User[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [existingSchedule, setExistingSchedule] = React.useState<{producers: User[], operators: User[]}>({producers: [], operators: []});
+  const [loadingSchedule, setLoadingSchedule] = React.useState(false);
   const { currentLang } = useLanguage();
   const [selectedScheduleFile, setSelectedScheduleFile] = React.useState<File | null>(null);
   const { toast } = useToast();
@@ -99,6 +101,51 @@ export default function DashboardPage() {
 
     fetchUsers();
   }, [currentLang, toast]);
+
+  // Fetch existing schedule for selected date
+  const fetchExistingSchedule = React.useCallback(async (date: Date) => {
+    if (!date) return;
+    
+    try {
+      setLoadingSchedule(true);
+      const dateString = format(date, 'yyyy-MM-dd');
+      const response = await fetch(`/api/team-schedule?date=${dateString}`);
+      
+      if (response.ok) {
+        const scheduleData = await response.json();
+        const scheduledUsers = scheduleData.map((schedule: any) => schedule.user);
+        const scheduledProducers = scheduledUsers.filter((user: User) => user.role === 'PRODUCER');
+        const scheduledOperators = scheduledUsers.filter((user: User) => user.role === 'OPERATOR');
+        
+        setExistingSchedule({
+          producers: scheduledProducers,
+          operators: scheduledOperators,
+        });
+        
+        // Pre-select existing users in the form
+        setSelectedProducers(scheduledProducers);
+        setSelectedOperators(scheduledOperators);
+      } else {
+        setExistingSchedule({producers: [], operators: []});
+        setSelectedProducers([]);
+        setSelectedOperators([]);
+      }
+    } catch (error) {
+      console.error('Error fetching existing schedule:', error);
+      setExistingSchedule({producers: [], operators: []});
+      setSelectedProducers([]);
+      setSelectedOperators([]);
+    } finally {
+      setLoadingSchedule(false);
+    }
+  }, []);
+
+  // Fetch schedule when date changes
+  React.useEffect(() => {
+    if (selectedDate) {
+      fetchExistingSchedule(selectedDate);
+    }
+  }, [selectedDate, fetchExistingSchedule]);
 
   const handleSaveSchedule = React.useCallback(async () => {
     if (!selectedDate) {
@@ -138,9 +185,10 @@ export default function DashboardPage() {
           title: getTranslation(currentLang, 'Success'),
           description: 'Schedule saved successfully',
         });
-        // Reset selections
-        setSelectedProducers([]);
-        setSelectedOperators([]);
+        // Refresh the schedule data
+        if (selectedDate) {
+          await fetchExistingSchedule(selectedDate);
+        }
       } else {
         const errorData = await response.json();
         console.error('Schedule save error response:', errorData);
@@ -158,8 +206,7 @@ export default function DashboardPage() {
 
   const handleDateSelect = React.useCallback((date: Date | undefined) => {
     setSelectedDate(date);
-    setSelectedProducers([]);
-    setSelectedOperators([]);
+    // Don't reset selections here - let the useEffect handle loading existing data
   }, []);
 
   const toggleSelection = React.useCallback((user: User, type: 'producer' | 'operator') => {
@@ -337,10 +384,24 @@ export default function DashboardPage() {
                       </Card>
 
                       <Card className="shadow-md">
-                        <CardHeader><CardTitle>{getTranslation(currentLang, 'SummaryForDateTitle', {date: formattedSelectedDate})}</CardTitle></CardHeader>
+                        <CardHeader>
+                          <CardTitle>{getTranslation(currentLang, 'SummaryForDateTitle', {date: formattedSelectedDate})}</CardTitle>
+                          {loadingSchedule && <p className="text-sm text-muted-foreground">Loading existing schedule...</p>}
+                        </CardHeader>
                         <CardContent className="space-y-1 text-sm">
                           <p><strong>{getTranslation(currentLang, 'ProducersOnDutySummary')}</strong> {producersOnDutyText}</p>
                           <p><strong>{getTranslation(currentLang, 'OperatorsOnDutySummary')}</strong> {operatorsOnDutyText}</p>
+                          {(existingSchedule.producers.length > 0 || existingSchedule.operators.length > 0) && (
+                            <div className="mt-4 p-3 bg-muted rounded-md">
+                              <p className="font-medium text-sm text-primary mb-1">Existing Schedule:</p>
+                              {existingSchedule.producers.length > 0 && (
+                                <p className="text-xs">Producers: {existingSchedule.producers.map(p => p.name).join(', ')}</p>
+                              )}
+                              {existingSchedule.operators.length > 0 && (
+                                <p className="text-xs">Operators: {existingSchedule.operators.map(o => o.name).join(', ')}</p>
+                              )}
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
 
@@ -358,7 +419,10 @@ export default function DashboardPage() {
                 <ExcelScheduleUploader 
                   selectedDate={selectedDate}
                   onUploadComplete={() => {
-                    // Refresh any data if needed
+                    // Refresh schedule data after successful upload
+                    if (selectedDate) {
+                      fetchExistingSchedule(selectedDate);
+                    }
                     toast({
                       title: 'Upload Complete',
                       description: 'Schedule has been updated successfully.',

@@ -9,10 +9,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Users, Calendar } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Users, Calendar, Palette } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { ColorMappingDialog } from './color-mapping-dialog';
 
 interface ScheduleEntry {
   name: string;
@@ -45,6 +46,9 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
   const [matchingReport, setMatchingReport] = React.useState<MatchingReport | null>(null);
   const [showPreview, setShowPreview] = React.useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
+  const [detectedColors, setDetectedColors] = React.useState<string[]>([]);
+  const [showColorMapping, setShowColorMapping] = React.useState(false);
+  const [existingColorMappings, setExistingColorMappings] = React.useState<any[]>([]);
 
   const { currentLang } = useLanguage();
   const { toast } = useToast();
@@ -94,11 +98,20 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
       const result = await response.json();
       setPreviewData(result.data || []);
       setMatchingReport(result.matchingReport);
+      
+      // Extract unique colors from preview data
+      const colors = [...new Set(
+        (result.data || [])
+          .filter((entry: ScheduleEntry) => entry.shiftColor)
+          .map((entry: ScheduleEntry) => entry.shiftColor!)
+      )] as string[];
+      setDetectedColors(colors);
+      
       setShowPreview(true);
 
       toast({
         title: 'Preview Generated',
-        description: `Found ${result.data?.length || 0} schedule entries.`,
+        description: `Found ${result.data?.length || 0} schedule entries${colors.length > 0 ? ` with ${colors.length} different colors` : ''}.`,
       });
     } catch (error) {
       console.error('Error generating preview:', error);
@@ -170,6 +183,48 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
     } finally {
       setUploading(false);
       setShowConfirmDialog(false);
+    }
+  };
+
+  // Fetch existing color mappings
+  React.useEffect(() => {
+    const fetchColorMappings = async () => {
+      try {
+        const response = await fetch('/api/shift-color-legend');
+        if (response.ok) {
+          const mappings = await response.json();
+          setExistingColorMappings(mappings);
+        }
+      } catch (error) {
+        console.error('Error fetching color mappings:', error);
+      }
+    };
+    fetchColorMappings();
+  }, []);
+
+  const handleColorMappingSave = async (mappings: any[]) => {
+    try {
+      // Save each mapping
+      for (const mapping of mappings) {
+        const response = await fetch('/api/shift-color-legend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mapping),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to save mapping for ${mapping.colorCode}`);
+        }
+      }
+      
+      // Refresh existing mappings
+      const response = await fetch('/api/shift-color-legend');
+      if (response.ok) {
+        const updated = await response.json();
+        setExistingColorMappings(updated);
+      }
+    } catch (error) {
+      throw error;
     }
   };
 
@@ -352,7 +407,17 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
             </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {detectedColors.length > 0 && (
+              <Button 
+                variant="secondary" 
+                onClick={() => setShowColorMapping(true)}
+                className="mr-auto"
+              >
+                <Palette className="h-4 w-4 mr-2" />
+                Configure Colors ({detectedColors.length})
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setShowPreview(false)}>
               Close Preview
             </Button>
@@ -384,6 +449,19 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Color Mapping Dialog */}
+      <ColorMappingDialog
+        open={showColorMapping}
+        onOpenChange={setShowColorMapping}
+        detectedColors={detectedColors.map(color => ({
+          color,
+          count: previewData.filter(entry => entry.shiftColor === color).length,
+          entries: previewData.filter(entry => entry.shiftColor === color).map(entry => `${entry.name} - ${entry.date}`)
+        }))}
+        existingMappings={existingColorMappings}
+        onSaveMappings={handleColorMappingSave}
+      />
     </div>
   );
 }

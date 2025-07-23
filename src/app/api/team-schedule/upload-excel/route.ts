@@ -377,7 +377,7 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
             // Create date string for the target month/year
             try {
               const dateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const testDate = new Date(dateStr);
+              const testDate = new Date(dateStr + 'T00:00:00');
               
               // Validate the date is valid
               if (isNaN(testDate.getTime()) || testDate.getMonth() !== targetMonth - 1) {
@@ -623,7 +623,7 @@ export async function POST(request: NextRequest) {
         try {
           await prisma.teamSchedule.create({
             data: {
-              date: new Date(entry.date),
+              date: new Date(entry.date + 'T00:00:00'),
               userId: entry.matchedUserId!,
               shiftColor: entry.shiftColor,
               shiftHours: entry.shiftHours
