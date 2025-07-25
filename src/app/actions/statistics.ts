@@ -43,8 +43,19 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
       return { error: 'Start date cannot be after end date.' };
     }
 
+    // Create date objects that capture full local date ranges
     const startDate = new Date(validated.startDate);
-    const endDate = new Date(validated.endDate + 'T23:59:59.999Z'); // Include the entire end date
+    startDate.setHours(0, 0, 0, 0); // Start of day
+    
+    const endDate = new Date(validated.endDate);
+    endDate.setHours(23, 59, 59, 999); // End of day
+
+    console.log('📊 Statistics Action Debug:');
+    console.log('Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+
+    // First check total assignments in database
+    const totalAssignmentsInDb = await prisma.assignment.count();
+    console.log('Total assignments in database:', totalAssignmentsInDb);
 
     // Get all assignments in the date range
     const assignments = await prisma.assignment.findMany({
@@ -71,6 +82,38 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
         },
       },
     });
+
+    console.log('Assignments found in date range:', assignments.length);
+    
+    // Get all assignments regardless of date to debug
+    const allAssignments = await prisma.assignment.findMany({
+      select: {
+        name: true,
+        createdAt: true,
+        status: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+    
+    console.log('Recent assignments in DB (any date):');
+    allAssignments.forEach(a => {
+      console.log(`  - ${a.name}: ${a.createdAt.toISOString()} (${a.status})`);
+    });
+    
+    if (assignments.length > 0) {
+      console.log('Sample assignment dates IN RANGE:', assignments.slice(0, 3).map(a => ({
+        name: a.name,
+        createdAt: a.createdAt.toISOString(),
+        createdBy: a.createdBy.name,
+        status: a.status
+      })));
+    } else {
+      console.log('❌ No assignments found in the specified date range');
+      if (allAssignments.length > 0) {
+        console.log('💡 But there ARE assignments in the database - check date range logic');
+      }
+    }
 
     // Calculate producer statistics (assignments created)
     const producerStatsMap = new Map<string, { name: string; count: number }>();
@@ -157,6 +200,15 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
       mostActiveProducer,
       mostActiveOperator,
     };
+
+    console.log('📈 Final statistics result:', {
+      producerStats: producerStats.length,
+      operatorStats: operatorStats.length,
+      totalAssignmentsCreated,
+      totalAssignmentsCompleted,
+      mostActiveProducer,
+      mostActiveOperator
+    });
 
     return statistics;
   } catch (error) {

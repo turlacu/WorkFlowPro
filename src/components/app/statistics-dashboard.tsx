@@ -61,11 +61,20 @@ export function StatisticsDashboard() {
     async function fetchInitialStats() {
       try {
         setLoading(true);
-        const thirtyDaysAgo = subMonths(new Date(), 1); // Last 30 days
+        console.log('🔍 Fetching statistics...');
+        
+        // Use a broader date range to catch all data (last 6 months)
+        const sixMonthsAgo = subMonths(new Date(), 6);
         const today = new Date();
+        
+        const startDate = format(startOfMonth(sixMonthsAgo), 'yyyy-MM-dd');
+        const endDate = format(endOfMonth(today), 'yyyy-MM-dd');
+        
+        console.log('📅 Date range for statistics:', { startDate, endDate });
+        
         const result = await getStatisticsAction({
-          startDate: format(startOfMonth(thirtyDaysAgo), 'yyyy-MM-dd'),
-          endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
+          startDate,
+          endDate,
         });
         if (!('error' in result)) {
           setStatsData(result);
