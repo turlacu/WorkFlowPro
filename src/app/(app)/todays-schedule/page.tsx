@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
-import { CalendarClock, UploadCloud, FileText, Loader2 } from 'lucide-react';
+import { CalendarClock, UploadCloud, FileText, Loader2, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 // Default current user role - will be replaced with actual auth context
 const DEFAULT_CURRENT_USER_ROLE: 'ADMIN' | 'PRODUCER' | 'OPERATOR' = 'ADMIN';
@@ -17,6 +18,7 @@ const DEFAULT_CURRENT_USER_ROLE: 'ADMIN' | 'PRODUCER' | 'OPERATOR' = 'ADMIN';
 export default function TodaysSchedulePage() {
   const { currentLang } = useLanguage();
   const { toast } = useToast();
+  const router = useRouter();
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [scheduleHtmlContent, setScheduleHtmlContent] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -76,6 +78,14 @@ export default function TodaysSchedulePage() {
         <h1 className="text-3xl font-bold">
           {getTranslation(currentLang, 'TodaysScheduleDashboardTitle')}
         </h1>
+        <Button 
+          onClick={() => router.push('/dashboard')}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <ClipboardList className="h-4 w-4" />
+          Assignments
+        </Button>
       </div>
 
       {canUpload && (

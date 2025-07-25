@@ -49,7 +49,40 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(schedules);
+    // Fetch color legends for time range mapping
+    const colorLegends = await prisma.shiftColorLegend.findMany({
+      select: {
+        colorCode: true,
+        shiftName: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+
+    // Map schedules with color legend data
+    const schedulesWithTimeRanges = schedules.map(schedule => {
+      let timeRange = null;
+      let shiftName = null;
+      
+      if (schedule.shiftColor) {
+        const matchingLegend = colorLegends.find(legend => 
+          legend.colorCode.toLowerCase() === schedule.shiftColor?.toLowerCase()
+        );
+        
+        if (matchingLegend) {
+          timeRange = `${matchingLegend.startTime} - ${matchingLegend.endTime}`;
+          shiftName = matchingLegend.shiftName;
+        }
+      }
+      
+      return {
+        ...schedule,
+        timeRange,
+        shiftName,
+      };
+    });
+
+    return NextResponse.json(schedulesWithTimeRanges);
   } catch (error) {
     console.error('Error fetching team schedules:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -117,7 +150,40 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(createdSchedules);
+    // Fetch color legends for time range mapping
+    const colorLegends = await prisma.shiftColorLegend.findMany({
+      select: {
+        colorCode: true,
+        shiftName: true,
+        startTime: true,
+        endTime: true,
+      },
+    });
+
+    // Map created schedules with color legend data
+    const createdSchedulesWithTimeRanges = createdSchedules.map(schedule => {
+      let timeRange = null;
+      let shiftName = null;
+      
+      if (schedule.shiftColor) {
+        const matchingLegend = colorLegends.find(legend => 
+          legend.colorCode.toLowerCase() === schedule.shiftColor?.toLowerCase()
+        );
+        
+        if (matchingLegend) {
+          timeRange = `${matchingLegend.startTime} - ${matchingLegend.endTime}`;
+          shiftName = matchingLegend.shiftName;
+        }
+      }
+      
+      return {
+        ...schedule,
+        timeRange,
+        shiftName,
+      };
+    });
+
+    return NextResponse.json(createdSchedulesWithTimeRanges);
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Validation error creating team schedule:', error.errors);

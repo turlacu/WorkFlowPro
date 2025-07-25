@@ -21,6 +21,7 @@ interface ScheduleEntry {
   shiftHours?: string;
   shiftColor?: string;
   shiftName?: string;
+  timeRange?: string;
   matchedUserId?: string;
   matchedUserName?: string;
   colorLegendMatch?: unknown;
@@ -460,7 +461,9 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                     </TableCell>
                     <TableCell>{entry.name}</TableCell>
                     <TableCell>{formatDate(entry.date)}</TableCell>
-                    <TableCell>{entry.shiftHours}</TableCell>
+                    <TableCell>
+                      {entry.timeRange || entry.shiftHours}
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {entry.shiftName && (

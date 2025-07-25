@@ -18,6 +18,7 @@ interface ScheduleEntry {
   shiftHours?: string;
   shiftColor?: string;
   shiftName?: string;
+  timeRange?: string;
   matchedUserId?: string;
   matchedUserName?: string;
   colorLegendMatch?: unknown;
@@ -364,13 +365,15 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
             // Try to match color with legend
             let colorLegendMatch = null;
             let shiftName = undefined;
+            let timeRange = undefined;
             
             if (shiftColor) {
               colorLegendMatch = findMatchingColorLegend(shiftColor, colorLegends);
               if (colorLegendMatch) {
-                const legend = colorLegendMatch as {shiftName: string};
+                const legend = colorLegendMatch as {shiftName: string, startTime: string, endTime: string};
                 shiftName = legend.shiftName;
-                console.log(`🎯 Color ${shiftColor} matched to shift: ${shiftName}`);
+                timeRange = `${legend.startTime} - ${legend.endTime}`;
+                console.log(`🎯 Color ${shiftColor} matched to shift: ${shiftName} (${timeRange})`);
               }
             }
             
@@ -391,6 +394,7 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
                 shiftHours,
                 shiftColor,
                 shiftName,
+                timeRange,
                 colorLegendMatch
               });
               

@@ -417,7 +417,9 @@ export default function DashboardPage() {
                                           />
                                         )}
                                         <span>{p.name}</span>
-                                        {p.shiftHours && (
+                                        {(p as any).timeRange ? (
+                                          <span className="text-muted-foreground">({(p as any).timeRange})</span>
+                                        ) : p.shiftHours && (
                                           <span className="text-muted-foreground">({p.shiftHours})</span>
                                         )}
                                       </div>
@@ -439,7 +441,9 @@ export default function DashboardPage() {
                                           />
                                         )}
                                         <span>{o.name}</span>
-                                        {o.shiftHours && (
+                                        {(o as any).timeRange ? (
+                                          <span className="text-muted-foreground">({(o as any).timeRange})</span>
+                                        ) : o.shiftHours && (
                                           <span className="text-muted-foreground">({o.shiftHours})</span>
                                         )}
                                       </div>

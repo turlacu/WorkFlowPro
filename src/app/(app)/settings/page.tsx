@@ -16,11 +16,16 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface UserStats {
-  totalAssignmentsCreated: number;
-  firstAssignment: string | null;
-  lastAssignment: string | null;
+  userRole: string;
+  totalAssignmentsCreated?: number;
+  totalAssignmentsCompleted?: number;
+  firstAssignment?: string | null;
+  lastAssignment?: string | null;
+  firstCompletion?: string | null;
+  lastCompletion?: string | null;
   uniqueDaysWithActivity: number;
-  avgAssignmentsPerActiveDay: number;
+  avgAssignmentsPerActiveDay?: number;
+  avgCompletionsPerActiveDay?: number;
   busiestDay: string | null;
   busiestMonth: string | null;
 }
@@ -135,7 +140,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className={`grid w-full ${session.user.role === 'ADMIN' ? 'grid-cols-2' : 'grid-cols-3'}`}>
           <TabsTrigger value="profile">
             <User className="mr-2 h-4 w-4" />
             Profile
@@ -144,10 +149,12 @@ export default function SettingsPage() {
             <Lock className="mr-2 h-4 w-4" />
             Security
           </TabsTrigger>
-          <TabsTrigger value="statistics">
-            <BarChart3 className="mr-2 h-4 w-4" />
-            Statistics
-          </TabsTrigger>
+          {session.user.role !== 'ADMIN' && (
+            <TabsTrigger value="statistics">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Statistics
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -237,62 +244,98 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="statistics" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>User Statistics</CardTitle>
-              <CardDescription>
-                View your activity and performance metrics.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingStats ? (
-                <p className="text-muted-foreground">Loading statistics...</p>
-              ) : userStats ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Total Assignments Created</Label>
-                    <p className="text-2xl font-bold">{userStats.totalAssignmentsCreated}</p>
+        {session.user.role !== 'ADMIN' && (
+          <TabsContent value="statistics" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>User Statistics</CardTitle>
+                <CardDescription>
+                  {session.user.role === 'PRODUCER' 
+                    ? 'View your assignment creation activity and performance metrics.'
+                    : 'View your assignment completion activity and performance metrics.'
+                  }
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingStats ? (
+                  <p className="text-muted-foreground">Loading statistics...</p>
+                ) : userStats ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {session.user.role === 'PRODUCER' ? (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Total Assignments Created</Label>
+                          <p className="text-2xl font-bold">{userStats.totalAssignmentsCreated || 0}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Unique Days with Activity</Label>
+                          <p className="text-2xl font-bold">{userStats.uniqueDaysWithActivity}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>First Assignment Created</Label>
+                          <p className="text-sm text-muted-foreground">
+                            {userStats.firstAssignment ? new Date(userStats.firstAssignment).toLocaleDateString() : 'None'}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Assignment Created</Label>
+                          <p className="text-sm text-muted-foreground">
+                            {userStats.lastAssignment ? new Date(userStats.lastAssignment).toLocaleDateString() : 'None'}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Avg. Assignments Created per Active Day</Label>
+                          <p className="text-2xl font-bold">{userStats.avgAssignmentsPerActiveDay?.toFixed(1) || '0.0'}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Total Assignments Completed</Label>
+                          <p className="text-2xl font-bold">{userStats.totalAssignmentsCompleted || 0}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Unique Days with Activity</Label>
+                          <p className="text-2xl font-bold">{userStats.uniqueDaysWithActivity}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>First Assignment Completed</Label>
+                          <p className="text-sm text-muted-foreground">
+                            {userStats.firstCompletion ? new Date(userStats.firstCompletion).toLocaleDateString() : 'None'}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Assignment Completed</Label>
+                          <p className="text-sm text-muted-foreground">
+                            {userStats.lastCompletion ? new Date(userStats.lastCompletion).toLocaleDateString() : 'None'}
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Avg. Assignments Completed per Active Day</Label>
+                          <p className="text-2xl font-bold">{userStats.avgCompletionsPerActiveDay?.toFixed(1) || '0.0'}</p>
+                        </div>
+                      </>
+                    )}
+                    <div className="space-y-2">
+                      <Label>Busiest Day</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {userStats.busiestDay || 'No data'}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Busiest Month</Label>
+                      <p className="text-sm text-muted-foreground">
+                        {userStats.busiestMonth || 'No data'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Unique Days with Activity</Label>
-                    <p className="text-2xl font-bold">{userStats.uniqueDaysWithActivity}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>First Assignment</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {userStats.firstAssignment ? new Date(userStats.firstAssignment).toLocaleDateString() : 'None'}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Last Assignment</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {userStats.lastAssignment ? new Date(userStats.lastAssignment).toLocaleDateString() : 'None'}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Avg. Assignments per Active Day</Label>
-                    <p className="text-2xl font-bold">{userStats.avgAssignmentsPerActiveDay.toFixed(1)}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Busiest Day</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {userStats.busiestDay || 'No data'}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Busiest Month</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {userStats.busiestMonth || 'No data'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-muted-foreground">No statistics available</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                ) : (
+                  <p className="text-muted-foreground">No statistics available</p>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
