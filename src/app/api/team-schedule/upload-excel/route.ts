@@ -39,7 +39,10 @@ function rgbToHex(r: number, g: number, b: number): string {
 
 // Helper function to parse Excel color with enhanced detection
 function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
-  if (!(cell as {s?: unknown})?.s) return undefined;
+  if (!(cell as {s?: unknown})?.s) {
+    console.log('No style object found in cell');
+    return undefined;
+  }
   
   const style = (cell as {s: unknown}).s;
   console.log('Cell style object:', JSON.stringify(style, null, 2));
@@ -90,6 +93,22 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
       const colorHex = rgbToHex(r, g, b);
       console.log(`✓ Found foreground color: ${colorHex}`);
       return colorHex;
+    } else if (typeof rgb === 'string' && rgb.length === 6) {
+      const colorHex = `#${rgb.toUpperCase()}`;
+      console.log(`✓ Found 6-char foreground color: ${colorHex}`);
+      return colorHex;
+    }
+  }
+  
+  // Method 3a: Direct check for fgColor.rgb (Excel .xls format)
+  const directStyle = style as any;
+  if (directStyle.fgColor?.rgb) {
+    const rgb = String(directStyle.fgColor.rgb);
+    // Skip default colors (white/black text)
+    if (rgb && rgb !== 'FFFFFF' && rgb !== 'ffffff' && rgb !== '000000' && rgb !== '000000') {
+      const colorHex = rgb.startsWith('#') ? rgb : `#${rgb}`;
+      console.log(`✓ Found direct fgColor from .xls: ${colorHex}`);
+      return colorHex.toUpperCase();
     }
   }
   
@@ -186,6 +205,46 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
     }
   }
   
+  // Method 7: Check for legacy Excel .xls color formats
+  const legacyStyle = style as any;
+  if (legacyStyle.bgColor) {
+    console.log('Found legacy bgColor:', JSON.stringify(legacyStyle.bgColor));
+    if (legacyStyle.bgColor.rgb) {
+      const rgb = String(legacyStyle.bgColor.rgb);
+      if (rgb && rgb !== 'FFFFFF' && rgb !== 'ffffff') {
+        const colorHex = rgb.startsWith('#') ? rgb : `#${rgb}`;
+        console.log(`✓ Found legacy background color: ${colorHex}`);
+        return colorHex.toUpperCase();
+      }
+    }
+    if (legacyStyle.bgColor.indexed !== undefined) {
+      const index = legacyStyle.bgColor.indexed;
+      console.log(`Found legacy indexed color: ${index}`);
+      // Use same indexed color mapping
+      const indexedColors: { [key: number]: string } = {
+        0: '#000000', 1: '#FFFFFF', 2: '#FF0000', 3: '#00FF00', 4: '#0000FF', 5: '#FFFF00',
+        6: '#FF00FF', 7: '#00FFFF', 8: '#000000', 9: '#FFFFFF', 10: '#99BB3B', 11: '#00FF00',
+        12: '#0000FF', 13: '#FFC000', 14: '#FF00FF', 15: '#00FFFF', 16: '#800000', 17: '#843E1C',
+        18: '#000080', 19: '#808000', 20: '#800080', 21: '#008080', 22: '#C0C0C0', 23: '#808080',
+        40: '#FF99CC', 41: '#FFCC99', 42: '#FFFF00', 43: '#99BB3B', 44: '#CCFFFF', 45: '#99CCFF',
+        46: '#CC99FF', 50: '#99BB3B', 51: '#843E1C', 52: '#FFFF00', 53: '#FFC000'
+      };
+      if (indexedColors[index]) {
+        console.log(`✓ Mapped legacy indexed color ${index} to ${indexedColors[index]}`);
+        return indexedColors[index];
+      }
+    }
+  }
+
+  // Method 8: Check for any color-related properties in the style object
+  const allKeys = Object.keys(legacyStyle);
+  console.log('All style keys:', allKeys);
+  for (const key of allKeys) {
+    if (key.toLowerCase().includes('color') || key.toLowerCase().includes('fill')) {
+      console.log(`Found color-related key "${key}":`, JSON.stringify(legacyStyle[key]));
+    }
+  }
+
   console.log('❌ No color found in cell style');
   return undefined;
 }
@@ -356,6 +415,7 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
         // Check if there's any content in this cell (shift data)
         if (scheduleCell && scheduleCell.v !== undefined && scheduleCell.v !== null && scheduleCell.v !== '') {
           const shiftHours = String(scheduleCell.v).trim();
+          console.log(`Processing cell ${XLSX.utils.encode_cell({ r: row, c: col })} for ${operatorName}: "${shiftHours}"`);
           const shiftColor = parseExcelColor(scheduleCell, workbook);
           
           // Skip empty cells and day abbreviations
