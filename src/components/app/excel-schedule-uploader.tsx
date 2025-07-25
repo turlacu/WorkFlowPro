@@ -383,7 +383,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                 </Card>
               </div>
               
-              {detectedColors.length > 0 && (
+              {detectedColors.length > 0 ? (
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -430,6 +430,34 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                           </div>
                         );
                       })}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2 text-amber-800">
+                      <Palette className="h-4 w-4" />
+                      No Colors Detected - Formatting Instructions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-amber-700 space-y-3">
+                    <p><strong>To enable color detection and shift mapping, format your Excel file as follows:</strong></p>
+                    <ul className="list-disc list-inside space-y-2 ml-2">
+                      <li><strong>Apply background colors</strong> to schedule cells containing shift hours (e.g., "8h", "12h")</li>
+                      <li><strong>Use consistent colors</strong> for each shift type across all days and employees</li>
+                      <li><strong>Supported methods:</strong>
+                        <ul className="list-disc list-inside ml-4 mt-1 space-y-1">
+                          <li>Right-click cell → Format Cells → Fill → Background Color</li>
+                          <li>Home tab → Fill Color button in Font section</li>
+                          <li>Select cells → Format as Table with colored styles</li>
+                        </ul>
+                      </li>
+                      <li><strong>Example colors:</strong> Light Green for Morning (06:00-14:00), Yellow for Day (14:00-22:00), Orange for Night (22:00-06:00)</li>
+                      <li><strong>After upload:</strong> Configure detected colors in the Color Legend Manager to map them to shift times</li>
+                    </ul>
+                    <div className="mt-3 p-3 bg-amber-100 rounded border">
+                      <p className="text-xs"><strong>Note:</strong> The system will auto-detect new colors and add them to your Color Legend for configuration. You can then assign shift names and time ranges to each color.</p>
                     </div>
                   </CardContent>
                 </Card>

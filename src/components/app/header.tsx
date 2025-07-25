@@ -44,8 +44,13 @@ export default function AppHeader() {
   let navButtonTextKey = '';
   let navButtonHref = '';
   let NavButtonIcon = null;
+  
+  // Assignments button for Today's Schedule page
+  let assignmentsButtonTextKey = '';
+  let assignmentsButtonHref = '';
+  let AssignmentsButtonIcon = null;
 
-  if (pathname === '/assignments' || pathname === '/todays-schedule') {
+  if (pathname === '/assignments') {
     navButtonTextKey = 'GoToAdminPanel';
     navButtonHref = '/dashboard';
     NavButtonIcon = ShieldCheck;
@@ -53,8 +58,19 @@ export default function AppHeader() {
     navButtonTextKey = 'GoToAssignments';
     navButtonHref = '/assignments';
     NavButtonIcon = ClipboardList;
+  } else if (pathname === '/todays-schedule') {
+    // Show both Admin Panel and Assignments buttons
+    navButtonTextKey = 'GoToAdminPanel';
+    navButtonHref = '/dashboard';
+    NavButtonIcon = ShieldCheck;
+    
+    assignmentsButtonTextKey = 'GoToAssignments';
+    assignmentsButtonHref = '/assignments';
+    AssignmentsButtonIcon = ClipboardList;
   }
+  
   const navButtonText = navButtonTextKey ? getTranslation(String(currentLang), navButtonTextKey) : '';
+  const assignmentsButtonText = assignmentsButtonTextKey ? getTranslation(String(currentLang), assignmentsButtonTextKey) : '';
 
 
   return (
@@ -77,6 +93,18 @@ export default function AppHeader() {
                 <a>
                   <CalendarClock className="mr-2 h-4 w-4" />
                   {getTranslation(String(currentLang), 'TodaysScheduleButton')}
+                </a>
+              </Button>
+            </Link>
+          )}
+
+          {/* Assignments Button (only for Today's Schedule page) */}
+          {AssignmentsButtonIcon && assignmentsButtonText && assignmentsButtonHref && (
+            <Link href={assignmentsButtonHref} passHref legacyBehavior>
+              <Button variant="outline" size="default" asChild className="h-10 text-xs"> 
+                <a>
+                  <AssignmentsButtonIcon className="mr-2 h-4 w-4" />
+                  {assignmentsButtonText}
                 </a>
               </Button>
             </Link>

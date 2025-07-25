@@ -493,7 +493,23 @@ export default function AssignmentsPage() {
                 </h4>
                 {teamForSelectedDay.producers.length > 0 ? (
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
-                    {teamForSelectedDay.producers.map(p => <li key={p.id}>{p.name}</li>)}
+                    {teamForSelectedDay.producers.map(p => (
+                      <li key={p.id} className="flex items-center gap-2">
+                        {(p as any).shiftColor && (
+                          <div
+                            className="w-3 h-3 rounded border"
+                            style={{ backgroundColor: (p as any).shiftColor }}
+                            title={(p as any).shiftColor}
+                          />
+                        )}
+                        <span>{p.name}</span>
+                        {(p as any).timeRange ? (
+                          <span className="text-xs text-muted-foreground">({(p as any).timeRange})</span>
+                        ) : (p as any).shiftHours && (
+                          <span className="text-xs text-muted-foreground">({(p as any).shiftHours})</span>
+                        )}
+                      </li>
+                    ))}
                   </ul>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">{getTranslation(currentLang, 'NoneScheduled')}</p>
@@ -506,7 +522,23 @@ export default function AssignmentsPage() {
                 </h4>
                 {teamForSelectedDay.operators.length > 0 ? (
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
-                    {teamForSelectedDay.operators.map(o => <li key={o.id}>{o.name}</li>)}
+                    {teamForSelectedDay.operators.map(o => (
+                      <li key={o.id} className="flex items-center gap-2">
+                        {(o as any).shiftColor && (
+                          <div
+                            className="w-3 h-3 rounded border"
+                            style={{ backgroundColor: (o as any).shiftColor }}
+                            title={(o as any).shiftColor}
+                          />
+                        )}
+                        <span>{o.name}</span>
+                        {(o as any).timeRange ? (
+                          <span className="text-xs text-muted-foreground">({(o as any).timeRange})</span>
+                        ) : (o as any).shiftHours && (
+                          <span className="text-xs text-muted-foreground">({(o as any).shiftHours})</span>
+                        )}
+                      </li>
+                    ))}
                   </ul>
                 ) : (
                   <p className="text-xs text-muted-foreground italic">{getTranslation(currentLang, 'NoneScheduled')}</p>

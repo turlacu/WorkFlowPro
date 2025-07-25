@@ -78,14 +78,6 @@ export default function TodaysSchedulePage() {
         <h1 className="text-3xl font-bold">
           {getTranslation(currentLang, 'TodaysScheduleDashboardTitle')}
         </h1>
-        <Button 
-          onClick={() => router.push('/dashboard')}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <ClipboardList className="h-4 w-4" />
-          Assignments
-        </Button>
       </div>
 
       {canUpload && (
