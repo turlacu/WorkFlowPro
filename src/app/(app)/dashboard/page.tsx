@@ -121,7 +121,9 @@ export default function DashboardPage() {
         const scheduledUsers = scheduleData.map((schedule: any) => ({
           ...schedule.user,
           shiftColor: schedule.shiftColor,
-          shiftHours: schedule.shiftHours
+          shiftHours: schedule.shiftHours,
+          timeRange: schedule.timeRange,
+          shiftName: schedule.shiftName
         }));
         const scheduledProducers = scheduledUsers.filter((user: any) => user.role === 'PRODUCER');
         const scheduledOperators = scheduledUsers.filter((user: any) => user.role === 'OPERATOR');

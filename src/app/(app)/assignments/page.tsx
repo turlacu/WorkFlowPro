@@ -133,7 +133,13 @@ export default function AssignmentsPage() {
     try {
       const dateString = format(date, 'yyyy-MM-dd');
       const teamSchedule = await api.getTeamSchedule(dateString);
-      const scheduledUsers = teamSchedule.map(schedule => schedule.user);
+      const scheduledUsers = teamSchedule.map(schedule => ({
+        ...schedule.user,
+        shiftColor: schedule.shiftColor,
+        shiftHours: schedule.shiftHours,
+        timeRange: schedule.timeRange,
+        shiftName: schedule.shiftName
+      }));
       const scheduledProducers = scheduledUsers.filter(user => user.role === 'PRODUCER');
       const scheduledOperators = scheduledUsers.filter(user => user.role === 'OPERATOR');
       
