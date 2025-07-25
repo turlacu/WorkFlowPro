@@ -25,33 +25,57 @@ import { MonthlyCompletionsTrendChart } from '@/components/app/charts/monthly-co
 import { format, subMonths, addMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-// Empty data structure for charts
-const emptyPieData = [
-  { name: 'Pending', value: 0, fill: 'hsl(var(--chart-3))' },
-  { name: 'In Progress', value: 0, fill: 'hsl(var(--chart-4))' },
-  { name: 'Urgent', value: 0, fill: 'hsl(var(--chart-5))' },
-  { name: 'Completed', value: 0, fill: 'hsl(var(--chart-1))' },
-];
+// Pie chart data will be calculated dynamically
+const generatePieData = (statsData: GenerateStatisticsOutput | null) => {
+  if (!statsData) {
+    return [
+      { name: 'No Data', value: 1, fill: 'hsl(var(--muted))' },
+    ];
+  }
+  
+  const totalCreated = statsData.totalAssignmentsCreated;
+  const totalCompleted = statsData.totalAssignmentsCompleted;
+  const inProgress = Math.max(0, totalCreated - totalCompleted);
+  
+  if (totalCreated === 0) {
+    return [
+      { name: 'No Assignments', value: 1, fill: 'hsl(var(--muted))' },
+    ];
+  }
+  
+  return [
+    { name: 'Completed', value: totalCompleted, fill: 'hsl(142 76% 36%)' },
+    { name: 'In Progress', value: inProgress, fill: 'hsl(48 96% 53%)' },
+  ].filter(item => item.value > 0);
+};
 
 export function StatisticsDashboard() {
   const { currentLang } = useLanguage();
   const [statsData, setStatsData] = React.useState<GenerateStatisticsOutput | null>(null);
-  const [userActivityDate, setUserActivityDate] = React.useState<Date>(new Date(2025, 4, 21)); // Default to May 21st, 2025
-  const [trendChartMonth, setTrendChartMonth] = React.useState<Date>(new Date(2025, 4, 1)); // Default to May 2025
+  const [loading, setLoading] = React.useState(true);
+  const [userActivityDate, setUserActivityDate] = React.useState<Date>(new Date());
+  const [trendChartMonth, setTrendChartMonth] = React.useState<Date>(new Date());
 
   React.useEffect(() => {
     // Fetch initial overall statistics (e.g., for last 30 days or a default range)
     async function fetchInitialStats() {
-      const thirtyDaysAgo = subMonths(new Date(),1); // Example: last 30 days
-      const today = new Date();
-      const result = await getStatisticsAction({
-        startDate: format(startOfMonth(thirtyDaysAgo), 'yyyy-MM-dd'),
-        endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
-      });
-      if (!('error' in result)) {
-        setStatsData(result);
-      } else {
-        console.error("Error fetching initial stats:", result.error);
+      try {
+        setLoading(true);
+        const thirtyDaysAgo = subMonths(new Date(), 1); // Last 30 days
+        const today = new Date();
+        const result = await getStatisticsAction({
+          startDate: format(startOfMonth(thirtyDaysAgo), 'yyyy-MM-dd'),
+          endDate: format(endOfMonth(today), 'yyyy-MM-dd'),
+        });
+        if (!('error' in result)) {
+          setStatsData(result);
+        } else {
+          console.error("Error fetching initial stats:", result.error);
+        }
+      } catch (error) {
+        console.error("Error fetching statistics:", error);
+      } finally {
+        setLoading(false);
       }
     }
     fetchInitialStats();
@@ -67,23 +91,33 @@ export function StatisticsDashboard() {
   
   // Status breakdown from actual data
   const statusBreakdown = {
-    pending: 0,
-    inProgress: 0,
-    urgent: 0,
-    completed: statsData?.totalAssignmentsCompleted || 0,
+    totalCreated: statsData?.totalAssignmentsCreated || 0,
+    totalCompleted: statsData?.totalAssignmentsCompleted || 0,
+    inProgress: Math.max(0, (statsData?.totalAssignmentsCreated || 0) - (statsData?.totalAssignmentsCompleted || 0)),
+    completionRate: statsData?.totalAssignmentsCreated 
+      ? Math.round((statsData.totalAssignmentsCompleted / statsData.totalAssignmentsCreated) * 100)
+      : 0,
   };
 
-  // Overall activity from actual data
-  const overallActivity = {
-    totalAssignments: statsData?.totalAssignmentsCreated || 0,
-    firstAssignment: '',
-    lastAssignment: '',
-    uniqueDays: 0,
-    avgPerDay: 0,
-    busiestDay: '',
-    busiestMonth: '',
+  // Team performance data
+  const teamPerformance = {
+    totalProducers: statsData?.producerStats.length || 0,
+    totalOperators: statsData?.operatorStats.length || 0,
+    mostActiveProducer: statsData?.mostActiveProducer || 'None',
+    mostActiveOperator: statsData?.mostActiveOperator || 'None',
   };
 
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading statistics...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -97,23 +131,47 @@ export function StatisticsDashboard() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
-            <h4 className="font-semibold text-muted-foreground mb-1">{getTranslation(currentLang, 'StatisticsStatusBreakdown')}</h4>
-            <p>{getTranslation(currentLang, 'AssignmentStatusPending')}: {statusBreakdown.pending}</p>
-            <p>{getTranslation(currentLang, 'AssignmentStatusInProgress')}: {statusBreakdown.inProgress}</p>
-            {/* For "Urgent", we might need to clarify if this is a priority count or a status */}
-            <p>{getTranslation(currentLang, 'PriorityUrgent')}: {statusBreakdown.urgent}</p> 
-            <p>{getTranslation(currentLang, 'AssignmentStatusCompleted')}: {statusBreakdown.completed}</p>
+            <h4 className="font-semibold text-muted-foreground mb-2">Assignment Summary</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
+                <p className="text-blue-600 dark:text-blue-400 font-semibold text-lg">{statusBreakdown.totalCreated}</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">Total Created</p>
+              </div>
+              <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
+                <p className="text-green-600 dark:text-green-400 font-semibold text-lg">{statusBreakdown.totalCompleted}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Completed</p>
+              </div>
+              <div className="bg-orange-50 dark:bg-orange-950 p-3 rounded-lg">
+                <p className="text-orange-600 dark:text-orange-400 font-semibold text-lg">{statusBreakdown.inProgress}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">In Progress</p>
+              </div>
+              <div className="bg-purple-50 dark:bg-purple-950 p-3 rounded-lg">
+                <p className="text-purple-600 dark:text-purple-400 font-semibold text-lg">{statusBreakdown.completionRate}%</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">Completion Rate</p>
+              </div>
+            </div>
           </div>
           <hr className="border-[hsl(var(--border))]" />
           <div>
-            <h4 className="font-semibold text-muted-foreground mb-1">{getTranslation(currentLang, 'StatisticsOverallActivity')}</h4>
-            <p>{getTranslation(currentLang, 'TotalAssignmentsCreated')}: {overallActivity.totalAssignments}</p>
-            <p>{getTranslation(currentLang, 'StatisticsFirstAssignment')}: {overallActivity.firstAssignment}</p>
-            <p>{getTranslation(currentLang, 'StatisticsLastAssignment')}: {overallActivity.lastAssignment}</p>
-            <p>{getTranslation(currentLang, 'StatisticsUniqueDaysWithActivity')}: {overallActivity.uniqueDays}</p>
-            <p>{getTranslation(currentLang, 'StatisticsAvgAssignmentsPerActiveDay')}: {overallActivity.avgPerDay}</p>
-            <p>{getTranslation(currentLang, 'StatisticsBusiestDay')}: {overallActivity.busiestDay}</p>
-            <p>{getTranslation(currentLang, 'StatisticsBusiestMonth')}: {overallActivity.busiestMonth}</p>
+            <h4 className="font-semibold text-muted-foreground mb-2">Team Performance</h4>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Active Producers:</span>
+                <span className="font-medium">{teamPerformance.totalProducers}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Active Operators:</span>
+                <span className="font-medium">{teamPerformance.totalOperators}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Top Producer:</span>
+                <span className="font-medium text-blue-600 dark:text-blue-400">{teamPerformance.mostActiveProducer}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Top Operator:</span>
+                <span className="font-medium text-green-600 dark:text-green-400">{teamPerformance.mostActiveOperator}</span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -130,10 +188,17 @@ export function StatisticsDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
-          <DailyCompletionsPieChart data={emptyPieData} />
-          <p className="text-xs text-muted-foreground mt-2">
-            {getTranslation(currentLang, 'StatisticsMostCompletionsOn', { date: 'May 16', count: '3' })}
-          </p>
+          <DailyCompletionsPieChart data={generatePieData(statsData)} />
+          <div className="mt-3 text-center space-y-1">
+            <p className="text-xs text-muted-foreground">
+              Assignment Status Distribution
+            </p>
+            {statsData && statsData.totalAssignmentsCreated > 0 && (
+              <p className="text-xs text-green-600 dark:text-green-400">
+                {statusBreakdown.completionRate}% completion rate
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
