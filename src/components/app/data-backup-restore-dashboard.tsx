@@ -323,8 +323,6 @@ export function DataBackupRestoreDashboard() {
                         <TableCell>{backup.size}</TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button 
-                            variant="outline" 
-                            size="sm" 
                             onClick={() => window.open(`/api/backup/${backup.id}`, '_blank')} 
                             aria-label={getTranslation(currentLang, 'DownloadButton')}
                           >
@@ -333,7 +331,7 @@ export function DataBackupRestoreDashboard() {
                           </Button>
                            <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="destructive" size="sm" aria-label={getTranslation(currentLang, 'DeleteButton')}>
+                              <Button className="bg-destructive text-destructive-foreground hover:bg-destructive/90" aria-label={getTranslation(currentLang, 'DeleteButton')}>
                                 <Trash2 className="mr-1 h-4 w-4" />
                                  {getTranslation(currentLang, 'DeleteButton')}
                               </Button>
@@ -381,8 +379,6 @@ export function DataBackupRestoreDashboard() {
                     
                     <div className="flex gap-2">
                       <Button 
-                        variant="outline" 
-                        size="sm" 
                         onClick={() => window.open(`/api/backup/${backup.id}`, '_blank')}
                         className="flex-1 min-h-[44px] touch-manipulation"
                       >
@@ -392,9 +388,7 @@ export function DataBackupRestoreDashboard() {
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button 
-                            variant="destructive" 
-                            size="sm" 
-                            className="flex-1 min-h-[44px] touch-manipulation"
+                            className="flex-1 min-h-[44px] touch-manipulation bg-destructive text-destructive-foreground hover:bg-destructive/90"
                           >
                             <Trash2 className="mr-2 h-4 w-4" />
                             {getTranslation(currentLang, 'DeleteButton')}

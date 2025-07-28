@@ -268,7 +268,6 @@ export function ColorMappingDialog({
 
         <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0 pt-4 sm:pt-0">
           <Button 
-            variant="outline" 
             onClick={() => onOpenChange(false)}
             className="w-full sm:w-auto h-11 sm:h-10"
           >

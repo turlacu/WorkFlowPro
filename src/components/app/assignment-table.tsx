@@ -222,8 +222,6 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
               {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
                 <>
                   <Button 
-                    variant="outline" 
-                    size="sm" 
                     onClick={(e) => handleEditClick(assignment, e)}
                     className="flex items-center gap-1 min-h-[36px]"
                   >
@@ -231,8 +229,6 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                     {getTranslation(currentLang, 'Edit')}
                   </Button>
                   <Button 
-                    variant="outline" 
-                    size="sm" 
                     onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)}
                     className="flex items-center gap-1 text-destructive hover:text-destructive min-h-[36px]"
                   >
@@ -305,8 +301,6 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                 </TableCell>
                 <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
                   <Button 
-                    variant="ghost" 
-                    size="sm" 
                     onClick={() => handleViewDetails(assignment)}
                     className="min-h-[44px] min-w-[44px] touch-manipulation"
                   >
@@ -315,8 +309,8 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                   {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
                     <>
                       <Button 
-                        variant="ghost" 
-                        size="icon" 
+                         
+                         
                         onClick={(e) => handleEditClick(assignment, e)} 
                         aria-label={getTranslation(currentLang, 'Edit')}
                         className="min-h-[44px] min-w-[44px] touch-manipulation"
@@ -324,8 +318,8 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button 
-                        variant="ghost" 
-                        size="icon" 
+                         
+                         
                         onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)} 
                         aria-label={getTranslation(currentLang, 'Delete')}
                         className="min-h-[44px] min-w-[44px] touch-manipulation text-destructive hover:text-destructive"
@@ -377,7 +371,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => setAssignmentToDelete(null)}>{getTranslation(currentLang, 'CancelButton')}</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmDelete} className={buttonVariants({variant: "destructive"})}>
+              <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 {getTranslation(currentLang, 'DeleteButton')}
               </AlertDialogAction>
             </AlertDialogFooter>
