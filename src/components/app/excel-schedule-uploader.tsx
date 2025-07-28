@@ -326,7 +326,6 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
             <Button
               onClick={handlePreview}
               disabled={!file || uploading}
-              variant="outline"
             >
               {uploading ? 'Processing...' : 'Preview Import'}
             </Button>
@@ -557,7 +556,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
           <DialogFooter className="flex-col sm:flex-row gap-2">
             {detectedColors.length > 0 && (
               <Button 
-                variant="secondary" 
+ 
                 onClick={() => setShowColorMapping(true)}
                 className="mr-auto"
               >
@@ -565,7 +564,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                 Configure Colors ({detectedColors.length})
               </Button>
             )}
-            <Button variant="outline" onClick={() => setShowPreview(false)}>
+            <Button onClick={() => setShowPreview(false)}>
               Close Preview
             </Button>
             <Button

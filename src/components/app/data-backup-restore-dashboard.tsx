@@ -460,9 +460,8 @@ export function DataBackupRestoreDashboard() {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button 
-                  variant="destructive" 
                   disabled={clearConfirmationText !== 'CLEAR DATABASE' || isClearingDatabase}
-                  className="w-full"
+                  className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
                 >
                   {isClearingDatabase && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {isClearingDatabase ? 'Clearing Database...' : 'Clear Database - PERMANENT ACTION'}
