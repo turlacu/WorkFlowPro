@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { getUserFromSession } from '@/lib/user-utils';
 import { z } from 'zod';
 
 const CreateAssignmentSchema = z.object({
@@ -100,13 +101,14 @@ export async function POST(request: NextRequest) {
     console.log('Assignment creation - Validated data:', validatedData);
     console.log('Assignment creation - Creating assignment for user:', session.user.id);
 
-    // Check if user exists in database
-    const userExists = await prisma.user.findUnique({
-      where: { id: session.user.id }
-    });
+    // Check if user exists in database, handling potential ID mismatches
+    const userExists = await getUserFromSession(session);
     
     if (!userExists) {
-      console.error('Assignment creation failed: User not found in database', session.user.id);
+      console.error('Assignment creation failed: User not found in database', { 
+        sessionId: session.user.id, 
+        email: session.user.email 
+      });
       return NextResponse.json({ error: 'User not found' }, { status: 400 });
     }
 
