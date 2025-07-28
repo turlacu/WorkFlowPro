@@ -107,11 +107,11 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl p-0">
-        <div className="p-6 relative">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl p-0 max-h-[90vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 relative">
           <DialogClose className="absolute right-4 top-4" />
           <DialogHeader className="mb-4">
-            <DialogTitle className="text-2xl font-bold text-primary">{assignment.name}</DialogTitle>
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-primary pr-8">{assignment.name}</DialogTitle>
             <p className="text-sm text-muted-foreground">
               {getTranslation(currentLang, 'AssignmentDetailModalFullDetails')}
             </p>
@@ -134,7 +134,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
             <Separator />
 
             {/* Priority & Status Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                   <Tag size={16} />
@@ -164,7 +164,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
             <Separator />
 
             {/* Assignee & Date Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                   <User size={16} />
@@ -196,7 +196,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     placeholder={getTranslation(currentLang, 'AssignmentDetailCommentPlaceholder')}
-                    className="min-h-[80px]"
+                    className="min-h-[100px] sm:min-h-[80px]"
                   />
                   <div className="flex justify-start pt-2">
                     <Button onClick={handlePostComment} size="sm">
@@ -210,7 +210,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
             <Separator />
 
             {/* Audit Trail Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3 sm:gap-y-4 text-sm">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <UserCircle size={16} />
@@ -240,7 +240,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                 <p className="text-foreground/90">{formatDate(assignment.updatedAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
               </div>
               {assignment.status === 'COMPLETED' && assignment.completedAt && (
-                <div className="space-y-1 md:col-span-2"> {/* Allow completed at to span if needed */}
+                <div className="space-y-1 sm:col-span-2"> {/* Allow completed at to span if needed */}
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <CalendarCheck size={16} />
                     <span>{getTranslation(currentLang, 'AssignmentDetailCompletedAtLabel')}</span>
@@ -251,8 +251,14 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
             </div>
           </div>
         </div>
-        <DialogFooter className="p-6 pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>{getTranslation(currentLang, 'Close')}</Button>
+        <DialogFooter className="p-4 sm:p-6 pt-3 sm:pt-4 border-t">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="w-full sm:w-auto h-11 sm:h-10"
+          >
+            {getTranslation(currentLang, 'Close')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

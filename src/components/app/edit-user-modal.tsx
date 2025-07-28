@@ -91,7 +91,7 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{getTranslation(currentLang, 'EditUserModalTitle')}</DialogTitle>
           <DialogDescription>
@@ -99,7 +99,7 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6 py-2 sm:py-4">
             <FormField
               control={form.control}
               name="name"
@@ -150,11 +150,21 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0 pt-4 sm:pt-0">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleCloseDialog} 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-11 sm:h-10"
+              >
                 {getTranslation(currentLang, 'CancelButton')}
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-11 sm:h-10"
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {getTranslation(currentLang, 'UserManagementSaveChangesButton')}
               </Button>

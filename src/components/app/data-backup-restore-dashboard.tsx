@@ -302,37 +302,102 @@ export function DataBackupRestoreDashboard() {
               <span className="ml-2">Loading backup history...</span>
             </div>
           ) : backupHistory.length > 0 ? (
-            <Table>
-              <TableCaption>{getTranslation(currentLang, 'UserActivityTableCaption', { count: backupHistory.length.toString(), type: "backups"})}</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{getTranslation(currentLang, 'BackupHistoryTableDate')}</TableHead>
-                  <TableHead>{getTranslation(currentLang, 'BackupHistoryTableFileName')}</TableHead>
-                  <TableHead>{getTranslation(currentLang, 'BackupHistoryTableSize')}</TableHead>
-                  <TableHead className="text-right">{getTranslation(currentLang, 'BackupHistoryTableActions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop Table - Hidden on mobile, visible md and up */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableCaption>{getTranslation(currentLang, 'UserActivityTableCaption', { count: backupHistory.length.toString(), type: "backups"})}</TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{getTranslation(currentLang, 'BackupHistoryTableDate')}</TableHead>
+                      <TableHead>{getTranslation(currentLang, 'BackupHistoryTableFileName')}</TableHead>
+                      <TableHead>{getTranslation(currentLang, 'BackupHistoryTableSize')}</TableHead>
+                      <TableHead className="text-right">{getTranslation(currentLang, 'BackupHistoryTableActions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {backupHistory.map((backup) => (
+                      <TableRow key={backup.id}>
+                        <TableCell>{format(backup.createdAt, 'PPP p')}</TableCell>
+                        <TableCell className="font-medium">{backup.fileName}</TableCell>
+                        <TableCell>{backup.size}</TableCell>
+                        <TableCell className="text-right space-x-1">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => window.open(`/api/backup/${backup.id}`, '_blank')} 
+                            aria-label={getTranslation(currentLang, 'DownloadButton')}
+                          >
+                            <Download className="mr-1 h-4 w-4" />
+                            {getTranslation(currentLang, 'DownloadButton')}
+                          </Button>
+                           <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="destructive" size="sm" aria-label={getTranslation(currentLang, 'DeleteButton')}>
+                                <Trash2 className="mr-1 h-4 w-4" />
+                                 {getTranslation(currentLang, 'DeleteButton')}
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>{getTranslation(currentLang, 'ConfirmDeleteBackupTitle')}</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  {getTranslation(currentLang, 'ConfirmDeleteBackupDescription', {fileName: backup.fileName})}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>{getTranslation(currentLang, 'CancelButton')}</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteBackup(backup.id)}>
+                                  {getTranslation(currentLang, 'DeleteButton')}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Cards - Visible on mobile, hidden md and up */}
+              <div className="block md:hidden space-y-4">
                 {backupHistory.map((backup) => (
-                  <TableRow key={backup.id}>
-                    <TableCell>{format(backup.createdAt, 'PPP p')}</TableCell>
-                    <TableCell className="font-medium">{backup.fileName}</TableCell>
-                    <TableCell>{backup.size}</TableCell>
-                    <TableCell className="text-right space-x-1">
+                  <Card key={backup.id} className="p-4">
+                    <div className="mb-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-sm truncate">{backup.fileName}</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {format(backup.createdAt, 'PPP p')}
+                          </p>
+                        </div>
+                        <div className="ml-2 text-right flex-shrink-0">
+                          <p className="text-sm font-medium">{backup.size}</p>
+                          <p className="text-xs text-muted-foreground">Size</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        onClick={() => window.open(`/api/backup/${backup.id}`, '_blank')} 
-                        aria-label={getTranslation(currentLang, 'DownloadButton')}
+                        onClick={() => window.open(`/api/backup/${backup.id}`, '_blank')}
+                        className="flex-1 min-h-[44px] touch-manipulation"
                       >
-                        <Download className="mr-1 h-4 w-4" />
+                        <Download className="mr-2 h-4 w-4" />
                         {getTranslation(currentLang, 'DownloadButton')}
                       </Button>
-                       <AlertDialog>
+                      <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm" aria-label={getTranslation(currentLang, 'DeleteButton')}>
-                            <Trash2 className="mr-1 h-4 w-4" />
-                             {getTranslation(currentLang, 'DeleteButton')}
+                          <Button 
+                            variant="destructive" 
+                            size="sm" 
+                            className="flex-1 min-h-[44px] touch-manipulation"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            {getTranslation(currentLang, 'DeleteButton')}
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent>
@@ -350,11 +415,14 @@ export function DataBackupRestoreDashboard() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+                <p className="text-xs text-center text-muted-foreground pt-2">
+                  {getTranslation(currentLang, 'UserActivityTableCaption', { count: backupHistory.length.toString(), type: "backups"})}
+                </p>
+              </div>
+            </>
           ) : (
             <p className="text-center text-muted-foreground py-4">
               {getTranslation(currentLang, 'NoBackupsAvailable')}

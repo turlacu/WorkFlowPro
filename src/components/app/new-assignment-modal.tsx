@@ -129,7 +129,7 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleCloseDialog()}>
-      <DialogContent className="sm:max-w-[525px]">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-[525px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditMode
@@ -143,7 +143,7 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6 py-2 sm:py-4">
             <FormField
               control={form.control}
               name="title"
@@ -190,7 +190,7 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <FormField
                 control={form.control}
                 name="priority"
@@ -280,7 +280,7 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
                         <Button
                           variant={'outline'}
                           className={cn(
-                            'w-full pl-3 text-left font-normal',
+                            'w-full pl-3 text-left font-normal h-11 sm:h-10',
                             !field.value && 'text-muted-foreground'
                           )}
                         >
@@ -289,11 +289,11 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
                           ) : (
                             <span>{getTranslation(currentLang, 'AssignmentPickDate')}</span>
                           )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50 shrink-0" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0" align="start" side="bottom" sideOffset={5}>
                       <Calendar
                         mode="single"
                         selected={field.value}
@@ -308,11 +308,21 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
               )}
             />
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleCloseDialog} disabled={isSubmitting}>
+            <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0 pt-4 sm:pt-0">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleCloseDialog} 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-11 sm:h-10"
+              >
                 {getTranslation(currentLang, 'CancelButton')}
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto h-11 sm:h-10"
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditMode
                   ? getTranslation(currentLang, 'SaveChangesButton')

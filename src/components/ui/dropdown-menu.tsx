@@ -27,8 +27,16 @@ const DropdownMenuSubTrigger = React.forwardRef<
   <DropdownMenuPrimitive.SubTrigger
     ref={ref}
     className={cn(
-      "flex cursor-default gap-2 select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none focus:bg-accent data-[state=open]:bg-accent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-      inset && "pl-8",
+      // Enhanced touch targets for mobile
+      "flex cursor-default gap-2 select-none items-center rounded-sm outline-none focus:bg-accent data-[state=open]:bg-accent [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      // Touch-friendly padding and text size
+      "px-3 py-3 sm:px-2 sm:py-1.5", // More padding on mobile
+      "text-base sm:text-sm", // Larger text on mobile
+      // Touch optimization
+      "touch-manipulation",
+      // Enhanced active states for mobile
+      "active:bg-accent/90",
+      inset && "pl-10 sm:pl-8", // More inset on mobile
       className
     )}
     {...props}
@@ -83,8 +91,16 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
-      inset && "pl-8",
+      // Enhanced touch targets for mobile
+      "relative flex cursor-default select-none items-center gap-2 rounded-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      // Touch-friendly padding and text size
+      "px-3 py-3 sm:px-2 sm:py-1.5", // More padding on mobile
+      "text-base sm:text-sm", // Larger text on mobile
+      // Touch optimization
+      "touch-manipulation",
+      // Enhanced active states for mobile
+      "active:bg-accent/90",
+      inset && "pl-10 sm:pl-8", // More inset on mobile
       className
     )}
     {...props}
@@ -99,13 +115,21 @@ const DropdownMenuCheckboxItem = React.forwardRef<
   <DropdownMenuPrimitive.CheckboxItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // Enhanced touch targets for mobile
+      "relative flex cursor-default select-none items-center rounded-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // Touch-friendly padding and text size
+      "py-3 pl-10 pr-3 sm:py-1.5 sm:pl-8 sm:pr-2", // More padding on mobile
+      "text-base sm:text-sm", // Larger text on mobile
+      // Touch optimization
+      "touch-manipulation",
+      // Enhanced active states for mobile
+      "active:bg-accent/90",
       className
     )}
     checked={checked}
     {...props}
   >
-    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+    <span className="absolute left-3 sm:left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
         <Check className="h-4 w-4" />
       </DropdownMenuPrimitive.ItemIndicator>
@@ -123,12 +147,20 @@ const DropdownMenuRadioItem = React.forwardRef<
   <DropdownMenuPrimitive.RadioItem
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // Enhanced touch targets for mobile
+      "relative flex cursor-default select-none items-center rounded-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      // Touch-friendly padding and text size
+      "py-3 pl-10 pr-3 sm:py-1.5 sm:pl-8 sm:pr-2", // More padding on mobile
+      "text-base sm:text-sm", // Larger text on mobile
+      // Touch optimization
+      "touch-manipulation",
+      // Enhanced active states for mobile
+      "active:bg-accent/90",
       className
     )}
     {...props}
   >
-    <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+    <span className="absolute left-3 sm:left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
         <Circle className="h-2 w-2 fill-current" />
       </DropdownMenuPrimitive.ItemIndicator>

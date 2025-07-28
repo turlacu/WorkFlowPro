@@ -247,8 +247,8 @@ export function StatisticsDashboard() {
                   />
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="sm" className="h-9 text-xs">{getTranslation(currentLang, 'StatisticsDayViewButton')}</Button>
-              <Button variant="outline" size="sm" className="h-9 text-xs">{getTranslation(currentLang, 'StatisticsMonthViewButton')}</Button>
+              <Button variant="outline" size="sm" className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation">{getTranslation(currentLang, 'StatisticsDayViewButton')}</Button>
+              <Button variant="outline" size="sm" className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation">{getTranslation(currentLang, 'StatisticsMonthViewButton')}</Button>
             </div>
           </div>
         </CardHeader>
@@ -258,22 +258,50 @@ export function StatisticsDashboard() {
               {getTranslation(currentLang, 'StatisticsProducersAssignmentsCreated')}
             </h3>
             {statsData && statsData.producerStats.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{getTranslation(currentLang, 'StatisticsProducerName')}</TableHead>
-                    <TableHead className="text-right">{getTranslation(currentLang, 'StatisticsAssignmentsCreated')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Desktop Table - Hidden on mobile, visible md and up */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{getTranslation(currentLang, 'StatisticsProducerName')}</TableHead>
+                        <TableHead className="text-right">{getTranslation(currentLang, 'StatisticsAssignmentsCreated')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {statsData.producerStats.map((producer) => (
+                        <TableRow key={producer.producerId}>
+                          <TableCell>{producer.producerId}</TableCell>
+                          <TableCell className="text-right">{producer.assignmentsCreated}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards - Visible on mobile, hidden md and up */}
+                <div className="block md:hidden space-y-3">
                   {statsData.producerStats.map((producer) => (
-                    <TableRow key={producer.producerId}>
-                      <TableCell>{producer.producerId}</TableCell>
-                      <TableCell className="text-right">{producer.assignmentsCreated}</TableCell>
-                    </TableRow>
+                    <div key={producer.producerId} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                            {producer.producerId.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{producer.producerId}</p>
+                          <p className="text-xs text-muted-foreground">{getTranslation(currentLang, 'StatisticsProducerName')}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-lg">{producer.assignmentsCreated}</p>
+                        <p className="text-xs text-muted-foreground">{getTranslation(currentLang, 'StatisticsAssignmentsCreated')}</p>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'UserActivityTableNoData')}</p>
             )}
@@ -283,22 +311,50 @@ export function StatisticsDashboard() {
               {getTranslation(currentLang, 'StatisticsOperatorsAssignmentsCompleted')}
             </h3>
              {statsData && statsData.operatorStats.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{getTranslation(currentLang, 'StatisticsOperatorName')}</TableHead>
-                    <TableHead className="text-right">{getTranslation(currentLang, 'UserActivityTableAssignmentsCompleted')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Desktop Table - Hidden on mobile, visible md and up */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{getTranslation(currentLang, 'StatisticsOperatorName')}</TableHead>
+                        <TableHead className="text-right">{getTranslation(currentLang, 'UserActivityTableAssignmentsCompleted')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {statsData.operatorStats.map((operator) => (
+                        <TableRow key={operator.operatorId}>
+                          <TableCell>{operator.operatorId}</TableCell>
+                          <TableCell className="text-right">{operator.assignmentsCompleted}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile Cards - Visible on mobile, hidden md and up */}
+                <div className="block md:hidden space-y-3">
                   {statsData.operatorStats.map((operator) => (
-                    <TableRow key={operator.operatorId}>
-                      <TableCell>{operator.operatorId}</TableCell>
-                      <TableCell className="text-right">{operator.assignmentsCompleted}</TableCell>
-                    </TableRow>
+                    <div key={operator.operatorId} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                          <span className="text-sm font-medium text-green-600 dark:text-green-400">
+                            {operator.operatorId.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{operator.operatorId}</p>
+                          <p className="text-xs text-muted-foreground">{getTranslation(currentLang, 'StatisticsOperatorName')}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-lg">{operator.assignmentsCompleted}</p>
+                        <p className="text-xs text-muted-foreground">{getTranslation(currentLang, 'UserActivityTableAssignmentsCompleted')}</p>
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'UserActivityTableNoData')}</p>
             )}
@@ -320,11 +376,11 @@ export function StatisticsDashboard() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={handlePrevMonth}>
+              <Button variant="outline" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handlePrevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-medium w-28 text-center">{format(trendChartMonth, 'MMMM yyyy')}</span>
-              <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleNextMonth}>
+              <Button variant="outline" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handleNextMonth}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

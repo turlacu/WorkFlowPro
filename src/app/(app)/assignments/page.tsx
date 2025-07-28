@@ -385,21 +385,21 @@ export default function AssignmentsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
        <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{getTranslation(currentLang, 'AssignmentsDashboardTitle')}</h1>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'AssignmentsDashboardTitle')}</h1>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
         <div className="lg:col-span-3">
           <Card className="shadow-lg h-full">
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-2">
+            <CardHeader className="pb-4 sm:pb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-2 mb-2">
                 <div className="flex-grow">
-                  <CardTitle className="text-2xl">{workAssignmentsTitle}</CardTitle>
-                  <CardDescription>{workAssignmentsDescription}</CardDescription>
+                  <CardTitle className="text-lg sm:text-xl md:text-2xl">{workAssignmentsTitle}</CardTitle>
+                  <CardDescription className="text-sm">{workAssignmentsDescription}</CardDescription>
                 </div>
                 {(session.user.role === 'PRODUCER' || session.user.role === 'ADMIN') && (
-                  <Button onClick={() => { setEditingAssignment(null); setIsAssignmentModalOpen(true); }}>
+                  <Button onClick={() => { setEditingAssignment(null); setIsAssignmentModalOpen(true); }} className="w-full sm:w-auto">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     {getTranslation(currentLang, 'NewAssignmentButton')}
                   </Button>
@@ -434,10 +434,10 @@ export default function AssignmentsPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
           <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="text-xl">{getTranslation(currentLang, 'SearchCardTitle')}</CardTitle>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg sm:text-xl">{getTranslation(currentLang, 'SearchCardTitle')}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative">
@@ -454,8 +454,8 @@ export default function AssignmentsPage() {
           </Card>
 
           <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="text-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg sm:text-xl">
                 {getTranslation(currentLang, 'CalendarTitle')}
               </CardTitle>
             </CardHeader>
@@ -484,11 +484,11 @@ export default function AssignmentsPage() {
           </Card>
 
           <Card className="shadow-md">
-            <CardHeader>
-              <CardTitle className="text-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg sm:text-xl">
                 {getTranslation(currentLang, 'TeamScheduleTitle')}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                  {getTranslation(currentLang, 'TeamScheduleDescription', { date: formattedSelectedDateString || displaySelectedDateString })}
               </CardDescription>
             </CardHeader>

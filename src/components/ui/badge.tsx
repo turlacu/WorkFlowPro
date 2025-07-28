@@ -4,7 +4,14 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-md border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus-visible:ring-offset-2",
+  // Enhanced touch-friendly sizing and spacing
+  "px-3 py-1 sm:px-2.5 sm:py-0.5", // More padding on mobile
+  "text-sm sm:text-xs", // Larger text on mobile
+  // Touch optimization
+  "touch-manipulation",
+  // Enhanced active states for interactive badges
+  "active:scale-95 transition-all duration-75",
   {
     variants: {
       variant: {
@@ -25,11 +32,26 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  /** Whether the badge is interactive (clickable) */
+  interactive?: boolean;
+}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, interactive = false, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div 
+      className={cn(
+        badgeVariants({ variant }), 
+        // Add cursor pointer and hover effects for interactive badges
+        interactive && "cursor-pointer hover:scale-105",
+        // Ensure minimum touch target for interactive badges
+        interactive && "min-h-[44px] min-w-[44px] sm:min-h-auto sm:min-w-auto",
+        className
+      )} 
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      {...props} 
+    />
   )
 }
 

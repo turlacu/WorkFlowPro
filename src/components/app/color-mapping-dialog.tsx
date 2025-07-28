@@ -128,7 +128,7 @@ export function ColorMappingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-4xl max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Palette className="h-5 w-5" />
@@ -147,7 +147,7 @@ export function ColorMappingDialog({
                 <CardTitle className="text-lg">Detected Colors Summary</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   {detectedColors.map(({ color, count }) => (
                     <div key={color} className="flex items-center gap-2 p-2 border rounded">
                       {getColorPreview(color)}
@@ -169,8 +169,8 @@ export function ColorMappingDialog({
               const detectedColor = detectedColors.find(dc => dc.color === mapping.colorCode);
               
               return (
-                <Card key={mapping.colorCode} className="p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card key={mapping.colorCode} className="p-3 sm:p-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                     <div className="space-y-4">
                       <div className="flex items-center gap-2">
                         {getColorPreview(mapping.colorCode)}
@@ -228,7 +228,7 @@ export function ColorMappingDialog({
                         </Select>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div className="space-y-2">
                           <Label htmlFor={`start-time-${index}`}>Start Time</Label>
                           <Input
@@ -266,11 +266,19 @@ export function ColorMappingDialog({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0 pt-4 sm:pt-0">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            className="w-full sm:w-auto h-11 sm:h-10"
+          >
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button 
+            onClick={handleSave} 
+            disabled={saving}
+            className="w-full sm:w-auto h-11 sm:h-10"
+          >
             <Save className="h-4 w-4 mr-2" />
             {saving ? 'Saving...' : 'Save Mappings'}
           </Button>

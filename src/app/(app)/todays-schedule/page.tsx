@@ -73,21 +73,21 @@ export default function TodaysSchedulePage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
           {getTranslation(currentLang, 'TodaysScheduleDashboardTitle')}
         </h1>
       </div>
 
       {canUpload && (
         <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <UploadCloud className="mr-2 h-5 w-5 text-primary" />
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="flex items-center text-lg sm:text-xl">
+              <UploadCloud className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-primary" />
               {getTranslation(currentLang, 'UploadScheduleDocTitle')}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-sm">
               {getTranslation(currentLang, 'UploadScheduleDocDescription')}
             </CardDescription>
           </CardHeader>
@@ -124,9 +124,9 @@ export default function TodaysSchedulePage() {
       )}
 
       <Card className="shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className="mr-2 h-5 w-5 text-primary" />
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="flex items-center text-lg sm:text-xl">
+            <FileText className="mr-2 h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             {getTranslation(currentLang, 'ScheduleContentTabTitle')}
           </CardTitle>
         </CardHeader>

@@ -12,7 +12,11 @@ const RadioGroup = React.forwardRef<
 >(({ className, ...props }, ref) => {
   return (
     <RadioGroupPrimitive.Root
-      className={cn("grid gap-2", className)}
+      className={cn(
+        // Enhanced spacing for touch targets
+        "grid gap-3 sm:gap-2", // More spacing on mobile
+        className
+      )}
       {...props}
       ref={ref}
     />
@@ -28,7 +32,14 @@ const RadioGroupItem = React.forwardRef<
     <RadioGroupPrimitive.Item
       ref={ref}
       className={cn(
-        "aspect-square h-4 w-4 rounded-full border border-primary text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        // Enhanced touch targets for mobile
+        "aspect-square rounded-full border border-primary text-primary ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        // Touch-friendly sizing
+        "h-5 w-5 sm:h-4 sm:w-4", // Larger on mobile
+        // Touch optimization
+        "touch-manipulation",
+        // Enhanced active states for mobile
+        "active:scale-95 transition-transform duration-75",
         className
       )}
       {...props}

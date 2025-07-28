@@ -94,6 +94,10 @@
     --calendar-tasks-completed-text: 142 60% 80%; /* Light green text */
     --calendar-tasks-incomplete-bg: 0 75% 30%; /* Dark red */
     --calendar-tasks-incomplete-text: 0 75% 85%; /* Light red text */
+    
+    /* Touch interaction colors */
+    --touch-highlight: 208 100% 65%; /* Blue highlight for touch */
+    --touch-active: 208 100% 55%; /* Darker blue for active state */
   }
 }
  
@@ -104,5 +108,53 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+  }
+  
+  /* Enhanced touch interaction styles */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] touch-manipulation;
+  }
+  
+  /* Prevent accidental touches on closely spaced elements */
+  .touch-safe-spacing {
+    @apply gap-3 sm:gap-2;
+  }
+  
+  /* Enhanced focus visibility for keyboard navigation */
+  .focus-enhanced {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+  
+  /* Active states for touch feedback */
+  .touch-active {
+    @apply active:scale-95 transition-transform duration-75;
+  }
+  
+  /* Ensure text is readable and appropriately sized on mobile */
+  .mobile-text {
+    @apply text-base sm:text-sm;
+  }
+  
+  .mobile-text-large {
+    @apply text-lg sm:text-base;
+  }
+  
+  /* Prevent text selection on interactive elements to avoid accidental selections */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Enhanced tap highlight removal for better custom active states */
+  button, [role="button"], input[type="submit"], input[type="button"] {
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Ensure adequate line height for readability */
+  .touch-text {
+    line-height: 1.5;
+    @apply mobile-text;
   }
 }

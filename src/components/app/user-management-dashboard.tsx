@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
@@ -223,15 +224,15 @@ export function UserManagementDashboard() {
 
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>{formTitle}</CardTitle>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl">{formTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleCreateUserSubmit)} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4 items-start">
+            <form onSubmit={form.handleSubmit(handleCreateUserSubmit)} className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                 <FormField
                   control={form.control}
                   name="name"
@@ -308,8 +309,8 @@ export function UserManagementDashboard() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{getTranslation(currentLang, 'UserManagementExistingUsersTitle')}</CardTitle>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl">{getTranslation(currentLang, 'UserManagementExistingUsersTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -318,34 +319,102 @@ export function UserManagementDashboard() {
               <span className="ml-2">Loading users...</span>
             </div>
           ) : users.length > 0 ? (
-            <Table>
-              <TableCaption>{getTranslation(currentLang, 'UserActivityTableCaption', { count: users.length.toString(), type: getTranslation(currentLang, 'UsersTitle')})}</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{getTranslation(currentLang, 'UserManagementTableUserName')}</TableHead>
-                  <TableHead>{getTranslation(currentLang, 'UserManagementTableUserEmail')}</TableHead>
-                  <TableHead>{getTranslation(currentLang, 'UserManagementTableUserRole')}</TableHead>
-                  <TableHead className="text-right">{getTranslation(currentLang, 'UserManagementTableActions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Desktop Table - Hidden on mobile, visible md and up */}
+              <div className="hidden md:block">
+                <Table>
+                  <TableCaption>{getTranslation(currentLang, 'UserActivityTableCaption', { count: users.length.toString(), type: getTranslation(currentLang, 'UsersTitle')})}</TableCaption>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{getTranslation(currentLang, 'UserManagementTableUserName')}</TableHead>
+                      <TableHead>{getTranslation(currentLang, 'UserManagementTableUserEmail')}</TableHead>
+                      <TableHead>{getTranslation(currentLang, 'UserManagementTableUserRole')}</TableHead>
+                      <TableHead className="text-right">{getTranslation(currentLang, 'UserManagementTableActions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            user.role === 'ADMIN' ? 'destructive' :
+                            user.role === 'PRODUCER' ? 'default' : 'secondary'
+                          }>
+                            {getTranslation(currentLang, user.role)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right space-x-1">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleOpenEditModal(user)} 
+                            aria-label={getTranslation(currentLang, 'UserManagementEditButton')}
+                            className="min-h-[44px] min-w-[44px] touch-manipulation"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteUser(user.id)} 
+                            aria-label={getTranslation(currentLang, 'UserManagementDeleteButton')}
+                            className="min-h-[44px] min-w-[44px] touch-manipulation text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Cards - Visible on mobile, hidden md and up */}
+              <div className="block md:hidden space-y-4">
                 {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{getTranslation(currentLang, user.role)}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditModal(user)} aria-label={getTranslation(currentLang, 'UserManagementEditButton')}>
-                        <Edit className="h-4 w-4" />
+                  <Card key={user.id} className="p-4">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-lg truncate">{user.name}</h3>
+                        <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+                      </div>
+                      <Badge
+                        variant={
+                          user.role === 'ADMIN' ? 'destructive' :
+                          user.role === 'PRODUCER' ? 'default' : 'secondary'
+                        }
+                        className="ml-2 flex-shrink-0"
+                      >
+                        {getTranslation(currentLang, user.role)}
+                      </Badge>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleOpenEditModal(user)}
+                        className="flex-1 min-h-[44px] touch-manipulation"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                        {getTranslation(currentLang, 'UserManagementEditButton')}
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.id)} aria-label={getTranslation(currentLang, 'UserManagementDeleteButton')}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="flex-1 min-h-[44px] touch-manipulation text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {getTranslation(currentLang, 'UserManagementDeleteButton')}
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </Card>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </>
           ) : (
             <p className="text-center text-muted-foreground py-4">{getTranslation(currentLang, 'UserManagementNoUsers')}</p>
           )}

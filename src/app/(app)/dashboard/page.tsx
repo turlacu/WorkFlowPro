@@ -49,7 +49,7 @@ const UserCheckboxItem = React.memo<UserCheckboxItemProps>(({ user, type, isChec
   );
   const itemId = `${type}-${user.id}`;
   return (
-    <div className="flex items-center space-x-2 p-2 rounded-md border bg-card hover:bg-muted/50">
+    <div className="flex items-center space-x-2 p-2 sm:p-3 rounded-md border bg-card hover:bg-muted/50">
       <Checkbox
         id={itemId}
         checked={isChecked}
@@ -57,7 +57,7 @@ const UserCheckboxItem = React.memo<UserCheckboxItemProps>(({ user, type, isChec
         aria-label={getTranslation(currentLang, 'SelectUserAriaLabel', { userName: user.name })}
       />
       <Label htmlFor={itemId} className="flex-1 cursor-pointer">
-        <span className="font-medium">{user.name}</span>
+        <span className="font-medium text-sm sm:text-base">{user.name}</span>
         <p className="text-xs text-muted-foreground">{user.email}</p>
       </Label>
     </div>
@@ -276,26 +276,26 @@ export default function DashboardPage() {
   const operatorsOnDutyText = selectedOperators.length > 0 ? selectedOperators.map(o => o.name).join(', ') : getTranslation(currentLang, 'None');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{getTranslation(currentLang, 'DashboardTitle')}</h1>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'DashboardTitle')}</h1>
       </div>
 
       <Tabs defaultValue="team-scheduling" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-4">
-          <TabsTrigger value="user-management"><Users className="mr-2 h-4 w-4" />{getTranslation(currentLang, 'UserManagementTab')}</TabsTrigger>
-          <TabsTrigger value="team-scheduling"><CalendarDays className="mr-2 h-4 w-4" />{getTranslation(currentLang, 'TeamSchedulingTab')}</TabsTrigger>
-          <TabsTrigger value="statistics">
-            <BarChart3 className="mr-2 h-4 w-4" />
-            {getTranslation(currentLang, 'StatisticsTab')}
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-4 sm:mb-6">
+          <TabsTrigger value="user-management" className="text-xs sm:text-sm"><Users className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /><span className="hidden sm:inline">{getTranslation(currentLang, 'UserManagementTab')}</span><span className="sm:hidden">Users</span></TabsTrigger>
+          <TabsTrigger value="team-scheduling" className="text-xs sm:text-sm"><CalendarDays className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /><span className="hidden sm:inline">{getTranslation(currentLang, 'TeamSchedulingTab')}</span><span className="sm:hidden">Schedule</span></TabsTrigger>
+          <TabsTrigger value="statistics" className="text-xs sm:text-sm">
+            <BarChart3 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">{getTranslation(currentLang, 'StatisticsTab')}</span><span className="sm:hidden">Stats</span>
           </TabsTrigger>
-          <TabsTrigger value="data-backup"><DatabaseBackup className="mr-2 h-4 w-4" />{getTranslation(currentLang, 'DataBackupRestoreTab')}</TabsTrigger>
+          <TabsTrigger value="data-backup" className="text-xs sm:text-sm"><DatabaseBackup className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" /><span className="hidden sm:inline">{getTranslation(currentLang, 'DataBackupRestoreTab')}</span><span className="sm:hidden">Backup</span></TabsTrigger>
         </TabsList>
 
         <TabsContent value="user-management">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-3xl font-bold">
+            <CardHeader className="pb-4 sm:pb-6">
+              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">
                 {getTranslation(currentLang, 'UserManagementTab')}
               </CardTitle>
             </CardHeader>
@@ -306,25 +306,25 @@ export default function DashboardPage() {
         </TabsContent>
 
         <TabsContent value="team-scheduling">
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div>
-              <h2 className="text-3xl font-bold">{getTranslation(currentLang, 'ManageTeamScheduleTitle')}</h2>
-              <p className="text-muted-foreground">{getTranslation(currentLang, 'ManageTeamScheduleDescription')}</p>
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'ManageTeamScheduleTitle')}</h2>
+              <p className="text-sm sm:text-base text-muted-foreground">{getTranslation(currentLang, 'ManageTeamScheduleDescription')}</p>
             </div>
             
             <Tabs defaultValue="manual-scheduling" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="manual-scheduling">Manual Scheduling</TabsTrigger>
-                <TabsTrigger value="excel-upload">Excel Upload</TabsTrigger>
-                <TabsTrigger value="color-legend">Color Legend</TabsTrigger>
+                <TabsTrigger value="manual-scheduling" className="text-xs sm:text-sm">Manual Scheduling</TabsTrigger>
+                <TabsTrigger value="excel-upload" className="text-xs sm:text-sm">Excel Upload</TabsTrigger>
+                <TabsTrigger value="color-legend" className="text-xs sm:text-sm">Color Legend</TabsTrigger>
               </TabsList>
 
-              <TabsContent value="manual-scheduling" className="mt-6">
+              <TabsContent value="manual-scheduling" className="mt-4 sm:mt-6">
                 <Card className="shadow-lg">
-                  <CardContent className="grid md:grid-cols-3 gap-6 p-6">
+                  <CardContent className="grid md:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
                     <div className="md:col-span-1 space-y-4">
                       <Card className="shadow-md">
-                        <CardHeader><CardTitle>{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle></CardHeader>
+                        <CardHeader className="pb-4"><CardTitle className="text-lg">{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle></CardHeader>
                         <CardContent className="p-0 flex justify-center">
                           <InteractiveCalendar onDateSelect={handleDateSelect} initialDate={selectedDate} />
                         </CardContent>
@@ -343,13 +343,13 @@ export default function DashboardPage() {
                       </Card>
                     </div>
 
-                    <div className="md:col-span-2 space-y-6">
+                    <div className="md:col-span-2 space-y-4 sm:space-y-6">
                       <Card className="shadow-md">
-                        <CardHeader><CardTitle>{getTranslation(currentLang, 'AssignRolesForDateTitle', { date: formattedSelectedDate })}</CardTitle></CardHeader>
-                        <CardContent className="grid sm:grid-cols-2 gap-6">
+                        <CardHeader className="pb-4"><CardTitle className="text-lg">{getTranslation(currentLang, 'AssignRolesForDateTitle', { date: formattedSelectedDate })}</CardTitle></CardHeader>
+                        <CardContent className="grid sm:grid-cols-2 gap-4 sm:gap-6">
                           <div>
-                            <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'ProducersTitle')}</h3>
-                            <div className="space-y-3 max-h-64 overflow-y-auto">
+                            <h3 className="text-base sm:text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'ProducersTitle')}</h3>
+                            <div className="space-y-2 sm:space-y-3 max-h-48 sm:max-h-64 overflow-y-auto">
                               {loading ? (
                                 <p className="text-sm text-muted-foreground">Loading users...</p>
                               ) : users.filter(user => user.role === 'PRODUCER').length > 0 ? (
@@ -370,8 +370,8 @@ export default function DashboardPage() {
                             </div>
                           </div>
                           <div>
-                            <h3 className="text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'OperatorsTitle')}</h3>
-                            <div className="space-y-3 max-h-64 overflow-y-auto">
+                            <h3 className="text-base sm:text-lg font-semibold mb-3 text-primary">{getTranslation(currentLang, 'OperatorsTitle')}</h3>
+                            <div className="space-y-2 sm:space-y-3 max-h-48 sm:max-h-64 overflow-y-auto">
                               {loading ? (
                                 <p className="text-sm text-muted-foreground">Loading users...</p>
                               ) : users.filter(user => user.role === 'OPERATOR').length > 0 ? (
@@ -395,8 +395,8 @@ export default function DashboardPage() {
                       </Card>
 
                       <Card className="shadow-md">
-                        <CardHeader>
-                          <CardTitle>{getTranslation(currentLang, 'SummaryForDateTitle', {date: formattedSelectedDate})}</CardTitle>
+                        <CardHeader className="pb-4">
+                          <CardTitle className="text-lg">{getTranslation(currentLang, 'SummaryForDateTitle', {date: formattedSelectedDate})}</CardTitle>
                           {loadingSchedule && <p className="text-sm text-muted-foreground">Loading existing schedule...</p>}
                         </CardHeader>
                         <CardContent className="space-y-1 text-sm">
@@ -493,9 +493,9 @@ export default function DashboardPage() {
 
         <TabsContent value="statistics">
           <Card>
-            <CardHeader>
-                <CardTitle className="text-3xl font-bold">{getTranslation(currentLang, 'StatisticsPageTitle')}</CardTitle>
-                <CardDescription>{getTranslation(currentLang, 'StatisticsPageDescription')}</CardDescription>
+            <CardHeader className="pb-4 sm:pb-6">
+                <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'StatisticsPageTitle')}</CardTitle>
+                <CardDescription className="text-sm sm:text-base">{getTranslation(currentLang, 'StatisticsPageDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
               <StatisticsDashboard />
@@ -505,9 +505,9 @@ export default function DashboardPage() {
 
         <TabsContent value="data-backup">
            <Card>
-            <CardHeader>
-              <CardTitle className="text-3xl font-bold">{getTranslation(currentLang, 'DataBackupRestoreTabTitle')}</CardTitle>
-              <CardDescription>{getTranslation(currentLang, 'DataBackupRestoreTabDescription')}</CardDescription>
+            <CardHeader className="pb-4 sm:pb-6">
+              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'DataBackupRestoreTabTitle')}</CardTitle>
+              <CardDescription className="text-sm sm:text-base">{getTranslation(currentLang, 'DataBackupRestoreTabDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
                 <DataBackupRestoreDashboard />

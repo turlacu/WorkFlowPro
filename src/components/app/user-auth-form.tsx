@@ -79,8 +79,8 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   return (
     <div className={cn('grid gap-6', className)} {...props}>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid gap-4">
-          <div className="grid gap-2">
+        <div className="grid gap-4 sm:gap-4">
+          <div className="grid gap-2 sm:gap-2">
             <Label htmlFor="email">{getTranslation(currentLang, 'EmailLabel')}</Label>
             <Input
               id="email"
@@ -90,6 +90,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               autoComplete="email"
               autoCorrect="off"
               disabled={isLoading}
+              className="h-11 sm:h-10 text-base sm:text-sm"
               {...register('email')}
             />
             {errors?.email && (
@@ -98,7 +99,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               </p>
             )}
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-2 sm:gap-2">
             <Label htmlFor="password">{getTranslation(currentLang, 'PasswordLabel')}</Label>
             <Input
               id="password"
@@ -106,6 +107,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               type="password"
               autoComplete="current-password"
               disabled={isLoading}
+              className="h-11 sm:h-10 text-base sm:text-sm"
               {...register('password')}
             />
             {errors?.password && (
@@ -114,7 +116,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               </p>
             )}
           </div>
-          <Button type="submit" disabled={isLoading} className="w-full">
+          <Button type="submit" disabled={isLoading} className="w-full h-11 sm:h-10 text-base sm:text-sm">
             {isLoading && (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             )}

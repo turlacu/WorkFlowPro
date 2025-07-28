@@ -131,37 +131,37 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <SettingsIcon className="h-8 w-8" />
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
+          <SettingsIcon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
           Settings
         </h1>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList className={`grid w-full ${session.user.role === 'ADMIN' ? 'grid-cols-2' : 'grid-cols-3'}`}>
-          <TabsTrigger value="profile">
-            <User className="mr-2 h-4 w-4" />
+          <TabsTrigger value="profile" className="text-xs sm:text-sm">
+            <User className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="security">
-            <Lock className="mr-2 h-4 w-4" />
+          <TabsTrigger value="security" className="text-xs sm:text-sm">
+            <Lock className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             Security
           </TabsTrigger>
           {session.user.role !== 'ADMIN' && (
-            <TabsTrigger value="statistics">
-              <BarChart3 className="mr-2 h-4 w-4" />
+            <TabsTrigger value="statistics" className="text-xs sm:text-sm">
+              <BarChart3 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               Statistics
             </TabsTrigger>
           )}
         </TabsList>
 
-        <TabsContent value="profile" className="space-y-6">
+        <TabsContent value="profile" className="space-y-4 sm:space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-4 sm:pb-6">
+              <CardTitle className="text-lg sm:text-xl">Profile Information</CardTitle>
+              <CardDescription className="text-sm">
                 View your account information. Contact an administrator to make changes.
               </CardDescription>
             </CardHeader>
@@ -194,11 +194,11 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="security" className="space-y-6">
+        <TabsContent value="security" className="space-y-4 sm:space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
+            <CardHeader className="pb-4 sm:pb-6">
+              <CardTitle className="text-lg sm:text-xl">Change Password</CardTitle>
+              <CardDescription className="text-sm">
                 Update your password to keep your account secure.
               </CardDescription>
             </CardHeader>
@@ -245,11 +245,11 @@ export default function SettingsPage() {
         </TabsContent>
 
         {session.user.role !== 'ADMIN' && (
-          <TabsContent value="statistics" className="space-y-6">
+          <TabsContent value="statistics" className="space-y-4 sm:space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>User Statistics</CardTitle>
-                <CardDescription>
+              <CardHeader className="pb-4 sm:pb-6">
+                <CardTitle className="text-lg sm:text-xl">User Statistics</CardTitle>
+                <CardDescription className="text-sm">
                   {session.user.role === 'PRODUCER' 
                     ? 'View your assignment creation activity and performance metrics.'
                     : 'View your assignment completion activity and performance metrics.'
@@ -260,7 +260,7 @@ export default function SettingsPage() {
                 {loadingStats ? (
                   <p className="text-muted-foreground">Loading statistics...</p>
                 ) : userStats ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {session.user.role === 'PRODUCER' ? (
                       <>
                         <div className="space-y-2">
