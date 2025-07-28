@@ -338,10 +338,7 @@ export function UserManagementDashboard() {
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={
-                            user.role === 'ADMIN' ? 'destructive' :
-                            user.role === 'PRODUCER' ? 'default' : 'secondary'
-                          }>
+                          <Badge>
                             {getTranslation(currentLang, user.role)}
                           </Badge>
                         </TableCell>

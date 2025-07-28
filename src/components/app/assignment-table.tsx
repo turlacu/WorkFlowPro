@@ -131,7 +131,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
     const text = getTranslation(currentLang, `AssignmentStatus${status.replace(' ', '')}`);
 
     return (
-      <Badge variant={variant} className={cn(className, "capitalize")}>
+      <Badge className={cn(className, "capitalize")}>
         {text}
       </Badge>
     );
@@ -142,7 +142,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
     const className = getPriorityBadgeClassName(priority);
     const text = getTranslation(currentLang, `Priority${priority}`);
     return (
-      <Badge variant={variant} className={cn(className, "capitalize")}>
+      <Badge className={cn(className, "capitalize")}>
         {text}
         {priority === 'URGENT' && <AlertTriangle className="ml-1 h-3 w-3" />}
       </Badge>
@@ -213,8 +213,6 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
           <div className="flex items-center justify-between pt-2">
             <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
               <Button 
-                variant="outline" 
-                size="sm" 
                 onClick={() => handleViewDetails(assignment)}
                 className="flex items-center gap-1 min-h-[36px]"
               >

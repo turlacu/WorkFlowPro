@@ -115,7 +115,7 @@ export function ColorMappingDialog({
 
   const getColorPreview = (color: string) => {
     if (color.startsWith('#INDEX') || color.startsWith('#PATTERN')) {
-      return <Badge variant="outline" className="text-xs">Indexed Color</Badge>;
+      return <Badge className="text-xs">Indexed Color</Badge>;
     }
     return (
       <div 

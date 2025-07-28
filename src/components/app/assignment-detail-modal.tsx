@@ -141,7 +141,6 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                   <span>{getTranslation(currentLang, 'AssignmentDetailPriorityLabel')}</span>
                 </div>
                 <Badge
-                  variant={getPriorityBadgeVariant(assignment.priority)}
                   className={cn("text-xs capitalize", getPriorityBadgeClassName(assignment.priority))}
                 >
                   {getTranslation(currentLang, `Priority${assignment.priority}`)}
@@ -153,7 +152,6 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                   <span>{getTranslation(currentLang, 'AssignmentDetailStatusLabel')}</span>
                 </div>
                 <Badge
-                  variant={getStatusBadgeVariant(assignment.status)}
                   className={cn("text-xs capitalize", getStatusBadgeClassName(assignment.status))}
                 >
                   {getTranslation(currentLang, `AssignmentStatus${assignment.status.replace(' ', '')}`)}
@@ -199,7 +197,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                     className="min-h-[100px] sm:min-h-[80px]"
                   />
                   <div className="flex justify-start pt-2">
-                    <Button onClick={handlePostComment} size="sm">
+                    <Button onClick={handlePostComment}>
                       {getTranslation(currentLang, 'AssignmentDetailPostCommentButton')}
                     </Button>
                   </div>
@@ -253,7 +251,6 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
         </div>
         <DialogFooter className="p-4 sm:p-6 pt-3 sm:pt-4 border-t">
           <Button 
-            variant="outline" 
             onClick={onClose}
             className="w-full sm:w-auto h-11 sm:h-10"
           >

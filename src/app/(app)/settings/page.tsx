@@ -177,10 +177,7 @@ export default function SettingsPage() {
               <div>
                 <Label>Role</Label>
                 <div className="mt-2">
-                  <Badge variant={
-                    session.user.role === 'ADMIN' ? 'destructive' :
-                    session.user.role === 'PRODUCER' ? 'default' : 'secondary'
-                  }>
+                  <Badge>
                     {session.user.role}
                   </Badge>
                 </div>

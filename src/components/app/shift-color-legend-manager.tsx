@@ -225,7 +225,7 @@ export function ShiftColorLegendManager() {
                     </TableCell>
                     <TableCell>{legend.colorName}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{legend.shiftName}</Badge>
+                      <Badge>{legend.shiftName}</Badge>
                     </TableCell>
                     <TableCell>{legend.startTime} - {legend.endTime}</TableCell>
                     <TableCell className="max-w-xs truncate">{legend.description}</TableCell>

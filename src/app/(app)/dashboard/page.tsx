@@ -459,7 +459,7 @@ export default function DashboardPage() {
                       </Card>
 
                       <div className="flex justify-end">
-                        <Button size="lg" onClick={handleSaveSchedule}>
+                        <Button onClick={handleSaveSchedule}>
                           <Save className="mr-2 h-5 w-5" /> {getTranslation(currentLang, 'SaveScheduleButton')}
                         </Button>
                       </div>

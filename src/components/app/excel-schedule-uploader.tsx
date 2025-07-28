@@ -495,7 +495,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                     <TableCell>
                       <div className="space-y-1">
                         {entry.shiftName && (
-                          <Badge variant="default" className="text-xs">
+                          <Badge className="text-xs">
                             {entry.shiftName}
                           </Badge>
                         )}
@@ -532,9 +532,9 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
                     </TableCell>
                     <TableCell>
                       {entry.matchedUserName ? (
-                        <Badge variant="outline">{entry.matchedUserName}</Badge>
+                        <Badge>{entry.matchedUserName}</Badge>
                       ) : (
-                        <Badge variant="destructive">Not Found</Badge>
+                        <Badge>Not Found</Badge>
                       )}
                     </TableCell>
                   </TableRow>
@@ -548,7 +548,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
               <h4 className="font-semibold mb-2">Unmatched Names (will be ignored):</h4>
               <div className="flex flex-wrap gap-2">
                 {matchingReport.unmatchedNames.map((name, index) => (
-                  <Badge key={index} variant="secondary">{name}</Badge>
+                  <Badge key={index}>{name}</Badge>
                 ))}
               </div>
             </div>
