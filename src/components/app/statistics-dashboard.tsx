@@ -228,9 +228,8 @@ export function StatisticsDashboard() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
                     className={cn(
-                      "w-[200px] justify-start text-left font-normal h-9 text-xs",
+                      "w-[200px] justify-start text-left font-normal h-9 text-xs border border-input bg-background hover:bg-accent hover:text-accent-foreground",
                       !userActivityDate && "text-muted-foreground"
                     )}
                   >
@@ -247,8 +246,8 @@ export function StatisticsDashboard() {
                   />
                 </PopoverContent>
               </Popover>
-              <Button variant="outline" size="sm" className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation">{getTranslation(currentLang, 'StatisticsDayViewButton')}</Button>
-              <Button variant="outline" size="sm" className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation">{getTranslation(currentLang, 'StatisticsMonthViewButton')}</Button>
+              <Button className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground">{getTranslation(currentLang, 'StatisticsDayViewButton')}</Button>
+              <Button className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground">{getTranslation(currentLang, 'StatisticsMonthViewButton')}</Button>
             </div>
           </div>
         </CardHeader>
@@ -376,11 +375,11 @@ export function StatisticsDashboard() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="outline" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handlePrevMonth}>
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handlePrevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-medium w-28 text-center">{format(trendChartMonth, 'MMMM yyyy')}</span>
-              <Button variant="outline" size="icon" className="h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handleNextMonth}>
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handleNextMonth}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

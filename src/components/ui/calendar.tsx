@@ -27,7 +27,7 @@ function Calendar({
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
-          buttonVariants({ variant: "outline" }),
+          "border border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2",
           "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
         ),
         nav_button_previous: "absolute left-1",
@@ -44,7 +44,7 @@ function Calendar({
           "last:[&:has([aria-selected])]:rounded-r-md"
         ),
         day: cn(
-          buttonVariants({ variant: "ghost" }),
+          "hover:bg-accent hover:text-accent-foreground inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2",
           "h-[calc(2rem-2px)] w-[calc(2rem-2px)] p-0 font-normal aria-selected:opacity-100 rounded-lg" // Changed rounded-md to rounded-lg
         ),
         day_range_end: "day-range-end",

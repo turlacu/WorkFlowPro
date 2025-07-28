@@ -357,19 +357,19 @@ export function ResponsiveTestComponent() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <TouchTarget className="bg-primary text-primary-foreground rounded-md">
-              <Button variant="ghost" size="sm" className="text-white hover:text-white">
+              <Button className="hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm text-white hover:text-white">
                 Small
               </Button>
             </TouchTarget>
             
             <TouchTarget className="bg-secondary text-secondary-foreground rounded-md">
-              <Button variant="ghost" size="default" className="text-foreground">
+              <Button className="hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 text-foreground">
                 Medium
               </Button>
             </TouchTarget>
             
             <TouchTarget className="bg-accent text-accent-foreground rounded-md">
-              <Button variant="ghost" size="lg">
+              <Button className="hover:bg-accent hover:text-accent-foreground h-11 px-8">
                 Large
               </Button>
             </TouchTarget>
@@ -451,8 +451,8 @@ export function ResponsiveTestComponent() {
               
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button className="flex-1">Primary Action</Button>
-                <Button variant="outline" className="flex-1">Secondary Action</Button>
-                <Button variant="ghost" className="flex-1">Tertiary Action</Button>
+                <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1">Secondary Action</Button>
+                <Button className="hover:bg-accent hover:text-accent-foreground flex-1">Tertiary Action</Button>
               </div>
             </TabsContent>
             
@@ -474,10 +474,10 @@ export function ResponsiveTestComponent() {
                       <TableCell className="hidden md:table-cell">Admin</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost">
+                          <Button className="hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost">
+                          <Button className="hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm">
                             <Settings className="h-4 w-4" />
                           </Button>
                         </div>
@@ -489,10 +489,10 @@ export function ResponsiveTestComponent() {
                       <TableCell className="hidden md:table-cell">User</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="sm" variant="ghost">
+                          <Button className="hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost">
+                          <Button className="hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm">
                             <Settings className="h-4 w-4" />
                           </Button>
                         </div>
@@ -505,19 +505,19 @@ export function ResponsiveTestComponent() {
             
             <TabsContent value="navigation" className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button variant="outline" className="flex-1 justify-start">
+                <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1 justify-start">
                   <User className="mr-2 h-4 w-4" />
                   Profile
                 </Button>
-                <Button variant="outline" className="flex-1 justify-start">
+                <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1 justify-start">
                   <Calendar className="mr-2 h-4 w-4" />
                   Schedule
                 </Button>
-                <Button variant="outline" className="flex-1 justify-start">
+                <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1 justify-start">
                   <BarChart3 className="mr-2 h-4 w-4" />
                   Reports
                 </Button>
-                <Button variant="outline" className="flex-1 justify-start">
+                <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1 justify-start">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Button>
@@ -526,7 +526,7 @@ export function ResponsiveTestComponent() {
               <div className="md:hidden">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full">
+                    <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground w-full">
                       <Menu className="mr-2 h-4 w-4" />
                       Mobile Menu
                     </Button>
@@ -536,19 +536,19 @@ export function ResponsiveTestComponent() {
                       <SheetTitle>Navigation Menu</SheetTitle>
                     </SheetHeader>
                     <div className="space-y-2 mt-4">
-                      <Button variant="ghost" className="w-full justify-start">
+                      <Button className="hover:bg-accent hover:text-accent-foreground w-full justify-start">
                         <User className="mr-2 h-4 w-4" />
                         Profile
                       </Button>
-                      <Button variant="ghost" className="w-full justify-start">
+                      <Button className="hover:bg-accent hover:text-accent-foreground w-full justify-start">
                         <Calendar className="mr-2 h-4 w-4" />
                         Schedule
                       </Button>
-                      <Button variant="ghost" className="w-full justify-start">
+                      <Button className="hover:bg-accent hover:text-accent-foreground w-full justify-start">
                         <BarChart3 className="mr-2 h-4 w-4" />
                         Reports
                       </Button>
-                      <Button variant="ghost" className="w-full justify-start">
+                      <Button className="hover:bg-accent hover:text-accent-foreground w-full justify-start">
                         <Settings className="mr-2 h-4 w-4" />
                         Settings
                       </Button>
@@ -573,7 +573,7 @@ export function ResponsiveTestComponent() {
                       <Input placeholder="Test input in modal" />
                       <div className="flex gap-2">
                         <Button className="flex-1">Confirm</Button>
-                        <Button variant="outline" className="flex-1">Cancel</Button>
+                        <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1">Cancel</Button>
                       </div>
                     </div>
                   </DialogContent>
@@ -581,7 +581,7 @@ export function ResponsiveTestComponent() {
                 
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="outline" className="w-full">Open Sheet</Button>
+                    <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground w-full">Open Sheet</Button>
                   </SheetTrigger>
                   <SheetContent>
                     <SheetHeader>

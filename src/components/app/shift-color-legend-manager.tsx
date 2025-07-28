@@ -232,16 +232,14 @@ export function ShiftColorLegendManager() {
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
-                          variant="ghost"
-                          size="sm"
                           onClick={() => handleOpenModal(legend)}
+                          className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="sm"
                           onClick={() => setLegendToDelete(legend)}
+                          className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -328,7 +326,7 @@ export function ShiftColorLegendManager() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>
+            <Button onClick={() => setIsModalOpen(false)} className="border border-input bg-background hover:bg-accent hover:text-accent-foreground">
               Cancel
             </Button>
             <Button onClick={handleSave}>

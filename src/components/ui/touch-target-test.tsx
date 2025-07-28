@@ -47,25 +47,25 @@ export function TouchTargetTest() {
             <Label>Default Buttons (should be 44px minimum on mobile)</Label>
             <div className={touchButtonGroup()}>
               <Button>Primary Button</Button>
-              <Button variant="secondary">Secondary</Button>
-              <Button variant="outline">Outline</Button>
-              <Button variant="ghost">Ghost</Button>
+              <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/80">Secondary</Button>
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground">Outline</Button>
+              <Button className="hover:bg-accent hover:text-accent-foreground">Ghost</Button>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label>Icon Buttons (should be 44px minimum on mobile)</Label>
             <div className={touchButtonGroup()}>
-              <Button size="icon" variant="outline">
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10 p-0">
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button size="icon" variant="outline">
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10 p-0">
                 <Trash2 className="h-4 w-4" />
               </Button>
-              <Button size="icon" variant="outline">
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10 p-0">
                 <Eye className="h-4 w-4" />
               </Button>
-              <Button size="icon" variant="outline">
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 w-10 p-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -74,8 +74,8 @@ export function TouchTargetTest() {
           <div className="space-y-2">
             <Label>Small Buttons (should still meet 44px minimum)</Label>
             <div className={touchButtonGroup()}>
-              <Button size="sm">Small Button</Button>
-              <Button size="sm" variant="outline">Small Outline</Button>
+              <Button className="h-9 px-3 text-sm">Small Button</Button>
+              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 text-sm">Small Outline</Button>
             </div>
           </div>
         </CardContent>
@@ -119,7 +119,7 @@ export function TouchTargetTest() {
               <div className="space-y-3">
                 <CheckboxWithLabel
                   checked={checkboxValue}
-                  onCheckedChange={setCheckboxValue}
+                  onCheckedChange={(checked) => setCheckboxValue(checked === true)}
                   label="Standard checkbox with label"
                   description="This provides a larger touch target"
                 />

@@ -278,9 +278,8 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
-                          variant={'outline'}
                           className={cn(
-                            'w-full pl-3 text-left font-normal h-11 sm:h-10',
+                            'w-full pl-3 text-left font-normal h-11 sm:h-10 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
                             !field.value && 'text-muted-foreground'
                           )}
                         >
@@ -311,10 +310,9 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-0 pt-4 sm:pt-0">
               <Button 
                 type="button" 
-                variant="outline" 
                 onClick={handleCloseDialog} 
                 disabled={isSubmitting}
-                className="w-full sm:w-auto h-11 sm:h-10"
+                className="w-full sm:w-auto h-11 sm:h-10 border border-input bg-background hover:bg-accent hover:text-accent-foreground"
               >
                 {getTranslation(currentLang, 'CancelButton')}
               </Button>

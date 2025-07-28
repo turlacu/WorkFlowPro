@@ -344,20 +344,16 @@ export function UserManagementDashboard() {
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
                             onClick={() => handleOpenEditModal(user)} 
                             aria-label={getTranslation(currentLang, 'UserManagementEditButton')}
-                            className="min-h-[44px] min-w-[44px] touch-manipulation"
+                            className="hover:bg-accent hover:text-accent-foreground min-h-[44px] min-w-[44px] touch-manipulation"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
-                            variant="ghost" 
-                            size="icon" 
                             onClick={() => handleDeleteUser(user.id)} 
                             aria-label={getTranslation(currentLang, 'UserManagementDeleteButton')}
-                            className="min-h-[44px] min-w-[44px] touch-manipulation text-destructive hover:text-destructive"
+                            className="hover:bg-accent hover:text-accent-foreground min-h-[44px] min-w-[44px] touch-manipulation text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -378,11 +374,11 @@ export function UserManagementDashboard() {
                         <p className="text-sm text-muted-foreground truncate">{user.email}</p>
                       </div>
                       <Badge
-                        variant={
-                          user.role === 'ADMIN' ? 'destructive' :
-                          user.role === 'PRODUCER' ? 'default' : 'secondary'
-                        }
-                        className="ml-2 flex-shrink-0"
+                        className={`ml-2 flex-shrink-0 ${
+                          user.role === 'ADMIN' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/80' :
+                          user.role === 'PRODUCER' ? 'bg-primary text-primary-foreground hover:bg-primary/80' : 
+                          'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                        }`}
                       >
                         {getTranslation(currentLang, user.role)}
                       </Badge>
@@ -390,19 +386,15 @@ export function UserManagementDashboard() {
                     
                     <div className="flex gap-2 pt-2">
                       <Button 
-                        variant="outline" 
-                        size="sm" 
                         onClick={() => handleOpenEditModal(user)}
-                        className="flex-1 min-h-[44px] touch-manipulation"
+                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1 min-h-[44px] touch-manipulation h-9 px-3 text-sm"
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         {getTranslation(currentLang, 'UserManagementEditButton')}
                       </Button>
                       <Button 
-                        variant="outline" 
-                        size="sm" 
                         onClick={() => handleDeleteUser(user.id)}
-                        className="flex-1 min-h-[44px] touch-manipulation text-destructive hover:text-destructive"
+                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1 min-h-[44px] touch-manipulation h-9 px-3 text-sm text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         {getTranslation(currentLang, 'UserManagementDeleteButton')}

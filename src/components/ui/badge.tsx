@@ -4,14 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus-visible:ring-offset-2",
-  // Enhanced touch-friendly sizing and spacing
-  "px-3 py-1 sm:px-2.5 sm:py-0.5", // More padding on mobile
-  "text-sm sm:text-xs", // Larger text on mobile
-  // Touch optimization
-  "touch-manipulation",
-  // Enhanced active states for interactive badges
-  "active:scale-95 transition-all duration-75",
+  "inline-flex items-center rounded-md border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus-visible:ring-offset-2 px-3 py-1 sm:px-2.5 sm:py-0.5 text-sm sm:text-xs touch-manipulation active:scale-95 transition-all duration-75",
   {
     variants: {
       variant: {
