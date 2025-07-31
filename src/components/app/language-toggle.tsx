@@ -34,7 +34,7 @@ export function LanguageToggle() {
   const displayLangText = currentLang === 'en' ? 'EN' : 'RO';
 
   return (
-    <Button onClick={handleToggleLanguage} aria-label={toggleButtonLabel} className="h-10 w-10 hover:bg-accent hover:text-accent-foreground">
+    <Button variant="ghost" size="icon" onClick={handleToggleLanguage} aria-label={toggleButtonLabel}>
       <span className="text-xs font-bold" aria-hidden="true">{displayLangText}</span>
       <span className="sr-only">{toggleButtonLabel}</span>
     </Button>

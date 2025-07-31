@@ -88,10 +88,9 @@ export default function AppHeader() {
             {/* Left: Hamburger Menu */}
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
               onClick={toggleMobileMenu}
               aria-label="Toggle menu"
-              className="flex items-center justify-center h-10 w-10 p-0"
             >
               {isMobileMenuOpen ? (
                 <X className="h-5 w-5" />
