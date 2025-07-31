@@ -385,12 +385,12 @@ export default function AssignmentsPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-6 sm:space-y-8 px-1 sm:px-0">
        <div className="flex justify-between items-center">
-        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'AssignmentsDashboardTitle')}</h1>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{getTranslation(currentLang, 'AssignmentsDashboardTitle')}</h1>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="lg:col-span-3">
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="xl:col-span-3">
           <Card className="shadow-lg h-full">
             <CardHeader className="pb-4 sm:pb-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-2 mb-2">
@@ -399,7 +399,11 @@ export default function AssignmentsPage() {
                   <CardDescription className="text-sm">{workAssignmentsDescription}</CardDescription>
                 </div>
                 {(session.user.role === 'PRODUCER' || session.user.role === 'ADMIN') && (
-                  <Button onClick={() => { setEditingAssignment(null); setIsAssignmentModalOpen(true); }} className="w-full sm:w-auto">
+                  <Button 
+                    onClick={() => { setEditingAssignment(null); setIsAssignmentModalOpen(true); }} 
+                    size="default"
+                    className="w-full sm:w-auto"
+                  >
                     <PlusCircle className="mr-2 h-4 w-4" />
                     {getTranslation(currentLang, 'NewAssignmentButton')}
                   </Button>
@@ -434,7 +438,7 @@ export default function AssignmentsPage() {
           </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-4 sm:space-y-6">
+        <div className="xl:col-span-1 space-y-4 sm:space-y-6">
           <Card className="shadow-md">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg sm:text-xl">{getTranslation(currentLang, 'SearchCardTitle')}</CardTitle>

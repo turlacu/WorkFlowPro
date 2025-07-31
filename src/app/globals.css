@@ -108,6 +108,18 @@
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Smooth scrolling for the entire page */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Better mobile scroll behavior */
+  * {
+    -webkit-overflow-scrolling: touch;
   }
   
   /* Enhanced touch interaction styles */
@@ -156,5 +168,34 @@
   .touch-text {
     line-height: 1.5;
     @apply mobile-text;
+  }
+  
+  /* Responsive spacing utilities */
+  .mobile-spacing {
+    @apply space-y-3 sm:space-y-2;
+  }
+  
+  .mobile-padding {
+    @apply p-4 sm:p-6;
+  }
+  
+  /* Enhanced mobile card layouts */
+  .mobile-card {
+    @apply rounded-lg sm:rounded-md shadow-md sm:shadow-sm;
+  }
+  
+  /* Mobile-first navigation */
+  .mobile-nav {
+    @apply flex flex-col sm:flex-row gap-2 sm:gap-1;
+  }
+  
+  /* Responsive grid layouts */
+  .mobile-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6;
+  }
+  
+  /* Mobile form spacing */
+  .mobile-form {
+    @apply space-y-4 sm:space-y-3;
   }
 }

@@ -101,7 +101,7 @@ export default function AppHeader() {
             {/* Today's Schedule Button */}
             {(pathname === '/assignments' || pathname === '/dashboard') && (
               <Link href="/todays-schedule" passHref legacyBehavior>
-                <Button asChild className="h-10 text-xs border border-input bg-background hover:bg-accent hover:text-accent-foreground"> 
+                <Button asChild variant="outline" size="sm"> 
                   <a>
                     <CalendarClock className="mr-2 h-4 w-4" />
                     {getTranslation(String(currentLang), 'TodaysScheduleButton')}
@@ -113,7 +113,7 @@ export default function AppHeader() {
             {/* Assignments Button (only for Today's Schedule page) */}
             {AssignmentsButtonIcon && assignmentsButtonText && assignmentsButtonHref && (
               <Link href={assignmentsButtonHref} passHref legacyBehavior>
-                <Button asChild className="h-10 text-xs border border-input bg-background hover:bg-accent hover:text-accent-foreground"> 
+                <Button asChild variant="outline" size="sm"> 
                   <a>
                     <AssignmentsButtonIcon className="mr-2 h-4 w-4" />
                     {assignmentsButtonText}
@@ -125,7 +125,7 @@ export default function AppHeader() {
             {/* Admin Panel / Go to Assignments Button */}
             {NavButtonIcon && navButtonText && navButtonHref && (
               <Link href={navButtonHref} passHref legacyBehavior>
-                <Button asChild className="h-10 text-xs border border-input bg-background hover:bg-accent hover:text-accent-foreground"> 
+                <Button asChild variant="outline" size="sm"> 
                   <a>
                     <NavButtonIcon className="mr-2 h-4 w-4" />
                     {navButtonText}
@@ -140,8 +140,8 @@ export default function AppHeader() {
             {/* Desktop User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="relative h-10 w-10 rounded-full hover:bg-accent hover:text-accent-foreground">
-                  <Avatar className="h-10 w-10 border-2 border-accent bg-accent">
+                <Button variant="ghost" size="icon" className="relative rounded-full">
+                  <Avatar className="h-8 w-8">
                     <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                 </Button>
@@ -179,8 +179,9 @@ export default function AppHeader() {
             
             {/* Hamburger Menu Button */}
             <Button
+              variant="ghost"
+              size="icon"
               onClick={toggleMobileMenu}
-              className="h-10 w-10 p-0 hover:bg-accent hover:text-accent-foreground"
               aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? (
@@ -205,29 +206,32 @@ export default function AppHeader() {
 
       {/* Mobile Menu Panel */}
       <div className={`
-        fixed top-14 sm:top-16 left-0 right-0 z-50 md:hidden bg-background border-b shadow-lg transform transition-transform duration-300 ease-in-out
+        fixed top-14 sm:top-16 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-sm border-b shadow-lg transform transition-transform duration-300 ease-in-out max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto
         ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}
       `}>
-        <div className="px-3 sm:px-4 py-4 space-y-3">
+        <div className="px-4 py-4 space-y-4">
           {/* User Info Section */}
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/50">
-            <Avatar className="h-10 w-10 border-2 border-accent bg-accent">
-              <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-accent/10 border border-accent/20">
+            <Avatar className="h-12 w-12 border-2 border-accent/30">
+              <AvatarFallback className="text-sm font-medium">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
-              <p className="text-sm font-medium leading-none">{user.name}</p>
-              <p className="text-xs leading-none text-muted-foreground mt-1">
-                {user.email} ({userRoleDisplay})
+            <div className="flex flex-col min-w-0 flex-1">
+              <p className="text-sm font-medium leading-none truncate">{user.name}</p>
+              <p className="text-xs leading-none text-muted-foreground mt-1.5 truncate">
+                {user.email}
+              </p>
+              <p className="text-xs leading-none text-muted-foreground mt-0.5">
+                ({userRoleDisplay})
               </p>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <div className="space-y-2">
+          <div className="space-y-2 pb-2">
             {/* Today's Schedule Button */}
             {(pathname === '/assignments' || pathname === '/dashboard') && (
               <Link href="/todays-schedule" onClick={closeMobileMenu}>
-                <Button className="w-full justify-start h-12 text-sm hover:bg-accent hover:text-accent-foreground">
+                <Button variant="ghost" className="w-full justify-start h-12 text-sm">
                   <CalendarClock className="mr-3 h-5 w-5" />
                   {getTranslation(String(currentLang), 'TodaysScheduleButton')}
                 </Button>
@@ -237,7 +241,7 @@ export default function AppHeader() {
             {/* Assignments Button (only for Today's Schedule page) */}
             {AssignmentsButtonIcon && assignmentsButtonText && assignmentsButtonHref && (
               <Link href={assignmentsButtonHref} onClick={closeMobileMenu}>
-                <Button className="w-full justify-start h-12 text-sm hover:bg-accent hover:text-accent-foreground">
+                <Button variant="ghost" className="w-full justify-start h-12 text-sm">
                   <AssignmentsButtonIcon className="mr-3 h-5 w-5" />
                   {assignmentsButtonText}
                 </Button>
@@ -247,7 +251,7 @@ export default function AppHeader() {
             {/* Admin Panel / Go to Assignments Button */}
             {NavButtonIcon && navButtonText && navButtonHref && (
               <Link href={navButtonHref} onClick={closeMobileMenu}>
-                <Button className="w-full justify-start h-12 text-sm hover:bg-accent hover:text-accent-foreground">
+                <Button variant="ghost" className="w-full justify-start h-12 text-sm">
                   <NavButtonIcon className="mr-3 h-5 w-5" />
                   {navButtonText}
                 </Button>
@@ -256,7 +260,7 @@ export default function AppHeader() {
 
             {/* Settings Link */}
             <Link href="/settings" onClick={closeMobileMenu}>
-              <Button className="w-full justify-start h-12 text-sm hover:bg-accent hover:text-accent-foreground">
+              <Button variant="ghost" className="w-full justify-start h-12 text-sm">
                 <Settings className="mr-3 h-5 w-5" />
                 {getTranslation(String(currentLang), 'Settings')}
               </Button>
@@ -264,6 +268,7 @@ export default function AppHeader() {
 
             {/* Logout Button */}
             <Button 
+              variant="ghost"
               onClick={handleLogout}
               className="w-full justify-start h-12 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
             >
