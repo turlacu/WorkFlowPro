@@ -47,6 +47,7 @@ export default function AppHeader() {
   const appName = getTranslation(String(currentLang), 'AppName');
   const homeAriaLabel = getTranslation(String(currentLang), 'AppHeaderHomeAriaLabel');
 
+  // Desktop navigation logic (keep existing logic for desktop)
   let navButtonTextKey = '';
   let navButtonHref = '';
   let NavButtonIcon = null;
@@ -83,11 +84,11 @@ export default function AppHeader() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="w-full max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
           
-          {/* Mobile Header */}
+          {/* Simple Mobile Header */}
           <div className="flex md:hidden items-center justify-between w-full">
-            {/* Left: Hamburger Menu */}
+            {/* Left: Hamburger Menu Button */}
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               onClick={toggleMobileMenu}
               className="h-10 w-10"
@@ -100,7 +101,7 @@ export default function AppHeader() {
               )}
             </Button>
 
-            {/* Center: App Name */}
+            {/* Center: App Logo & Name */}
             <Link href="/assignments" className="flex items-center gap-2" aria-label={homeAriaLabel}>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
@@ -222,7 +223,7 @@ export default function AppHeader() {
         </div>
       )}
 
-      {/* Mobile Menu Panel */}
+      {/* Simple Mobile Menu Panel */}
       <div className={`
         fixed top-14 sm:top-16 left-0 right-0 bottom-0 z-50 md:hidden bg-background transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}
@@ -244,49 +245,41 @@ export default function AppHeader() {
             </div>
           </div>
 
-          {/* Navigation Links */}
+          {/* Fixed Navigation Links - Always Show All Options */}
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-3">Navigation</h3>
             
-            {/* Always show Assignments link (unless we're already on it) */}
-            {pathname !== '/assignments' && (
-              <Link href="/assignments" onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                  <ClipboardList className="mr-4 h-6 w-6" />
-                  {getTranslation(String(currentLang), 'GoToAssignments')}
-                </Button>
-              </Link>
-            )}
+            {/* Assignments */}
+            <Link href="/assignments" onClick={closeMobileMenu}>
+              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                <ClipboardList className="mr-4 h-6 w-6" />
+                {getTranslation(String(currentLang), 'GoToAssignments')}
+              </Button>
+            </Link>
 
-            {/* Always show Admin Panel/Dashboard link (unless we're already on it) */}
-            {pathname !== '/dashboard' && (
-              <Link href="/dashboard" onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                  <ShieldCheck className="mr-4 h-6 w-6" />
-                  {getTranslation(String(currentLang), 'GoToAdminPanel')}
-                </Button>
-              </Link>
-            )}
+            {/* Admin Panel/Dashboard */}
+            <Link href="/dashboard" onClick={closeMobileMenu}>
+              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                <ShieldCheck className="mr-4 h-6 w-6" />
+                {getTranslation(String(currentLang), 'GoToAdminPanel')}
+              </Button>
+            </Link>
 
-            {/* Always show Today's Schedule link (unless we're already on it) */}
-            {pathname !== '/todays-schedule' && (
-              <Link href="/todays-schedule" onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                  <CalendarClock className="mr-4 h-6 w-6" />
-                  {getTranslation(String(currentLang), 'TodaysScheduleButton')}
-                </Button>
-              </Link>
-            )}
+            {/* Today's Schedule */}
+            <Link href="/todays-schedule" onClick={closeMobileMenu}>
+              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                <CalendarClock className="mr-4 h-6 w-6" />
+                {getTranslation(String(currentLang), 'TodaysScheduleButton')}
+              </Button>
+            </Link>
 
-            {/* Settings Link */}
-            {pathname !== '/settings' && (
-              <Link href="/settings" onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                  <Settings className="mr-4 h-6 w-6" />
-                  {getTranslation(String(currentLang), 'Settings')}
-                </Button>
-              </Link>
-            )}
+            {/* Settings */}
+            <Link href="/settings" onClick={closeMobileMenu}>
+              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                <Settings className="mr-4 h-6 w-6" />
+                {getTranslation(String(currentLang), 'Settings')}
+              </Button>
+            </Link>
           </div>
 
           {/* Logout Section */}
