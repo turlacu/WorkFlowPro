@@ -15,7 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
-import { PlusCircle, Edit, Trash2, Loader2 } from 'lucide-react';
+import { PlusCircle, Edit, Trash2, Loader2, Key } from 'lucide-react';
 import { EditUserModal } from './edit-user-modal'; // Import the new modal
 
 
@@ -218,6 +218,39 @@ export function UserManagementDashboard() {
     }
   };
 
+  const handleResetPassword = async (userId: string, userName: string, userEmail: string) => {
+    try {
+      const response = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Password Reset Successfully',
+          description: `Password for ${userName} has been reset to: ${data.newPassword}`,
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: getTranslation(currentLang, 'Error'),
+          description: errorData.error || 'Failed to reset password',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: 'Network error while resetting password',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const formTitle = getTranslation(currentLang, 'UserManagementCreateUserTitle');
   const submitButtonText = getTranslation(currentLang, 'UserManagementCreateUserButton');
   const SubmitButtonIcon = PlusCircle;
@@ -351,6 +384,13 @@ export function UserManagementDashboard() {
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
+                            onClick={() => handleResetPassword(user.id, user.name, user.email)} 
+                            aria-label="Reset Password"
+                            className="hover:bg-accent hover:text-accent-foreground min-h-[44px] min-w-[44px] touch-manipulation text-orange-600 hover:text-orange-600"
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
+                          <Button 
                             onClick={() => handleDeleteUser(user.id)} 
                             aria-label={getTranslation(currentLang, 'UserManagementDeleteButton')}
                             className="hover:bg-accent hover:text-accent-foreground min-h-[44px] min-w-[44px] touch-manipulation text-destructive hover:text-destructive"
@@ -391,6 +431,13 @@ export function UserManagementDashboard() {
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         {getTranslation(currentLang, 'UserManagementEditButton')}
+                      </Button>
+                      <Button 
+                        onClick={() => handleResetPassword(user.id, user.name, user.email)}
+                        className="border border-input bg-background hover:bg-accent hover:text-accent-foreground flex-1 min-h-[44px] touch-manipulation h-9 px-3 text-sm text-orange-600 hover:text-orange-600"
+                      >
+                        <Key className="h-4 w-4 mr-2" />
+                        Reset
                       </Button>
                       <Button 
                         onClick={() => handleDeleteUser(user.id)}

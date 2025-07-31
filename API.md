@@ -285,6 +285,33 @@
 - **Result:** Creates fresh admin user (admin@workflowpro.com / admin123)
 - **Security:** Requires exact confirmation text
 
+### Reset User Password
+**Endpoint:** `POST /api/admin/reset-password`
+- **Body:**
+  ```json
+  {
+    "userId": "string"
+  }
+  ```
+- **Purpose:** Reset any user's password to default value (123456)
+- **Access:** Admin only
+- **Returns:**
+  ```json
+  {
+    "message": "Password reset successfully",
+    "user": {
+      "id": "string",
+      "name": "string", 
+      "email": "string",
+      "role": "string"
+    },
+    "newPassword": "123456"
+  }
+  ```
+- **Security:** 
+  - Cannot reset own password through this endpoint
+  - Logs all password reset actions
+
 ## Health & Monitoring
 
 ### Health Check
