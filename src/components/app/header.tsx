@@ -83,19 +83,55 @@ export default function AppHeader() {
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="w-full max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
-          {/* Left Section (Logo and App Name) */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <Link href="/assignments" className="flex items-center gap-2 min-w-0" aria-label={homeAriaLabel}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0 sm:w-7 sm:h-7">
+          {/* Mobile Layout */}
+          <div className="md:hidden flex items-center justify-between w-full">
+            {/* Mobile Hamburger Menu Button - Left Side */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleMobileMenu}
+              aria-label="Toggle menu"
+              className="h-10 w-10 -ml-2"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </Button>
+
+            {/* Mobile App Name - Center */}
+            <Link href="/assignments" className="flex items-center gap-2 absolute left-1/2 transform -translate-x-1/2" aria-label={homeAriaLabel}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
                 <line x1="8" y1="2" x2="8" y2="6"></line>
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
-              <span className="text-base sm:text-lg md:text-xl font-bold text-primary truncate">{appName}</span>
+              <span className="text-sm font-bold text-primary">{appName}</span>
+            </Link>
+
+            {/* Mobile Right Side - Theme and Language */}
+            <div className="flex items-center gap-1">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
+          </div>
+
+          {/* Desktop Layout - Hidden on mobile */}
+          <div className="hidden md:flex items-center gap-2 flex-1">
+            {/* Desktop Logo and App Name */}
+            <Link href="/assignments" className="flex items-center gap-2 mr-4" aria-label={homeAriaLabel}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+              <span className="text-lg md:text-xl font-bold text-primary">{appName}</span>
             </Link>
           </div>
-          
+
           {/* Desktop Navigation - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-1 lg:gap-2">
             {/* Today's Schedule Button */}
@@ -170,28 +206,6 @@ export default function AppHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-
-          {/* Mobile Menu Button - Visible only on mobile */}
-          <div className="md:hidden flex items-center gap-2 shrink-0">
-            {/* Mobile Theme and Language toggles */}
-            <LanguageToggle />
-            <ThemeToggle />
-            
-            {/* Hamburger Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMobileMenu}
-              aria-label="Toggle menu"
-              className="h-10 w-10"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
-          </div>
         </div>
       </header>
 
@@ -205,35 +219,37 @@ export default function AppHeader() {
         </div>
       )}
 
-      {/* Mobile Menu Panel */}
+      {/* Mobile Menu Panel - Full Screen Overlay */}
       <div className={`
-        fixed top-14 sm:top-16 left-0 right-0 z-50 md:hidden bg-background/95 backdrop-blur-sm border-b shadow-lg transform transition-transform duration-300 ease-in-out max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)] overflow-y-auto
+        fixed top-14 left-0 right-0 bottom-0 z-50 md:hidden bg-background transform transition-transform duration-300 ease-in-out
         ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}
       `}>
-        <div className="px-4 py-4 space-y-4">
+        <div className="p-6 space-y-6 h-full overflow-y-auto">
           {/* User Info Section */}
-          <div className="flex items-center gap-3 p-4 rounded-lg bg-accent/10 border border-accent/20">
-            <Avatar className="h-12 w-12 border-2 border-accent/30">
-              <AvatarFallback className="text-sm font-medium">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
+            <Avatar className="h-16 w-16 border-2 border-primary/20">
+              <AvatarFallback className="text-lg font-semibold bg-primary/10">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0 flex-1">
-              <p className="text-sm font-medium leading-none truncate">{user.name}</p>
-              <p className="text-xs leading-none text-muted-foreground mt-1.5 truncate">
+              <p className="text-lg font-semibold leading-tight truncate">{user.name}</p>
+              <p className="text-sm text-muted-foreground mt-1 truncate">
                 {user.email}
               </p>
-              <p className="text-xs leading-none text-muted-foreground mt-0.5">
-                ({userRoleDisplay})
+              <p className="text-sm text-primary font-medium mt-0.5">
+                {userRoleDisplay}
               </p>
             </div>
           </div>
 
           {/* Navigation Links */}
-          <div className="space-y-2 pb-2">
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-3">Navigation</h3>
+            
             {/* Today's Schedule Button */}
             {(pathname === '/assignments' || pathname === '/dashboard') && (
               <Link href="/todays-schedule" onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-12 text-sm">
-                  <CalendarClock className="mr-3 h-5 w-5" />
+                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                  <CalendarClock className="mr-4 h-6 w-6" />
                   {getTranslation(String(currentLang), 'TodaysScheduleButton')}
                 </Button>
               </Link>
@@ -242,8 +258,8 @@ export default function AppHeader() {
             {/* Assignments Button (only for Today's Schedule page) */}
             {AssignmentsButtonIcon && assignmentsButtonText && assignmentsButtonHref && (
               <Link href={assignmentsButtonHref} onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-12 text-sm">
-                  <AssignmentsButtonIcon className="mr-3 h-5 w-5" />
+                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                  <AssignmentsButtonIcon className="mr-4 h-6 w-6" />
                   {assignmentsButtonText}
                 </Button>
               </Link>
@@ -252,8 +268,8 @@ export default function AppHeader() {
             {/* Admin Panel / Go to Assignments Button */}
             {NavButtonIcon && navButtonText && navButtonHref && (
               <Link href={navButtonHref} onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-12 text-sm">
-                  <NavButtonIcon className="mr-3 h-5 w-5" />
+                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                  <NavButtonIcon className="mr-4 h-6 w-6" />
                   {navButtonText}
                 </Button>
               </Link>
@@ -261,21 +277,25 @@ export default function AppHeader() {
 
             {/* Settings Link */}
             <Link href="/settings" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-12 text-sm">
-                <Settings className="mr-3 h-5 w-5" />
+              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                <Settings className="mr-4 h-6 w-6" />
                 {getTranslation(String(currentLang), 'Settings')}
               </Button>
             </Link>
+          </div>
 
-            {/* Logout Button */}
-            <Button 
-              variant="ghost"
-              onClick={handleLogout}
-              className="w-full justify-start h-12 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
-            >
-              <LogOut className="mr-3 h-5 w-5" />
-              {getTranslation(String(currentLang), 'Logout')}
-            </Button>
+          {/* Logout Section */}
+          <div className="pt-6 mt-auto">
+            <div className="border-t border-border pt-6">
+              <Button 
+                variant="ghost"
+                onClick={handleLogout}
+                className="w-full justify-start h-14 text-base rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+              >
+                <LogOut className="mr-4 h-6 w-6" />
+                {getTranslation(String(currentLang), 'Logout')}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
