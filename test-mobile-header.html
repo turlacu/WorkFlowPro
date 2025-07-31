@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Header Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Simulate your app's styles */
+        .test-mobile { background: #f0f9ff; }
+        .test-desktop { background: #fef3c7; }
+    </style>
+</head>
+<body class="p-4">
+    <h1 class="text-2xl font-bold mb-6">Mobile Header Responsive Test</h1>
+    
+    <!-- Mobile Header Test (should show on screens < 768px) -->
+    <div class="border-2 border-blue-500 p-4 mb-4 test-mobile">
+        <h2 class="text-lg font-semibold mb-2">Mobile Header (md:hidden)</h2>
+        <div class="flex md:hidden items-center justify-between w-full">
+            <!-- Left: Hamburger Menu -->
+            <button class="inline-flex items-center justify-center h-10 w-10 border border-gray-300 rounded-md bg-white hover:bg-gray-50">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+
+            <!-- Center: App Name -->
+            <div class="flex items-center gap-1">
+                <svg class="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span class="text-sm font-semibold text-blue-600">WorkSmart Scheduler</span>
+            </div>
+
+            <!-- Right: Theme and Language toggles -->
+            <div class="flex items-center gap-1">
+                <button class="inline-flex items-center justify-center h-10 w-10 rounded-md bg-white hover:bg-gray-50">
+                    <span class="text-xs font-bold">EN</span>
+                </button>
+                <button class="inline-flex items-center justify-center h-10 w-10 rounded-md bg-white hover:bg-gray-50">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="md:hidden text-green-600 font-semibold mt-2">✓ This should be visible on mobile (width < 768px)</div>
+        <div class="hidden md:block text-red-600 font-semibold mt-2">✗ This should be hidden on mobile</div>
+    </div>
+
+    <!-- Desktop Header Test (should show on screens >= 768px) -->
+    <div class="border-2 border-yellow-500 p-4 mb-4 test-desktop">
+        <h2 class="text-lg font-semibold mb-2">Desktop Header (hidden md:flex)</h2>
+        <div class="hidden md:flex items-center gap-2 w-full">
+            <div class="flex items-center gap-2">
+                <svg class="h-7 w-7 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <span class="text-xl font-bold text-blue-600">WorkSmart Scheduler</span>
+            </div>
+            <div class="flex-1"></div>
+            <div class="flex items-center gap-2">
+                <button class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50">Settings</button>
+                <button class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50">EN</button>
+                <button class="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white hover:bg-gray-50">Theme</button>
+            </div>
+        </div>
+        <div class="hidden md:block text-green-600 font-semibold mt-2">✓ This should be visible on desktop (width >= 768px)</div>
+        <div class="md:hidden text-red-600 font-semibold mt-2">✗ This should be hidden on desktop</div>
+    </div>
+
+    <!-- Browser Info -->
+    <div class="border-2 border-gray-300 p-4">
+        <h2 class="text-lg font-semibold mb-2">Current Browser Info</h2>
+        <p id="screen-info" class="text-sm"></p>
+        <p id="window-info" class="text-sm"></p>
+        <p id="tailwind-test" class="text-sm"></p>
+    </div>
+
+    <script>
+        function updateInfo() {
+            document.getElementById('screen-info').textContent = 
+                `Screen: ${screen.width}x${screen.height}`;
+            document.getElementById('window-info').textContent = 
+                `Window: ${window.innerWidth}x${window.innerHeight}`;
+            
+            const isMobileBreakpoint = window.innerWidth < 768;
+            document.getElementById('tailwind-test').textContent = 
+                `Tailwind md: breakpoint (768px) - Currently: ${isMobileBreakpoint ? 'Mobile' : 'Desktop'} view`;
+        }
+        
+        updateInfo();
+        window.addEventListener('resize', updateInfo);
+    </script>
+</body>
+</html>
