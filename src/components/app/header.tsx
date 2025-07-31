@@ -83,37 +83,29 @@ export default function AppHeader() {
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="w-full max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
+          {/* DEBUG: Test mobile visibility */}
+          <div className="md:hidden bg-red-500 text-white p-2 text-xs w-full">
+            MOBILE DEBUG - Screen width should be less than 768px to see this
+          </div>
+          
           {/* Mobile Header - Shows on mobile only */}
-          <div className="flex md:hidden items-center justify-between w-full">
-            {/* Left: Hamburger Menu */}
-            <Button
-              variant="outline"
-              size="icon"
+          <div className="md:hidden flex items-center justify-between w-full bg-blue-100 border-2 border-blue-500 p-2">
+            {/* Left: Simple Test Button */}
+            <button
               onClick={toggleMobileMenu}
-              aria-label="Toggle menu"
+              className="bg-red-500 text-white px-3 py-2 rounded text-sm"
             >
-              {isMobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
+              MENU
+            </button>
 
-            {/* Center: App Name */}
-            <Link href="/assignments" className="flex items-center gap-1" aria-label={homeAriaLabel}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <line x1="16" y1="2" x2="16" y2="6"></line>
-                <line x1="8" y1="2" x2="8" y2="6"></line>
-                <line x1="3" y1="10" x2="21" y2="10"></line>
-              </svg>
-              <span className="text-sm font-semibold text-primary">{appName}</span>
-            </Link>
+            {/* Center: Simple Text */}
+            <div className="bg-green-500 text-white px-2 py-1 rounded text-sm">
+              {appName || 'APP NAME'}
+            </div>
 
-            {/* Right: Theme and Language toggles */}
-            <div className="flex items-center gap-1">
-              <LanguageToggle />
-              <ThemeToggle />
+            {/* Right: Simple Text */}
+            <div className="bg-yellow-500 text-black px-2 py-1 rounded text-xs">
+              SETTINGS
             </div>
           </div>
 
