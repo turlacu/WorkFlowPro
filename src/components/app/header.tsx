@@ -248,8 +248,28 @@ export default function AppHeader() {
           <div className="space-y-3">
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-3">Navigation</h3>
             
-            {/* Today's Schedule Button */}
-            {(pathname === '/assignments' || pathname === '/dashboard') && (
+            {/* Always show Assignments link (unless we're already on it) */}
+            {pathname !== '/assignments' && (
+              <Link href="/assignments" onClick={closeMobileMenu}>
+                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                  <ClipboardList className="mr-4 h-6 w-6" />
+                  {getTranslation(String(currentLang), 'GoToAssignments')}
+                </Button>
+              </Link>
+            )}
+
+            {/* Always show Admin Panel/Dashboard link (unless we're already on it) */}
+            {pathname !== '/dashboard' && (
+              <Link href="/dashboard" onClick={closeMobileMenu}>
+                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                  <ShieldCheck className="mr-4 h-6 w-6" />
+                  {getTranslation(String(currentLang), 'GoToAdminPanel')}
+                </Button>
+              </Link>
+            )}
+
+            {/* Always show Today's Schedule link (unless we're already on it) */}
+            {pathname !== '/todays-schedule' && (
               <Link href="/todays-schedule" onClick={closeMobileMenu}>
                 <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
                   <CalendarClock className="mr-4 h-6 w-6" />
@@ -258,33 +278,15 @@ export default function AppHeader() {
               </Link>
             )}
 
-            {/* Assignments Button (only for Today's Schedule page) */}
-            {AssignmentsButtonIcon && assignmentsButtonText && assignmentsButtonHref && (
-              <Link href={assignmentsButtonHref} onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                  <AssignmentsButtonIcon className="mr-4 h-6 w-6" />
-                  {assignmentsButtonText}
-                </Button>
-              </Link>
-            )}
-
-            {/* Admin Panel / Go to Assignments Button */}
-            {NavButtonIcon && navButtonText && navButtonHref && (
-              <Link href={navButtonHref} onClick={closeMobileMenu}>
-                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                  <NavButtonIcon className="mr-4 h-6 w-6" />
-                  {navButtonText}
-                </Button>
-              </Link>
-            )}
-
             {/* Settings Link */}
-            <Link href="/settings" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <Settings className="mr-4 h-6 w-6" />
-                {getTranslation(String(currentLang), 'Settings')}
-              </Button>
-            </Link>
+            {pathname !== '/settings' && (
+              <Link href="/settings" onClick={closeMobileMenu}>
+                <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
+                  <Settings className="mr-4 h-6 w-6" />
+                  {getTranslation(String(currentLang), 'Settings')}
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Logout Section */}
