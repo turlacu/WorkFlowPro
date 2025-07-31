@@ -81,33 +81,16 @@ export default function AppHeader() {
 
   return (
     <>
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="w-full max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
-          {/* DEBUG: Test mobile visibility */}
-          <div className="md:hidden bg-red-500 text-white p-2 text-xs w-full">
-            MOBILE DEBUG - Screen width should be less than 768px to see this
-          </div>
-          
-          {/* Mobile Header - Shows on mobile only */}
-          <div className="md:hidden flex items-center justify-between w-full bg-blue-100 border-2 border-blue-500 p-2">
-            {/* Left: Simple Test Button */}
-            <button
-              onClick={toggleMobileMenu}
-              className="bg-red-500 text-white px-3 py-2 rounded text-sm"
-            >
-              MENU
-            </button>
-
-            {/* Center: Simple Text */}
-            <div className="bg-green-500 text-white px-2 py-1 rounded text-sm">
-              {appName || 'APP NAME'}
-            </div>
-
-            {/* Right: Simple Text */}
-            <div className="bg-yellow-500 text-black px-2 py-1 rounded text-xs">
-              SETTINGS
-            </div>
-          </div>
+      <header className="w-full border-b-4 border-red-500 bg-red-100 min-h-[60px]" style={{zIndex: 9999}}>
+        <div className="w-full h-16 bg-blue-500 flex items-center justify-center text-white text-xl font-bold">
+          MOBILE HEADER TEST - CAN YOU SEE THIS?
+        </div>
+        <div className="w-full bg-green-500 p-4 text-black text-center text-lg font-bold block md:hidden">
+          THIS SHOULD ONLY SHOW ON MOBILE (less than 768px width)
+        </div>
+        <div className="bg-yellow-500 p-2 text-center text-black font-bold">
+          ALWAYS VISIBLE TEST
+        </div>
 
           {/* Desktop Header - Shows on desktop only */}
           <div className="hidden md:flex items-center gap-2 w-full">
