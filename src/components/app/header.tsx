@@ -84,15 +84,15 @@ export default function AppHeader() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="w-full max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
           {/* Left Section (Logo and App Name) */}
-          <div className="flex items-center gap-2">
-            <Link href="/assignments" className="flex items-center gap-2" aria-label={homeAriaLabel}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Link href="/assignments" className="flex items-center gap-2 min-w-0" aria-label={homeAriaLabel}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary shrink-0 sm:w-7 sm:h-7">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
                 <line x1="8" y1="2" x2="8" y2="6"></line>
                 <line x1="3" y1="10" x2="21" y2="10"></line>
               </svg>
-              <span className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{appName}</span>
+              <span className="text-base sm:text-lg md:text-xl font-bold text-primary truncate">{appName}</span>
             </Link>
           </div>
           
@@ -172,7 +172,7 @@ export default function AppHeader() {
           </div>
 
           {/* Mobile Menu Button - Visible only on mobile */}
-          <div className="md:hidden flex items-center gap-1">
+          <div className="md:hidden flex items-center gap-2 shrink-0">
             {/* Mobile Theme and Language toggles */}
             <LanguageToggle />
             <ThemeToggle />
@@ -183,11 +183,12 @@ export default function AppHeader() {
               size="icon"
               onClick={toggleMobileMenu}
               aria-label="Toggle menu"
+              className="h-10 w-10"
             >
               {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
+                <X className="h-5 w-5" />
               ) : (
-                <Menu className="h-6 w-6" />
+                <Menu className="h-5 w-5" />
               )}
             </Button>
           </div>

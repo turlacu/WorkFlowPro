@@ -210,42 +210,48 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-2">
+          <div className="flex items-center justify-between pt-3 border-t border-border/50">
             <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
               <Button 
+                variant="outline"
+                size="sm"
                 onClick={() => handleViewDetails(assignment)}
-                className="flex items-center gap-1 min-h-[36px]"
+                className="flex items-center gap-1.5 h-8 px-3"
               >
                 <Eye className="h-3 w-3" />
-                {getTranslation(currentLang, 'View')}
+                <span className="text-xs">{getTranslation(currentLang, 'View')}</span>
               </Button>
               {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
                 <>
                   <Button 
+                    variant="outline"
+                    size="sm"
                     onClick={(e) => handleEditClick(assignment, e)}
-                    className="flex items-center gap-1 min-h-[36px]"
+                    className="flex items-center gap-1.5 h-8 px-3"
                   >
                     <Edit className="h-3 w-3" />
-                    {getTranslation(currentLang, 'Edit')}
+                    <span className="text-xs">{getTranslation(currentLang, 'Edit')}</span>
                   </Button>
                   <Button 
+                    variant="outline"
+                    size="sm"
                     onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)}
-                    className="flex items-center gap-1 text-destructive hover:text-destructive min-h-[36px]"
+                    className="flex items-center gap-1.5 h-8 px-3 text-destructive hover:text-destructive-foreground hover:bg-destructive"
                   >
                     <Trash2 className="h-3 w-3" />
-                    {getTranslation(currentLang, 'Delete')}
+                    <span className="text-xs">{getTranslation(currentLang, 'Delete')}</span>
                   </Button>
                 </>
               )}
             </div>
             {currentUserRole === 'OPERATOR' && (
-              <div onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">
+              <div onClick={(e) => e.stopPropagation()} className="flex items-center">
+                <div className="flex items-center justify-center min-h-[44px] min-w-[44px] pl-2">
                   <Checkbox
                     checked={assignment.status === 'COMPLETED'}
                     onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
                     aria-label={`Mark ${assignment.name} as complete`}
-                    className="touch-manipulation"
+                    className="touch-manipulation h-5 w-5"
                   />
                 </div>
               </div>
@@ -299,35 +305,40 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                     ? getTranslation(currentLang, 'AssignmentUnassigned')
                     : assignment.assignedTo.name}
                 </TableCell>
-                <TableCell className="text-right space-x-1" onClick={(e) => e.stopPropagation()}>
-                  <Button 
-                    onClick={() => handleViewDetails(assignment)}
-                    className="min-h-[44px] min-w-[44px] touch-manipulation"
-                  >
-                     {getTranslation(currentLang, 'View')}
-                  </Button>
-                  {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
-                    <>
-                      <Button 
-                         
-                         
-                        onClick={(e) => handleEditClick(assignment, e)} 
-                        aria-label={getTranslation(currentLang, 'Edit')}
-                        className="min-h-[44px] min-w-[44px] touch-manipulation"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                         
-                         
-                        onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)} 
-                        aria-label={getTranslation(currentLang, 'Delete')}
-                        className="min-h-[44px] min-w-[44px] touch-manipulation text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </>
-                  )}
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-end gap-1">
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewDetails(assignment)}
+                      className="h-8 px-3 touch-manipulation"
+                    >
+                      <Eye className="h-3 w-3 mr-1.5" />
+                      <span className="text-xs">{getTranslation(currentLang, 'View')}</span>
+                    </Button>
+                    {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
+                      <>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => handleEditClick(assignment, e)} 
+                          aria-label={getTranslation(currentLang, 'Edit')}
+                          className="h-8 w-8 p-0 touch-manipulation"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)} 
+                          aria-label={getTranslation(currentLang, 'Delete')}
+                          className="h-8 w-8 p-0 touch-manipulation text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </TableCell>
                 {currentUserRole === 'OPERATOR' && (
                   <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
