@@ -212,15 +212,6 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
           {/* Action Buttons */}
           <div className="flex items-center justify-between pt-3 border-t border-border/50">
             <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={() => handleViewDetails(assignment)}
-                className="flex items-center gap-1.5 h-8 px-3"
-              >
-                <Eye className="h-3 w-3" />
-                <span className="text-xs">{getTranslation(currentLang, 'View')}</span>
-              </Button>
               {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
                 <>
                   <Button 
@@ -243,6 +234,15 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                   </Button>
                 </>
               )}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Uploaded to Q:</span>
+                <Checkbox
+                  checked={false}
+                  onCheckedChange={() => {}}
+                  aria-label={`Mark ${assignment.name} as uploaded to Q`}
+                  className="touch-manipulation h-4 w-4"
+                />
+              </div>
             </div>
             {currentUserRole === 'OPERATOR' && (
               <div onClick={(e) => e.stopPropagation()} className="flex items-center">
@@ -279,7 +279,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
               <TableHead>{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
               <TableHead>{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
               <TableHead>{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
-              <TableHead className="text-right">{getTranslation(currentLang, 'AssignmentTableActions')}</TableHead>
+              <TableHead className="text-right">Uploaded to Q</TableHead>
               {currentUserRole === 'OPERATOR' && <TableHead className="w-[50px] text-right">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>}
             </TableRow>
           </TableHeader>
@@ -307,15 +307,14 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                 </TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-end gap-1">
-                    <Button 
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(assignment)}
-                      className="h-8 px-3 touch-manipulation"
-                    >
-                      <Eye className="h-3 w-3 mr-1.5" />
-                      <span className="text-xs">{getTranslation(currentLang, 'View')}</span>
-                    </Button>
+                    <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">
+                      <Checkbox
+                        checked={false}
+                        onCheckedChange={() => {}}
+                        aria-label={`Mark ${assignment.name} as uploaded to Q`}
+                        className="touch-manipulation"
+                      />
+                    </div>
                     {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
                       <>
                         <Button 

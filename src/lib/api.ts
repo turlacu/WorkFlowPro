@@ -9,6 +9,7 @@ export interface AssignmentWithUsers extends Assignment {
 export interface CreateAssignmentData {
   name: string;
   description?: string;
+  author?: string;
   dueDate: string;
   priority: 'LOW' | 'NORMAL' | 'URGENT';
   assignedToId?: string;
