@@ -295,19 +295,77 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    console.log('PUT /api/assignments - Session:', { userId: session?.user?.id, role: session?.user?.role });
     
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
+    console.log('PUT /api/assignments - Request body:', body);
+    
     const validatedData = UpdateAssignmentSchema.parse(body);
+    console.log('PUT /api/assignments - Validated data:', validatedData);
 
     // Check if user has permission to update this assignment
-    const existingAssignment = await prisma.assignment.findUnique({
-      where: { id: validatedData.id },
-      include: { createdBy: true, assignedTo: true },
-    });
+    let existingAssignment;
+    try {
+      existingAssignment = await prisma.assignment.findUnique({
+        where: { id: validatedData.id },
+        include: { createdBy: true, assignedTo: true },
+      });
+    } catch (findError: any) {
+      console.error('Error finding existing assignment:', findError);
+      if (findError.message && findError.message.includes('column') && findError.message.includes('author')) {
+        console.log('Author column not found in findUnique, using raw SQL');
+        const rawResult = await prisma.$queryRawUnsafe(`
+          SELECT 
+            a.id, a.name, a.description, a."dueDate", a.status, a.priority, 
+            a."sourceLocation", a.comment, a."createdAt", a."updatedAt", 
+            a."completedAt", a."assignedToId", a."createdById", a."lastUpdatedById",
+            cu.id as "createdBy_id", cu.name as "createdBy_name", cu.email as "createdBy_email",
+            au.id as "assignedTo_id", au.name as "assignedTo_name", au.email as "assignedTo_email"
+          FROM assignments a
+          JOIN users cu ON a."createdById" = cu.id
+          LEFT JOIN users au ON a."assignedToId" = au.id
+          WHERE a.id = $1
+        `, validatedData.id);
+
+        if (!rawResult || (rawResult as any[]).length === 0) {
+          return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+        }
+
+        const row = (rawResult as any[])[0];
+        existingAssignment = {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          dueDate: row.dueDate,
+          status: row.status,
+          priority: row.priority,
+          sourceLocation: row.sourceLocation,
+          comment: row.comment,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          completedAt: row.completedAt,
+          assignedToId: row.assignedToId,
+          createdById: row.createdById,
+          lastUpdatedById: row.lastUpdatedById,
+          createdBy: {
+            id: row.createdBy_id,
+            name: row.createdBy_name,
+            email: row.createdBy_email,
+          },
+          assignedTo: row.assignedTo_id ? {
+            id: row.assignedTo_id,
+            name: row.assignedTo_name,
+            email: row.assignedTo_email,
+          } : null,
+        };
+      } else {
+        throw findError;
+      }
+    }
 
     if (!existingAssignment) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
@@ -318,6 +376,11 @@ export async function PUT(request: NextRequest) {
                    existingAssignment.assignedToId === session.user.id;
 
     if (!canEdit) {
+      console.log('PUT /api/assignments - Forbidden:', { 
+        userRole: session.user.role, 
+        userId: session.user.id, 
+        assignedToId: existingAssignment.assignedToId 
+      });
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -347,6 +410,8 @@ export async function PUT(request: NextRequest) {
       updateData.comment = validatedData.comment;
     }
 
+    console.log('PUT /api/assignments - Update data:', updateData);
+
     try {
       const assignment = await prisma.assignment.update({
         where: { id: validatedData.id },
@@ -364,14 +429,18 @@ export async function PUT(request: NextRequest) {
         },
       });
 
+      console.log('PUT /api/assignments - Update successful');
       return NextResponse.json(assignment);
     } catch (prismaError: any) {
+      console.error('PUT /api/assignments - Prisma update error:', prismaError);
+      
       // If the error is about missing author column, update without author field
       if (prismaError.message && prismaError.message.includes('column') && prismaError.message.includes('author')) {
         console.log('Author column not found, updating assignment without author field');
         
         // Remove author from updateData if it exists
         const { author, ...updateDataWithoutAuthor } = updateData;
+        console.log('PUT /api/assignments - Retry update data without author:', updateDataWithoutAuthor);
         
         const assignment = await prisma.assignment.update({
           where: { id: validatedData.id },
@@ -389,6 +458,7 @@ export async function PUT(request: NextRequest) {
           },
         });
 
+        console.log('PUT /api/assignments - Retry update successful');
         // Add null author for backward compatibility
         return NextResponse.json({
           ...assignment,
@@ -396,7 +466,144 @@ export async function PUT(request: NextRequest) {
         });
       }
       
-      // Re-throw other Prisma errors
+      // For other database errors, try using raw SQL
+      if (prismaError.code && (prismaError.code === 'P2002' || prismaError.code === 'P2025' || prismaError.message.includes('column'))) {
+        console.log('Falling back to raw SQL update');
+        
+        // Build raw SQL update
+        const setClause = [];
+        const params = [];
+        let paramIndex = 1;
+        
+        if (updateData.name) {
+          setClause.push(`name = $${paramIndex}`);
+          params.push(updateData.name);
+          paramIndex++;
+        }
+        
+        if (updateData.description !== undefined) {
+          setClause.push(`description = $${paramIndex}`);
+          params.push(updateData.description);
+          paramIndex++;
+        }
+        
+        if (updateData.dueDate) {
+          setClause.push(`"dueDate" = $${paramIndex}`);
+          params.push(updateData.dueDate);
+          paramIndex++;
+        }
+        
+        if (updateData.status) {
+          setClause.push(`status = $${paramIndex}`);
+          params.push(updateData.status);
+          paramIndex++;
+        }
+        
+        if (updateData.priority) {
+          setClause.push(`priority = $${paramIndex}`);
+          params.push(updateData.priority);
+          paramIndex++;
+        }
+        
+        if (updateData.assignedToId !== undefined) {
+          setClause.push(`"assignedToId" = $${paramIndex}`);
+          params.push(updateData.assignedToId);
+          paramIndex++;
+        }
+        
+        if (updateData.sourceLocation !== undefined) {
+          setClause.push(`"sourceLocation" = $${paramIndex}`);
+          params.push(updateData.sourceLocation);
+          paramIndex++;
+        }
+        
+        if (updateData.comment !== undefined) {
+          setClause.push(`comment = $${paramIndex}`);
+          params.push(updateData.comment);
+          paramIndex++;
+        }
+        
+        if (updateData.completedAt) {
+          setClause.push(`"completedAt" = $${paramIndex}`);
+          params.push(updateData.completedAt);
+          paramIndex++;
+        }
+        
+        setClause.push(`"lastUpdatedById" = $${paramIndex}`);
+        params.push(session.user.id);
+        paramIndex++;
+        
+        setClause.push(`"updatedAt" = $${paramIndex}`);
+        params.push(new Date());
+        paramIndex++;
+        
+        params.push(validatedData.id);
+        
+        await prisma.$queryRawUnsafe(`
+          UPDATE assignments 
+          SET ${setClause.join(', ')}
+          WHERE id = $${paramIndex}
+        `, ...params);
+        
+        // Fetch the updated assignment using raw SQL
+        const rawResult = await prisma.$queryRawUnsafe(`
+          SELECT 
+            a.id, a.name, a.description, a."dueDate", a.status, a.priority, 
+            a."sourceLocation", a.comment, a."createdAt", a."updatedAt", 
+            a."completedAt", a."assignedToId", a."createdById", a."lastUpdatedById",
+            cu.id as "createdBy_id", cu.name as "createdBy_name", cu.email as "createdBy_email",
+            au.id as "assignedTo_id", au.name as "assignedTo_name", au.email as "assignedTo_email",
+            lu.id as "lastUpdatedBy_id", lu.name as "lastUpdatedBy_name", lu.email as "lastUpdatedBy_email"
+          FROM assignments a
+          JOIN users cu ON a."createdById" = cu.id
+          LEFT JOIN users au ON a."assignedToId" = au.id
+          JOIN users lu ON a."lastUpdatedById" = lu.id
+          WHERE a.id = $1
+        `, validatedData.id);
+        
+        if (!rawResult || (rawResult as any[]).length === 0) {
+          throw new Error('Failed to fetch updated assignment');
+        }
+        
+        const row = (rawResult as any[])[0];
+        const assignment = {
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          author: null, // Add null author for backward compatibility
+          dueDate: row.dueDate,
+          status: row.status,
+          priority: row.priority,
+          sourceLocation: row.sourceLocation,
+          comment: row.comment,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          completedAt: row.completedAt,
+          assignedToId: row.assignedToId,
+          createdById: row.createdById,
+          lastUpdatedById: row.lastUpdatedById,
+          assignedTo: row.assignedTo_id ? {
+            id: row.assignedTo_id,
+            name: row.assignedTo_name,
+            email: row.assignedTo_email,
+          } : null,
+          createdBy: {
+            id: row.createdBy_id,
+            name: row.createdBy_name,
+            email: row.createdBy_email,
+          },
+          lastUpdatedBy: {
+            id: row.lastUpdatedBy_id,
+            name: row.lastUpdatedBy_name,
+            email: row.lastUpdatedBy_email,
+          },
+        };
+        
+        console.log('PUT /api/assignments - Raw SQL update successful');
+        return NextResponse.json(assignment);
+      }
+      
+      // Re-throw other errors
       throw prismaError;
     }
   } catch (error) {
