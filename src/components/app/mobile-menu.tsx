@@ -45,12 +45,12 @@ export default function MobileMenu() {
   return (
     <>
       {/* Mobile Hamburger Button */}
-      <div className="md:hidden">
+      <div className="md:hidden relative z-[10000]">
         <Button
           variant="outline"
           size="icon"
           onClick={toggleMobileMenu}
-          className="h-10 w-10"
+          className="h-10 w-10 relative z-[10000]"
           aria-label="Toggle menu"
         >
           {isMobileMenuOpen ? (
@@ -64,82 +64,76 @@ export default function MobileMenu() {
       {/* Mobile Menu Overlay - Only show when menu is open */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 z-[100] md:hidden"
+          className="fixed inset-0 z-[9999] md:hidden"
           onClick={closeMobileMenu}
         >
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
         </div>
       )}
 
       {/* Mobile Menu Panel - Only show when menu is open */}
       {isMobileMenuOpen && (
-        <div className="fixed top-14 sm:top-16 left-0 right-0 bottom-0 z-[110] md:hidden bg-background border-t shadow-lg">
-          <div className="p-6 space-y-6 max-h-full overflow-y-auto scrollbar-hide">
-          {/* User Info Section */}
-          <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
-            <Avatar className="h-16 w-16 border-2 border-primary/20">
-              <AvatarFallback className="text-lg font-semibold bg-primary/10">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+        <div className="fixed top-14 sm:top-16 left-0 right-0 z-[9999] md:hidden bg-background border-t shadow-2xl max-h-[calc(100vh-3.5rem)] sm:max-h-[calc(100vh-4rem)]">
+          <div className="p-4 space-y-4 h-full overflow-hidden">
+          {/* User Info Section - Compact */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <Avatar className="h-12 w-12 border-2 border-primary/20">
+              <AvatarFallback className="text-sm font-semibold bg-primary/10">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col min-w-0 flex-1">
-              <p className="text-lg font-semibold leading-tight truncate">{user.name}</p>
-              <p className="text-sm text-muted-foreground mt-1 truncate">
-                {user.email}
-              </p>
-              <p className="text-sm text-primary font-medium mt-0.5">
-                {userRoleDisplay}
-              </p>
+              <p className="text-base font-semibold leading-tight truncate">{user.name}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              <p className="text-xs text-primary font-medium">{userRoleDisplay}</p>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-3">Navigation</h3>
+          {/* Navigation Links - Compact */}
+          <div className="space-y-1">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">Navigation</h3>
             
             {/* Assignments */}
             <Link href="/assignments" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <ClipboardList className="mr-4 h-6 w-6" />
+              <Button variant="ghost" className="w-full justify-start h-11 text-sm rounded-lg">
+                <ClipboardList className="mr-3 h-4 w-4" />
                 {getTranslation(String(currentLang), 'GoToAssignments')}
               </Button>
             </Link>
 
             {/* Admin Panel/Dashboard */}
             <Link href="/dashboard" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <ShieldCheck className="mr-4 h-6 w-6" />
+              <Button variant="ghost" className="w-full justify-start h-11 text-sm rounded-lg">
+                <ShieldCheck className="mr-3 h-4 w-4" />
                 {getTranslation(String(currentLang), 'GoToAdminPanel')}
               </Button>
             </Link>
 
             {/* Today's Schedule */}
             <Link href="/todays-schedule" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <CalendarClock className="mr-4 h-6 w-6" />
+              <Button variant="ghost" className="w-full justify-start h-11 text-sm rounded-lg">
+                <CalendarClock className="mr-3 h-4 w-4" />
                 {getTranslation(String(currentLang), 'TodaysScheduleButton')}
               </Button>
             </Link>
 
             {/* Settings */}
             <Link href="/settings" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <Settings className="mr-4 h-6 w-6" />
+              <Button variant="ghost" className="w-full justify-start h-11 text-sm rounded-lg">
+                <Settings className="mr-3 h-4 w-4" />
                 {getTranslation(String(currentLang), 'Settings')}
               </Button>
             </Link>
           </div>
 
-          {/* Logout Section */}
-          <div className="pt-6 mt-auto">
-            <div className="border-t border-border pt-6">
-              <Button 
-                variant="ghost"
-                onClick={handleLogout}
-                className="w-full justify-start h-14 text-base rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
-              >
-                <LogOut className="mr-4 h-6 w-6" />
-                {getTranslation(String(currentLang), 'Logout')}
-              </Button>
-            </div>
+          {/* Logout Section - Compact */}
+          <div className="pt-3 border-t border-border">
+            <Button 
+              variant="ghost"
+              onClick={handleLogout}
+              className="w-full justify-start h-11 text-sm rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+            >
+              <LogOut className="mr-3 h-4 w-4" />
+              {getTranslation(String(currentLang), 'Logout')}
+            </Button>
           </div>
         </div>
         </div>
