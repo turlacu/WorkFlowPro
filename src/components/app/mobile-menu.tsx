@@ -61,22 +61,20 @@ export default function MobileMenu() {
         </Button>
       </div>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu Overlay - Only show when menu is open */}
       {isMobileMenuOpen && (
         <div 
-          className="fixed inset-0 z-40 md:hidden"
+          className="fixed inset-0 z-[100] md:hidden"
           onClick={closeMobileMenu}
         >
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
         </div>
       )}
 
-      {/* Mobile Menu Panel */}
-      <div className={`
-        fixed top-14 sm:top-16 left-0 right-0 bottom-0 z-50 md:hidden bg-background transform transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}
-      `}>
-        <div className="p-6 space-y-6 h-full overflow-y-auto">
+      {/* Mobile Menu Panel - Only show when menu is open */}
+      {isMobileMenuOpen && (
+        <div className="fixed top-14 sm:top-16 left-0 right-0 bottom-0 z-[110] md:hidden bg-background border-t shadow-lg">
+          <div className="p-6 space-y-6 max-h-full overflow-y-auto scrollbar-hide">
           {/* User Info Section */}
           <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
             <Avatar className="h-16 w-16 border-2 border-primary/20">
@@ -144,7 +142,8 @@ export default function MobileMenu() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </>
   );
 }
