@@ -85,7 +85,7 @@ export default function AppHeader() {
         <div className="w-full max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
           
           {/* Simple Mobile Header */}
-          <div className="flex md:hidden items-center justify-between w-full">
+          <div className="md:hidden flex items-center justify-between w-full">
             {/* Left: Hamburger Menu Button */}
             <Button
               variant="outline"
