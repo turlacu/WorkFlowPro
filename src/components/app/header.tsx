@@ -2,10 +2,11 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Settings, LogOut, ShieldCheck, ClipboardList, CalendarClock, Menu, X } from 'lucide-react';
+import { Settings, LogOut, ShieldCheck, ClipboardList, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/app/theme-toggle';
 import { LanguageToggle } from '@/components/app/language-toggle';
+import MobileMenu from '@/components/app/mobile-menu';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,19 +26,9 @@ export default function AppHeader() {
   const pathname = usePathname();
   const { currentLang } = useLanguage();
   const { data: session } = useSession();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   const handleLogout = async () => {
     await signOut({ callbackUrl: '/login' });
-    setIsMobileMenuOpen(false);
-  };
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
-  const closeMobileMenu = () => {
-    setIsMobileMenuOpen(false);
   };
   
   // Use session data or fallback to default
@@ -84,22 +75,10 @@ export default function AppHeader() {
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="w-full max-w-7xl mx-auto flex h-14 sm:h-16 items-center justify-between px-3 sm:px-4 lg:px-6">
           
-          {/* Simple Mobile Header */}
+          {/* Mobile Header */}
           <div className="md:hidden flex items-center justify-between w-full">
-            {/* Left: Hamburger Menu Button */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={toggleMobileMenu}
-              className="h-10 w-10"
-              aria-label="Toggle menu"
-            >
-              {isMobileMenuOpen ? (
-                <X className="h-5 w-5" />
-              ) : (
-                <Menu className="h-5 w-5" />
-              )}
-            </Button>
+            {/* Left: Mobile Menu */}
+            <MobileMenu />
 
             {/* Center: App Logo & Name */}
             <Link href="/assignments" className="flex items-center gap-2" aria-label={homeAriaLabel}>
@@ -212,91 +191,6 @@ export default function AppHeader() {
           </div>
         </div>
       </header>
-
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 z-40 md:hidden"
-          onClick={closeMobileMenu}
-        >
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
-        </div>
-      )}
-
-      {/* Simple Mobile Menu Panel */}
-      <div className={`
-        fixed top-14 sm:top-16 left-0 right-0 bottom-0 z-50 md:hidden bg-background transform transition-transform duration-300 ease-in-out
-        ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}
-      `}>
-        <div className="p-6 space-y-6 h-full overflow-y-auto">
-          {/* User Info Section */}
-          <div className="flex items-center gap-4 p-4 rounded-xl bg-primary/5 border border-primary/10">
-            <Avatar className="h-16 w-16 border-2 border-primary/20">
-              <AvatarFallback className="text-lg font-semibold bg-primary/10">{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col min-w-0 flex-1">
-              <p className="text-lg font-semibold leading-tight truncate">{user.name}</p>
-              <p className="text-sm text-muted-foreground mt-1 truncate">
-                {user.email}
-              </p>
-              <p className="text-sm text-primary font-medium mt-0.5">
-                {userRoleDisplay}
-              </p>
-            </div>
-          </div>
-
-          {/* Fixed Navigation Links - Always Show All Options */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider px-3">Navigation</h3>
-            
-            {/* Assignments */}
-            <Link href="/assignments" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <ClipboardList className="mr-4 h-6 w-6" />
-                {getTranslation(String(currentLang), 'GoToAssignments')}
-              </Button>
-            </Link>
-
-            {/* Admin Panel/Dashboard */}
-            <Link href="/dashboard" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <ShieldCheck className="mr-4 h-6 w-6" />
-                {getTranslation(String(currentLang), 'GoToAdminPanel')}
-              </Button>
-            </Link>
-
-            {/* Today's Schedule */}
-            <Link href="/todays-schedule" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <CalendarClock className="mr-4 h-6 w-6" />
-                {getTranslation(String(currentLang), 'TodaysScheduleButton')}
-              </Button>
-            </Link>
-
-            {/* Settings */}
-            <Link href="/settings" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-14 text-base rounded-xl">
-                <Settings className="mr-4 h-6 w-6" />
-                {getTranslation(String(currentLang), 'Settings')}
-              </Button>
-            </Link>
-          </div>
-
-          {/* Logout Section */}
-          <div className="pt-6 mt-auto">
-            <div className="border-t border-border pt-6">
-              <Button 
-                variant="ghost"
-                onClick={handleLogout}
-                className="w-full justify-start h-14 text-base rounded-xl text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
-              >
-                <LogOut className="mr-4 h-6 w-6" />
-                {getTranslation(String(currentLang), 'Logout')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
     </>
   );
 }
