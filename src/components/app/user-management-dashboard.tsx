@@ -377,23 +377,31 @@ export function UserManagementDashboard() {
                         </TableCell>
                         <TableCell className="text-right space-x-1">
                           <Button 
+                            variant="ghost" 
+                            size="icon"
                             onClick={() => handleOpenEditModal(user)} 
                             aria-label={getTranslation(currentLang, 'UserManagementEditButton')}
-                            className="hover:bg-accent hover:text-accent-foreground min-h-[44px] min-w-[44px] touch-manipulation"
+                            title={getTranslation(currentLang, 'UserManagementEditButton')}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
                           <Button 
+                            variant="ghost" 
+                            size="icon"
                             onClick={() => handleResetPassword(user.id, user.name, user.email)} 
                             aria-label="Reset Password"
-                            className="hover:bg-accent hover:text-accent-foreground min-h-[44px] min-w-[44px] touch-manipulation text-orange-600 hover:text-orange-600"
+                            title="Reset Password"
+                            className="text-orange-600 hover:text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/20"
                           >
                             <Key className="h-4 w-4" />
                           </Button>
                           <Button 
+                            variant="ghost" 
+                            size="icon"
                             onClick={() => handleDeleteUser(user.id)} 
                             aria-label={getTranslation(currentLang, 'UserManagementDeleteButton')}
-                            className="hover:bg-accent hover:text-accent-foreground min-h-[44px] min-w-[44px] touch-manipulation text-destructive hover:text-destructive"
+                            title={getTranslation(currentLang, 'UserManagementDeleteButton')}
+                            className="text-destructive hover:text-destructive hover:bg-red-100 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

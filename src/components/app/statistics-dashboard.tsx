@@ -97,6 +97,44 @@ export function StatisticsDashboard() {
   const handleNextMonth = () => {
     setTrendChartMonth(prev => addMonths(prev, 1));
   };
+
+  const handleRefreshStats = async (viewType: 'day' | 'month') => {
+    try {
+      setLoading(true);
+      console.log('🔄 Refreshing statistics for:', viewType, 'Date:', userActivityDate);
+      
+      let startDate: string;
+      let endDate: string;
+      
+      if (viewType === 'day') {
+        // For day view, use the selected date only
+        startDate = format(userActivityDate, 'yyyy-MM-dd');
+        endDate = format(userActivityDate, 'yyyy-MM-dd');
+      } else {
+        // For month view, use the entire month of the selected date
+        startDate = format(startOfMonth(userActivityDate), 'yyyy-MM-dd');
+        endDate = format(endOfMonth(userActivityDate), 'yyyy-MM-dd');
+      }
+      
+      console.log('📅 Fetching statistics for date range:', { startDate, endDate });
+      
+      const result = await getStatisticsAction({
+        startDate,
+        endDate,
+      });
+      
+      if (!('error' in result)) {
+        setStatsData(result);
+        console.log('✅ Statistics updated successfully');
+      } else {
+        console.error("Error fetching filtered stats:", result.error);
+      }
+    } catch (error) {
+      console.error("Error refreshing statistics:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   // Status breakdown from actual data
   const statusBreakdown = {
@@ -246,8 +284,18 @@ export function StatisticsDashboard() {
                   />
                 </PopoverContent>
               </Popover>
-              <Button className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground">{getTranslation(currentLang, 'StatisticsDayViewButton')}</Button>
-              <Button className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground">{getTranslation(currentLang, 'StatisticsMonthViewButton')}</Button>
+              <Button 
+                onClick={() => handleRefreshStats('day')}
+                className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+              >
+                {getTranslation(currentLang, 'StatisticsDayViewButton')}
+              </Button>
+              <Button 
+                onClick={() => handleRefreshStats('month')}
+                className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+              >
+                {getTranslation(currentLang, 'StatisticsMonthViewButton')}
+              </Button>
             </div>
           </div>
         </CardHeader>
