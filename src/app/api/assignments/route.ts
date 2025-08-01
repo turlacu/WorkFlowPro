@@ -8,6 +8,7 @@ import { z } from 'zod';
 const CreateAssignmentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
+  author: z.string().optional(),
   dueDate: z.string().datetime('Invalid date format'),
   priority: z.enum(['LOW', 'NORMAL', 'URGENT']).default('NORMAL'),
   assignedToId: z.string().optional(),
@@ -52,25 +53,110 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const assignments = await prisma.assignment.findMany({
-      where: whereClause,
-      include: {
-        assignedTo: {
-          select: { id: true, name: true, email: true },
+    try {
+      // Try the normal Prisma query first
+      const assignments = await prisma.assignment.findMany({
+        where: whereClause,
+        include: {
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+          lastUpdatedBy: {
+            select: { id: true, name: true, email: true },
+          },
         },
-        createdBy: {
-          select: { id: true, name: true, email: true },
+        orderBy: {
+          dueDate: 'asc',
         },
-        lastUpdatedBy: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-      orderBy: {
-        dueDate: 'asc',
-      },
-    });
+      });
 
-    return NextResponse.json(assignments);
+      return NextResponse.json(assignments);
+    } catch (prismaError: any) {
+      // If the error is about missing column, fall back to raw SQL
+      if (prismaError.message && prismaError.message.includes('column') && prismaError.message.includes('author')) {
+        console.log('Author column not found, falling back to raw SQL query without author field');
+        
+        // Build the raw SQL query conditions
+        let sqlConditions = '';
+        let params: any[] = [];
+        let paramIndex = 1;
+
+        if (date) {
+          const [year, month, day] = date.split('-').map(Number);
+          const targetDate = new Date(year, month - 1, day);
+          const nextDay = new Date(year, month - 1, day + 1);
+          
+          sqlConditions += ` AND a."dueDate" >= $${paramIndex} AND a."dueDate" < $${paramIndex + 1}`;
+          params.push(targetDate, nextDay);
+          paramIndex += 2;
+        }
+
+        if (search) {
+          sqlConditions += ` AND a.name ILIKE $${paramIndex}`;
+          params.push(`%${search}%`);
+          paramIndex++;
+        }
+
+        const rawAssignments = await prisma.$queryRawUnsafe(`
+          SELECT 
+            a.id, a.name, a.description, a."dueDate", a.status, a.priority, 
+            a."sourceLocation", a.comment, a."createdAt", a."updatedAt", 
+            a."completedAt", a."assignedToId", a."createdById", a."lastUpdatedById",
+            
+            au.id as "assignedTo_id", au.name as "assignedTo_name", au.email as "assignedTo_email",
+            cu.id as "createdBy_id", cu.name as "createdBy_name", cu.email as "createdBy_email",
+            lu.id as "lastUpdatedBy_id", lu.name as "lastUpdatedBy_name", lu.email as "lastUpdatedBy_email"
+          FROM assignments a
+          LEFT JOIN users au ON a."assignedToId" = au.id
+          JOIN users cu ON a."createdById" = cu.id
+          JOIN users lu ON a."lastUpdatedById" = lu.id
+          WHERE 1=1 ${sqlConditions}
+          ORDER BY a."dueDate" ASC
+        `, ...params);
+
+        // Transform raw results to match expected format
+        const transformedAssignments = (rawAssignments as any[]).map((row: any) => ({
+          id: row.id,
+          name: row.name,
+          description: row.description,
+          author: null, // Add null author for backward compatibility
+          dueDate: row.dueDate,
+          status: row.status,
+          priority: row.priority,
+          sourceLocation: row.sourceLocation,
+          comment: row.comment,
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          completedAt: row.completedAt,
+          assignedToId: row.assignedToId,
+          createdById: row.createdById,
+          lastUpdatedById: row.lastUpdatedById,
+          assignedTo: row.assignedTo_id ? {
+            id: row.assignedTo_id,
+            name: row.assignedTo_name,
+            email: row.assignedTo_email,
+          } : null,
+          createdBy: {
+            id: row.createdBy_id,
+            name: row.createdBy_name,
+            email: row.createdBy_email,
+          },
+          lastUpdatedBy: {
+            id: row.lastUpdatedBy_id,
+            name: row.lastUpdatedBy_name,
+            email: row.lastUpdatedBy_email,
+          },
+        }));
+
+        return NextResponse.json(transformedAssignments);
+      }
+      
+      // Re-throw other Prisma errors
+      throw prismaError;
+    }
   } catch (error) {
     console.error('Error fetching assignments:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -124,7 +210,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('Creating assignment with data:', {
+    // Prepare data for creation
+    const createData: any = {
       name: validatedData.name,
       description: validatedData.description,
       dueDate: new Date(validatedData.dueDate),
@@ -133,33 +220,65 @@ export async function POST(request: NextRequest) {
       sourceLocation: validatedData.sourceLocation,
       createdById: session.user.id,
       lastUpdatedById: session.user.id,
-    });
+    };
 
-    const assignment = await prisma.assignment.create({
-      data: {
-        name: validatedData.name,
-        description: validatedData.description,
-        dueDate: new Date(validatedData.dueDate),
-        priority: validatedData.priority,
-        assignedToId: validatedData.assignedToId || null,
-        sourceLocation: validatedData.sourceLocation,
-        createdById: session.user.id,
-        lastUpdatedById: session.user.id,
-      },
-      include: {
-        assignedTo: {
-          select: { id: true, name: true, email: true },
-        },
-        createdBy: {
-          select: { id: true, name: true, email: true },
-        },
-        lastUpdatedBy: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
+    // Only add author if it exists in the validated data
+    if (validatedData.author !== undefined) {
+      createData.author = validatedData.author;
+    }
 
-    return NextResponse.json(assignment);
+    console.log('Creating assignment with data:', createData);
+
+    try {
+      const assignment = await prisma.assignment.create({
+        data: createData,
+        include: {
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+          lastUpdatedBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+
+      return NextResponse.json(assignment);
+    } catch (prismaError: any) {
+      // If the error is about missing author column, create without author field
+      if (prismaError.message && prismaError.message.includes('column') && prismaError.message.includes('author')) {
+        console.log('Author column not found, creating assignment without author field');
+        
+        // Remove author from createData if it exists
+        const { author, ...createDataWithoutAuthor } = createData;
+        
+        const assignment = await prisma.assignment.create({
+          data: createDataWithoutAuthor,
+          include: {
+            assignedTo: {
+              select: { id: true, name: true, email: true },
+            },
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+            lastUpdatedBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        });
+
+        // Add null author for backward compatibility
+        return NextResponse.json({
+          ...assignment,
+          author: null,
+        });
+      }
+      
+      // Re-throw other Prisma errors
+      throw prismaError;
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Assignment validation error:', error.errors);
@@ -212,6 +331,11 @@ export async function PUT(request: NextRequest) {
       lastUpdatedById: session.user.id,
     };
 
+    // Only add author if it exists in the validated data
+    if (validatedData.author !== undefined) {
+      updateData.author = validatedData.author;
+    }
+
     if (validatedData.status) {
       updateData.status = validatedData.status;
       if (validatedData.status === 'COMPLETED') {
@@ -223,23 +347,58 @@ export async function PUT(request: NextRequest) {
       updateData.comment = validatedData.comment;
     }
 
-    const assignment = await prisma.assignment.update({
-      where: { id: validatedData.id },
-      data: updateData,
-      include: {
-        assignedTo: {
-          select: { id: true, name: true, email: true },
+    try {
+      const assignment = await prisma.assignment.update({
+        where: { id: validatedData.id },
+        data: updateData,
+        include: {
+          assignedTo: {
+            select: { id: true, name: true, email: true },
+          },
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+          lastUpdatedBy: {
+            select: { id: true, name: true, email: true },
+          },
         },
-        createdBy: {
-          select: { id: true, name: true, email: true },
-        },
-        lastUpdatedBy: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
+      });
 
-    return NextResponse.json(assignment);
+      return NextResponse.json(assignment);
+    } catch (prismaError: any) {
+      // If the error is about missing author column, update without author field
+      if (prismaError.message && prismaError.message.includes('column') && prismaError.message.includes('author')) {
+        console.log('Author column not found, updating assignment without author field');
+        
+        // Remove author from updateData if it exists
+        const { author, ...updateDataWithoutAuthor } = updateData;
+        
+        const assignment = await prisma.assignment.update({
+          where: { id: validatedData.id },
+          data: updateDataWithoutAuthor,
+          include: {
+            assignedTo: {
+              select: { id: true, name: true, email: true },
+            },
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+            lastUpdatedBy: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        });
+
+        // Add null author for backward compatibility
+        return NextResponse.json({
+          ...assignment,
+          author: null,
+        });
+      }
+      
+      // Re-throw other Prisma errors
+      throw prismaError;
+    }
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
