@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSession } from 'next-auth/react';
 import { InteractiveCalendar } from '@/components/app/interactive-calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Users, CalendarDays, BarChart3, DatabaseBackup, Save, Upload } from 'lucide-react';
+import { Users, CalendarDays, BarChart3, DatabaseBackup, Save, Upload, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { getTranslation } from '@/lib/translations';
@@ -67,6 +68,7 @@ const UserCheckboxItem = React.memo<UserCheckboxItemProps>(({ user, type, isChec
 UserCheckboxItem.displayName = 'UserCheckboxItem';
 
 export default function DashboardPage() {
+  const { data: session, status } = useSession();
   const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(new Date());
   const [selectedProducers, setSelectedProducers] = React.useState<User[]>([]);
   const [selectedOperators, setSelectedOperators] = React.useState<User[]>([]);
@@ -77,6 +79,32 @@ export default function DashboardPage() {
   const { currentLang } = useLanguage();
   const [selectedScheduleFile, setSelectedScheduleFile] = React.useState<File | null>(null);
   const { toast } = useToast();
+
+  // Security check - only ADMIN users can access this dashboard
+  if (status === 'loading') {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!session || session.user.role !== 'ADMIN') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
+            <CardTitle className="text-xl">Access Denied</CardTitle>
+            <CardDescription>
+              This dashboard is only accessible to administrators. Please contact an administrator if you believe this is an error.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button asChild>
+              <Link href="/assignments">Go to Assignments</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // Fetch users for manual role assignment
   React.useEffect(() => {
