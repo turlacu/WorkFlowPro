@@ -335,7 +335,12 @@ export default function AssignmentsPage() {
   const handleToggleComplete = useCallback(async (assignmentId: string, completed: boolean) => {
     try {
       const assignment = allAssignments.find(a => a.id === assignmentId);
-      if (!assignment) return;
+      if (!assignment) {
+        console.error('Assignment not found for ID:', assignmentId);
+        return;
+      }
+
+      console.log('Toggle complete - Original assignment:', assignment);
 
       const updateData = {
         id: assignmentId,
@@ -345,10 +350,11 @@ export default function AssignmentsPage() {
         priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
         assignedToId: assignment.assignedToId || undefined,
         description: assignment.description || '',
-        author: assignment.author || '',
+        author: (assignment as any).author || '',
         sourceLocation: assignment.sourceLocation || '',
       };
 
+      console.log('Toggle complete - Update data being sent:', updateData);
       await api.updateAssignment(updateData);
       await Promise.all([
         fetchAssignments(), // Refresh filtered assignments
