@@ -240,63 +240,47 @@ export async function POST(request: NextRequest) {
       lastUpdatedById: userExists.id, // Use database user ID
     };
 
-    // Only add author if it exists in the validated data
-    if (validatedData.author !== undefined) {
+    // Try to check if author column exists first by attempting a simple query
+    let hasAuthorColumn = false;
+    try {
+      await prisma.$queryRaw`SELECT author FROM assignments LIMIT 1`;
+      hasAuthorColumn = true;
+      console.log('Assignment creation - Author column exists in database');
+    } catch (columnCheckError: any) {
+      console.log('Assignment creation - Author column does not exist in database');
+      hasAuthorColumn = false;
+    }
+
+    // Only add author if the column exists and data is provided
+    if (hasAuthorColumn && validatedData.author !== undefined) {
       createData.author = validatedData.author;
     }
 
     console.log('Creating assignment with data:', createData);
+    console.log('Database has author column:', hasAuthorColumn);
 
-    try {
-      const assignment = await prisma.assignment.create({
-        data: createData,
-        include: {
-          assignedTo: {
-            select: { id: true, name: true, email: true },
-          },
-          createdBy: {
-            select: { id: true, name: true, email: true },
-          },
-          lastUpdatedBy: {
-            select: { id: true, name: true, email: true },
-          },
+    const assignment = await prisma.assignment.create({
+      data: createData,
+      include: {
+        assignedTo: {
+          select: { id: true, name: true, email: true },
         },
-      });
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
+        lastUpdatedBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
 
-      return NextResponse.json(assignment);
-    } catch (prismaError: any) {
-      // If the error is about missing author column, create without author field
-      if (prismaError.message && prismaError.message.includes('column') && prismaError.message.includes('author')) {
-        console.log('Author column not found, creating assignment without author field');
-        
-        // Remove author from createData if it exists
-        const { author, ...createDataWithoutAuthor } = createData;
-        
-        const assignment = await prisma.assignment.create({
-          data: createDataWithoutAuthor,
-          include: {
-            assignedTo: {
-              select: { id: true, name: true, email: true },
-            },
-            createdBy: {
-              select: { id: true, name: true, email: true },
-            },
-            lastUpdatedBy: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        });
+    // Add author field to response for consistency
+    const responseAssignment = {
+      ...assignment,
+      author: hasAuthorColumn ? (assignment as any).author : null,
+    };
 
-        // Add null author for backward compatibility
-        return NextResponse.json({
-          ...assignment,
-          author: null,
-        });
-      }
-      
-      // Re-throw other Prisma errors
-      throw prismaError;
-    }
+    return NextResponse.json(responseAssignment);
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Assignment creation - Zod validation error:', error.errors);
