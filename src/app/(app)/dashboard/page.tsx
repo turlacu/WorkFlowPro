@@ -80,32 +80,6 @@ export default function DashboardPage() {
   const [selectedScheduleFile, setSelectedScheduleFile] = React.useState<File | null>(null);
   const { toast } = useToast();
 
-  // Security check - only ADMIN users can access this dashboard
-  if (status === 'loading') {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
-
-  if (!session || session.user.role !== 'ADMIN') {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
-            <CardTitle className="text-xl">Access Denied</CardTitle>
-            <CardDescription>
-              This dashboard is only accessible to administrators. Please contact an administrator if you believe this is an error.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button asChild>
-              <Link href="/assignments">Go to Assignments</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   // Fetch users for manual role assignment
   React.useEffect(() => {
     const fetchUsers = async () => {
@@ -260,6 +234,32 @@ export default function DashboardPage() {
       );
     }
   }, []);
+
+  // Security check - only ADMIN users can access this dashboard
+  if (status === 'loading') {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!session || session.user.role !== 'ADMIN') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
+            <CardTitle className="text-xl">Access Denied</CardTitle>
+            <CardDescription>
+              This dashboard is only accessible to administrators. Please contact an administrator if you believe this is an error.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button asChild>
+              <Link href="/assignments">Go to Assignments</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const isSelected = (userId: string, type: 'producer' | 'operator') => {
     return type === 'producer'
