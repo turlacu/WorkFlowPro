@@ -31,6 +31,8 @@ import {
   Edit3,
   CalendarCheck,
   Tag,
+  MapPin,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -128,6 +130,30 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                   </h3>
                 </div>
                 <p className="text-sm text-foreground/90 ml-7">{assignment.description}</p>
+              </div>
+            )}
+
+            {/* Author & Source Location Section */}
+            {((assignment as any).author || assignment.sourceLocation) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                {(assignment as any).author && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <UserCircle size={16} />
+                      <span>Author</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground">{(assignment as any).author}</p>
+                  </div>
+                )}
+                {assignment.sourceLocation && (
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                      <MapPin size={16} />
+                      <span>Source Location</span>
+                    </div>
+                    <p className="text-sm font-medium text-foreground">{assignment.sourceLocation}</p>
+                  </div>
+                )}
               </div>
             )}
 

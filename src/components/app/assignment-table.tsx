@@ -238,7 +238,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Uploaded to Q:</span>
                 <Checkbox
-                  checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
+                  checked={assignment.status === 'IN_PROGRESS'}
                   onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
                   aria-label={`Mark ${assignment.name} as uploaded to Q`}
                   className="touch-manipulation h-4 w-4"
@@ -310,7 +310,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                   <div className="flex items-center justify-end gap-1">
                     <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">
                       <Checkbox
-                        checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
+                        checked={assignment.status === 'IN_PROGRESS'}
                         onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
                         aria-label={`Mark ${assignment.name} as uploaded to Q`}
                         className="touch-manipulation"

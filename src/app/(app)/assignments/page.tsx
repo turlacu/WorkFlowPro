@@ -342,11 +342,16 @@ export default function AssignmentsPage() {
 
       console.log('Toggle complete - Original assignment:', assignment);
 
+      // When toggling "Done" checkbox:
+      // - If checking "Done": always go to COMPLETED  
+      // - If unchecking "Done": go back to PENDING (simple approach)
+      const newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = completed ? 'COMPLETED' : 'PENDING';
+
       const updateData = {
         id: assignmentId,
         name: assignment.name,
         dueDate: new Date(assignment.dueDate).toISOString(),
-        status: completed ? 'COMPLETED' as const : 'PENDING' as const,
+        status: newStatus,
         priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
         assignedToId: assignment.assignedToId || undefined,
         description: assignment.description || '',
