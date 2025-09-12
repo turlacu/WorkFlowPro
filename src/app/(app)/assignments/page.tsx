@@ -340,12 +340,22 @@ export default function AssignmentsPage() {
         return;
       }
 
+      // If trying to check "Done" but "Uploaded to Q" is not checked, show warning
+      if (completed && assignment.status !== 'IN_PROGRESS') {
+        toast({
+          title: 'Cannot mark as Done',
+          description: 'The assignment must be "Uploaded to Q" first before it can be marked as Done.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       console.log('Toggle complete - Original assignment:', assignment);
 
       // When toggling "Done" checkbox:
-      // - If checking "Done": always go to COMPLETED  
-      // - If unchecking "Done": go back to PENDING (simple approach)
-      const newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = completed ? 'COMPLETED' : 'PENDING';
+      // - If checking "Done": can only do this if already IN_PROGRESS, then go to COMPLETED  
+      // - If unchecking "Done": go back to IN_PROGRESS (keep "Uploaded to Q" checked)
+      const newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = completed ? 'COMPLETED' : 'IN_PROGRESS';
 
       const updateData = {
         id: assignmentId,
@@ -387,7 +397,7 @@ export default function AssignmentsPage() {
       if (!uploaded && assignment.status === 'COMPLETED') {
         toast({
           title: 'Cannot change status',
-          description: 'Cannot uncheck "Uploaded to Q" for completed assignments.',
+          description: 'Cannot uncheck "Uploaded to Q" for completed assignments. Please uncheck "Done" first.',
           variant: 'destructive',
         });
         return;
