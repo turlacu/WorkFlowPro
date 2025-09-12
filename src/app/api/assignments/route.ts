@@ -164,6 +164,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  let body: any = null;
   try {
     const session = await getServerSession(authOptions);
     
@@ -179,10 +180,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Only producers and admins can create assignments' }, { status: 403 });
     }
 
-    const body = await request.json();
+    body = await request.json();
     console.log('Assignment creation - Request body:', body);
+    console.log('Assignment creation - Schema expects:', CreateAssignmentSchema.shape);
     
     const validatedData = CreateAssignmentSchema.parse(body);
+    console.log('Assignment creation - Validation passed');
 
     console.log('Assignment creation - Validated data:', validatedData);
     console.log('Assignment creation - Creating assignment for user:', session.user.id);
@@ -281,10 +284,14 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Assignment validation error:', error.errors);
+      console.error('Assignment creation - Zod validation error:', error.errors);
+      console.error('Assignment creation - Invalid data received:', body);
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
     }
-    console.error('Error creating assignment:', error);
+    console.error('Assignment creation - Unexpected error:', error);
+    console.error('Assignment creation - Error type:', typeof error);
+    console.error('Assignment creation - Error stack:', error instanceof Error ? error.stack : 'No stack');
+    console.error('Assignment creation - Request data was:', body);
     return NextResponse.json({ 
       error: 'Internal server error', 
       details: error instanceof Error ? error.message : 'Unknown error'

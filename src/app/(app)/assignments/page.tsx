@@ -257,7 +257,7 @@ export default function AssignmentsPage() {
         const updateData = {
           id: assignmentIdToUpdate,
           name: data.title,
-          dueDate: format(data.dueDate, 'yyyy-MM-dd\'T00:00:00.000Z\''),
+          dueDate: data.dueDate.toISOString(),
           status: data.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED',
           priority: data.priority as 'LOW' | 'NORMAL' | 'URGENT',
           assignedToId: data.assignedTo === 'unassigned' ? undefined : data.assignedTo,
@@ -274,7 +274,7 @@ export default function AssignmentsPage() {
       } else {
         const createData = {
           name: data.title,
-          dueDate: format(data.dueDate, 'yyyy-MM-dd\'T00:00:00.000Z\''),
+          dueDate: data.dueDate.toISOString(),
           priority: data.priority as 'LOW' | 'NORMAL' | 'URGENT',
           assignedToId: data.assignedTo === 'unassigned' ? undefined : data.assignedTo,
           description: data.description || '',
@@ -345,7 +345,7 @@ export default function AssignmentsPage() {
       const updateData = {
         id: assignmentId,
         name: assignment.name,
-        dueDate: format(new Date(assignment.dueDate), 'yyyy-MM-dd\'T00:00:00.000Z\''),
+        dueDate: new Date(assignment.dueDate).toISOString(),
         status: completed ? 'COMPLETED' as const : 'PENDING' as const,
         priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
         assignedToId: assignment.assignedToId || undefined,
