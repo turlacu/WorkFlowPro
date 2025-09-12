@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       whereClause.name = {
         contains: search,
+        mode: 'insensitive',
       };
     }
 
