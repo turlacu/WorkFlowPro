@@ -191,7 +191,15 @@ export async function POST(request: NextRequest) {
     console.log('Assignment creation - Creating assignment for user:', session.user.id);
 
     // Check if user exists in database, handling potential ID mismatches
-    const userExists = await getUserFromSession(session);
+    console.log('Assignment creation - Checking user existence...');
+    let userExists;
+    try {
+      userExists = await getUserFromSession(session);
+      console.log('Assignment creation - User lookup successful:', !!userExists);
+    } catch (userError) {
+      console.error('Assignment creation - User lookup error:', userError);
+      return NextResponse.json({ error: 'Database error during user lookup' }, { status: 500 });
+    }
     
     if (!userExists) {
       console.error('Assignment creation failed: User not found in database', { 
@@ -203,17 +211,24 @@ export async function POST(request: NextRequest) {
 
     // If assignedToId is provided, check if that user exists
     if (validatedData.assignedToId) {
-      const assignedUserExists = await prisma.user.findUnique({
-        where: { id: validatedData.assignedToId }
-      });
-      
-      if (!assignedUserExists) {
-        console.error('Assignment creation failed: Assigned user not found', validatedData.assignedToId);
-        return NextResponse.json({ error: 'Assigned user not found' }, { status: 400 });
+      console.log('Assignment creation - Checking assigned user existence...');
+      try {
+        const assignedUserExists = await prisma.user.findUnique({
+          where: { id: validatedData.assignedToId }
+        });
+        
+        if (!assignedUserExists) {
+          console.error('Assignment creation failed: Assigned user not found', validatedData.assignedToId);
+          return NextResponse.json({ error: 'Assigned user not found' }, { status: 400 });
+        }
+        console.log('Assignment creation - Assigned user found');
+      } catch (assignedUserError) {
+        console.error('Assignment creation - Assigned user lookup error:', assignedUserError);
+        return NextResponse.json({ error: 'Database error during assigned user lookup' }, { status: 500 });
       }
     }
 
-    // Prepare data for creation
+    // Prepare data for creation (use the database user ID, not the session ID)
     const createData: any = {
       name: validatedData.name,
       description: validatedData.description,
@@ -221,8 +236,8 @@ export async function POST(request: NextRequest) {
       priority: validatedData.priority,
       assignedToId: validatedData.assignedToId || null,
       sourceLocation: validatedData.sourceLocation,
-      createdById: session.user.id,
-      lastUpdatedById: session.user.id,
+      createdById: userExists.id, // Use database user ID
+      lastUpdatedById: userExists.id, // Use database user ID
     };
 
     // Only add author if it exists in the validated data
