@@ -8,6 +8,7 @@ import { z } from 'zod';
 const CreateAssignmentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
+  author: z.string().optional(),
   dueDate: z.string().datetime('Invalid date format'),
   priority: z.enum(['LOW', 'NORMAL', 'URGENT']).default('NORMAL'),
   assignedToId: z.string().optional(),
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
 
         const rawAssignments = await prisma.$queryRawUnsafe(`
           SELECT 
-            a.id, a.name, a.description, a."dueDate", a.status, a.priority, 
+            a.id, a.name, a.description, a.author, a."dueDate", a.status, a.priority, 
             a."sourceLocation", a.comment, a."createdAt", a."updatedAt", 
             a."completedAt", a."assignedToId", a."createdById", a."lastUpdatedById",
             
@@ -122,6 +123,7 @@ export async function GET(request: NextRequest) {
           id: row.id,
           name: row.name,
           description: row.description,
+          author: row.author,
           dueDate: row.dueDate,
           status: row.status,
           priority: row.priority,
@@ -231,6 +233,7 @@ export async function POST(request: NextRequest) {
     const createData = {
       name: validatedData.name,
       description: validatedData.description,
+      author: validatedData.author,
       dueDate: new Date(validatedData.dueDate),
       priority: validatedData.priority,
       assignedToId: validatedData.assignedToId || null,
@@ -302,7 +305,7 @@ export async function PUT(request: NextRequest) {
         console.log('Author column not found in findUnique, using raw SQL');
         const rawResult = await prisma.$queryRawUnsafe(`
           SELECT 
-            a.id, a.name, a.description, a."dueDate", a.status, a.priority, 
+            a.id, a.name, a.description, a.author, a."dueDate", a.status, a.priority, 
             a."sourceLocation", a.comment, a."createdAt", a."updatedAt", 
             a."completedAt", a."assignedToId", a."createdById", a."lastUpdatedById",
             cu.id as "createdBy_id", cu.name as "createdBy_name", cu.email as "createdBy_email",
@@ -322,6 +325,7 @@ export async function PUT(request: NextRequest) {
           id: row.id,
           name: row.name,
           description: row.description,
+          author: row.author,
           dueDate: row.dueDate,
           status: row.status,
           priority: row.priority,
@@ -369,6 +373,7 @@ export async function PUT(request: NextRequest) {
     const updateData: any = {
       name: validatedData.name,
       description: validatedData.description,
+      author: validatedData.author,
       dueDate: new Date(validatedData.dueDate),
       priority: validatedData.priority,
       assignedToId: validatedData.assignedToId,
@@ -500,7 +505,7 @@ export async function PUT(request: NextRequest) {
         // Fetch the updated assignment using raw SQL
         const rawResult = await prisma.$queryRawUnsafe(`
           SELECT 
-            a.id, a.name, a.description, a."dueDate", a.status, a.priority, 
+            a.id, a.name, a.description, a.author, a."dueDate", a.status, a.priority, 
             a."sourceLocation", a.comment, a."createdAt", a."updatedAt", 
             a."completedAt", a."assignedToId", a."createdById", a."lastUpdatedById",
             cu.id as "createdBy_id", cu.name as "createdBy_name", cu.email as "createdBy_email",
@@ -522,6 +527,7 @@ export async function PUT(request: NextRequest) {
           id: row.id,
           name: row.name,
           description: row.description,
+          author: row.author,
           dueDate: row.dueDate,
           status: row.status,
           priority: row.priority,
