@@ -47,7 +47,6 @@ interface NewAssignmentModalProps {
 const getNewAssignmentFormSchema = (currentLang: string) => z.object({
   title: z.string().min(1, { message: getTranslation(currentLang, 'ZodAssignmentTitleRequired') }),
   description: z.string().optional(),
-  author: z.string().optional(),
   sourceLocation: z.string().optional(),
   priority: z.enum(priorities, { required_error: getTranslation(currentLang, 'ZodAssignmentPriorityRequired')}),
   status: z.enum(statuses, { required_error: getTranslation(currentLang, 'ZodAssignmentStatusRequired')}),
@@ -58,7 +57,6 @@ const getNewAssignmentFormSchema = (currentLang: string) => z.object({
 export type NewAssignmentFormValues = {
   title: string;
   description?: string;
-  author?: string;
   sourceLocation?: string;
   priority: 'LOW' | 'NORMAL' | 'URGENT';
   status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
@@ -78,7 +76,6 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
     defaultValues: {
       title: '',
       description: '',
-      author: '',
       sourceLocation: '',
       priority: 'NORMAL',
       status: 'PENDING',
@@ -93,7 +90,6 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
         form.reset({
           title: assignmentToEdit.name,
           description: assignmentToEdit.description || '',
-          author: assignmentToEdit.author || '',
           sourceLocation: assignmentToEdit.sourceLocation || '',
           priority: assignmentToEdit.priority as 'LOW' | 'NORMAL' | 'URGENT',
           status: assignmentToEdit.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED',
@@ -104,7 +100,6 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
         form.reset({
           title: '',
           description: '',
-          author: '',
           sourceLocation: '',
           priority: 'NORMAL',
           status: 'PENDING',
@@ -181,19 +176,6 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="author"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Author</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter author name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}

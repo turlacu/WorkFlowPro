@@ -262,7 +262,6 @@ export default function AssignmentsPage() {
           priority: data.priority as 'LOW' | 'NORMAL' | 'URGENT',
           assignedToId: data.assignedTo === 'unassigned' ? undefined : data.assignedTo,
           description: data.description || '',
-          author: data.author || '',
           sourceLocation: data.sourceLocation || '',
         };
 
@@ -278,7 +277,6 @@ export default function AssignmentsPage() {
           priority: data.priority as 'LOW' | 'NORMAL' | 'URGENT',
           assignedToId: data.assignedTo === 'unassigned' ? undefined : data.assignedTo,
           description: data.description || '',
-          author: data.author || '',
           sourceLocation: data.sourceLocation || '',
         };
 
@@ -350,7 +348,6 @@ export default function AssignmentsPage() {
         priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
         assignedToId: assignment.assignedToId || undefined,
         description: assignment.description || '',
-        author: (assignment as any).author || '',
         sourceLocation: assignment.sourceLocation || '',
       };
 

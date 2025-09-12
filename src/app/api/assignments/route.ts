@@ -8,7 +8,6 @@ import { z } from 'zod';
 const CreateAssignmentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  author: z.string().optional(),
   dueDate: z.string().datetime('Invalid date format'),
   priority: z.enum(['LOW', 'NORMAL', 'URGENT']).default('NORMAL'),
   assignedToId: z.string().optional(),
@@ -122,7 +121,6 @@ export async function GET(request: NextRequest) {
           id: row.id,
           name: row.name,
           description: row.description,
-          author: null, // Add null author for backward compatibility
           dueDate: row.dueDate,
           status: row.status,
           priority: row.priority,
@@ -229,7 +227,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare data for creation (use the database user ID, not the session ID)
-    const createData: any = {
+    const createData = {
       name: validatedData.name,
       description: validatedData.description,
       dueDate: new Date(validatedData.dueDate),
@@ -240,24 +238,7 @@ export async function POST(request: NextRequest) {
       lastUpdatedById: userExists.id, // Use database user ID
     };
 
-    // Try to check if author column exists first by attempting a simple query
-    let hasAuthorColumn = false;
-    try {
-      await prisma.$queryRaw`SELECT author FROM assignments LIMIT 1`;
-      hasAuthorColumn = true;
-      console.log('Assignment creation - Author column exists in database');
-    } catch (columnCheckError: any) {
-      console.log('Assignment creation - Author column does not exist in database');
-      hasAuthorColumn = false;
-    }
-
-    // Only add author if the column exists and data is provided
-    if (hasAuthorColumn && validatedData.author !== undefined) {
-      createData.author = validatedData.author;
-    }
-
     console.log('Creating assignment with data:', createData);
-    console.log('Database has author column:', hasAuthorColumn);
 
     const assignment = await prisma.assignment.create({
       data: createData,
@@ -274,13 +255,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Add author field to response for consistency
-    const responseAssignment = {
-      ...assignment,
-      author: hasAuthorColumn ? (assignment as any).author : null,
-    };
-
-    return NextResponse.json(responseAssignment);
+    return NextResponse.json(assignment);
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('Assignment creation - Zod validation error:', error.errors);
@@ -400,11 +375,6 @@ export async function PUT(request: NextRequest) {
       lastUpdatedById: session.user.id,
     };
 
-    // Only add author if it exists in the validated data
-    if (validatedData.author !== undefined) {
-      updateData.author = validatedData.author;
-    }
-
     if (validatedData.status) {
       updateData.status = validatedData.status;
       if (validatedData.status === 'COMPLETED') {
@@ -440,37 +410,12 @@ export async function PUT(request: NextRequest) {
     } catch (prismaError: any) {
       console.error('PUT /api/assignments - Prisma update error:', prismaError);
       
-      // If the error is about missing author column, update without author field
-      if (prismaError.message && prismaError.message.includes('column') && prismaError.message.includes('author')) {
-        console.log('Author column not found, updating assignment without author field');
-        
-        // Remove author from updateData if it exists
-        const { author, ...updateDataWithoutAuthor } = updateData;
-        console.log('PUT /api/assignments - Retry update data without author:', updateDataWithoutAuthor);
-        
-        const assignment = await prisma.assignment.update({
-          where: { id: validatedData.id },
-          data: updateDataWithoutAuthor,
-          include: {
-            assignedTo: {
-              select: { id: true, name: true, email: true },
-            },
-            createdBy: {
-              select: { id: true, name: true, email: true },
-            },
-            lastUpdatedBy: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        });
-
-        console.log('PUT /api/assignments - Retry update successful');
-        // Add null author for backward compatibility
-        return NextResponse.json({
-          ...assignment,
-          author: null,
-        });
-      }
+      // Log the specific error for debugging
+      console.error('PUT /api/assignments - Prisma update error details:', {
+        message: prismaError.message,
+        code: prismaError.code,
+        meta: prismaError.meta
+      });
       
       // For other database errors, try using raw SQL
       if (prismaError.code && (prismaError.code === 'P2002' || prismaError.code === 'P2025' || prismaError.message.includes('column'))) {
@@ -576,7 +521,6 @@ export async function PUT(request: NextRequest) {
           id: row.id,
           name: row.name,
           description: row.description,
-          author: null, // Add null author for backward compatibility
           dueDate: row.dueDate,
           status: row.status,
           priority: row.priority,

@@ -69,7 +69,6 @@ model Assignment {
   id              String    @id @default(cuid())
   name            String
   description     String?
-  author          String?
   dueDate         DateTime
   status          String    @default("PENDING")
   priority        String    @default("NORMAL")
