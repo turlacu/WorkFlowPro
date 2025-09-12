@@ -367,6 +367,51 @@ export default function AssignmentsPage() {
     }
   }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments]);
 
+  const handleToggleUploadedToQ = useCallback(async (assignmentId: string, uploaded: boolean) => {
+    try {
+      const assignment = allAssignments.find(a => a.id === assignmentId);
+      if (!assignment) {
+        console.error('Assignment not found for ID:', assignmentId);
+        return;
+      }
+
+      // If unchecking "Uploaded to Q" but assignment is completed, prevent action
+      if (!uploaded && assignment.status === 'COMPLETED') {
+        toast({
+          title: 'Cannot change status',
+          description: 'Cannot uncheck "Uploaded to Q" for completed assignments.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const updateData = {
+        id: assignmentId,
+        name: assignment.name,
+        dueDate: new Date(assignment.dueDate).toISOString(),
+        status: uploaded ? 'IN_PROGRESS' as const : 'PENDING' as const,
+        priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
+        assignedToId: assignment.assignedToId || undefined,
+        description: assignment.description || '',
+        sourceLocation: assignment.sourceLocation || '',
+      };
+
+      console.log('Toggle uploaded to Q - Update data being sent:', updateData);
+      await api.updateAssignment(updateData);
+      await Promise.all([
+        fetchAssignments(), // Refresh filtered assignments
+        fetchCalendarAssignments() // Refresh calendar assignments for colors
+      ]);
+    } catch (error) {
+      console.error('Error toggling uploaded to Q status:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update assignment status. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments]);
+
   const displaySelectedDateString = selectedDate ? format(selectedDate, 'MMMM do, yyyy') : getTranslation(currentLang, 'None');
 
   let workAssignmentsCardTitleKey = 'WorkAssignmentsForDate';
@@ -424,6 +469,7 @@ export default function AssignmentsPage() {
                   onEditAssignment={handleOpenEditModal}
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
+                  onToggleUploadedToQ={handleToggleUploadedToQ}
                 />
               ) : (
                 <div className="text-center py-10">
