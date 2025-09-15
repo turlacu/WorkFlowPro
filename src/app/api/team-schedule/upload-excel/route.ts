@@ -329,20 +329,62 @@ function hexToRgb(hex: string): {r: number, g: number, b: number} | null {
 }
 
 
-// Parse Excel file and extract schedule data using specific known locations
-async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number): Promise<ExcelParseResult> {
+// Role-specific parsing configuration
+interface ParsingConfig {
+  dateRow: number;
+  nameColumn: number;
+  firstNameRow: number;
+  lastNameRow: number;
+  firstDateColumn: number;
+  lastDateColumn: number;
+  role: string;
+  skipValues: string[]; // Values to skip (like "co" for holidays)
+}
+
+const PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
+  OPERATOR: {
+    dateRow: 12,        // Row 13 in Excel (0-based = 12)
+    nameColumn: 1,      // Column B in Excel (0-based = 1)
+    firstNameRow: 14,   // Row 15 in Excel (0-based = 14)
+    lastNameRow: 17,    // Row 18 in Excel (0-based = 17)
+    firstDateColumn: 2, // Column C in Excel (0-based = 2)
+    lastDateColumn: 32, // Column AG in Excel (0-based = 32)
+    role: 'OPERATOR',
+    skipValues: []
+  },
+  PRODUCER: {
+    dateRow: 8,         // Row 9 in Excel (0-based = 8)
+    nameColumn: 1,      // Column B in Excel (0-based = 1)
+    firstNameRow: 9,    // Row 10 in Excel (0-based = 9)
+    lastNameRow: 11,    // Row 12 in Excel (0-based = 11)
+    firstDateColumn: 2, // Column C in Excel (0-based = 2)
+    lastDateColumn: 32, // Column AG in Excel (0-based = 32)
+    role: 'PRODUCER',
+    skipValues: ['co']  // Skip "co" (concediu de odihnă - holiday)
+  }
+};
+
+// Parse Excel file and extract schedule data using role-specific configuration
+async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number, role: string = 'OPERATOR'): Promise<ExcelParseResult> {
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
-    // Fetch color legends from database
+    // Get role-specific configuration
+    const config = PARSING_CONFIGS[role];
+    if (!config) {
+      return { success: false, errors: [`Unsupported role: ${role}`] };
+    }
+
+    // Fetch role-specific color legends from database
     let colorLegends: any[] = [];
     try {
       colorLegends = await prisma.shiftColorLegend.findMany({
+        where: { role },
         orderBy: { createdAt: 'asc' }
       });
-      console.log(`📊 Loaded ${colorLegends.length} color legends from database`);
+      console.log(`📊 Loaded ${colorLegends.length} color legends for ${role} role from database`);
     } catch (error) {
       console.warn('Could not load color legends from database:', error);
     }
@@ -350,15 +392,10 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
     const scheduleEntries: ScheduleEntry[] = [];
     // const errors: string[] = []; // Uncomment if error handling is added later
     
-    console.log('Using specific Excel layout: Names in B15:B18, Dates in C13:AG13');
+    console.log(`Using ${role} Excel layout: Names in ${String.fromCharCode(65 + config.nameColumn)}${config.firstNameRow + 1}:${String.fromCharCode(65 + config.nameColumn)}${config.lastNameRow + 1}, Dates in ${String.fromCharCode(65 + config.firstDateColumn)}${config.dateRow + 1}:${String.fromCharCode(65 + config.lastDateColumn)}${config.dateRow + 1}`);
     
-    // Define the specific cell locations based on your Excel structure
-    const DATE_ROW = 12; // Row 13 in Excel (0-based = 12)
-    const NAME_COLUMN = 1; // Column B in Excel (0-based = 1)
-    const FIRST_NAME_ROW = 14; // Row 15 in Excel (0-based = 14)
-    const LAST_NAME_ROW = 17; // Row 18 in Excel (0-based = 17)
-    const FIRST_DATE_COLUMN = 2; // Column C in Excel (0-based = 2)
-    const LAST_DATE_COLUMN = 32; // Column AG in Excel (0-based = 32)
+    // Use role-specific configuration
+    const { dateRow: DATE_ROW, nameColumn: NAME_COLUMN, firstNameRow: FIRST_NAME_ROW, lastNameRow: LAST_NAME_ROW, firstDateColumn: FIRST_DATE_COLUMN, lastDateColumn: LAST_DATE_COLUMN } = config;
     
     console.log(`Parsing Excel with fixed structure:
       - Date row: ${DATE_ROW + 1} (Excel row 13)
@@ -418,9 +455,13 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
           console.log(`Processing cell ${XLSX.utils.encode_cell({ r: row, c: col })} for ${operatorName}: "${shiftHours}"`);
           const shiftColor = parseExcelColor(scheduleCell, workbook);
           
-          // Skip empty cells and day abbreviations
+          // Skip empty cells, day abbreviations, and role-specific skip values
           const dayAbbreviations = ['l', 'm', 'j', 'v', 's', 'd', 'L', 'M', 'J', 'V', 'S', 'D'];
-          if (shiftHours.length > 0 && !dayAbbreviations.includes(shiftHours)) {
+          const shouldSkip = shiftHours.length === 0 || 
+                           dayAbbreviations.includes(shiftHours) || 
+                           config.skipValues.includes(shiftHours.toLowerCase());
+          
+          if (!shouldSkip) {
             
             // Try to match color with legend
             let colorLegendMatch = null;
@@ -501,8 +542,9 @@ export async function POST(request: NextRequest) {
     const month = parseInt(formData.get('month') as string);
     const year = parseInt(formData.get('year') as string);
     const preview = formData.get('preview') === 'true';
+    const role = (formData.get('role') as string) || 'OPERATOR';
 
-    console.log('Excel upload request:', { filename: file?.name, month, year, preview });
+    console.log('Excel upload request:', { filename: file?.name, month, year, preview, role });
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -515,7 +557,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     console.log('File parsed, buffer size:', buffer.length);
     
-    const parseResult = await parseExcelSchedule(buffer, month, year);
+    const parseResult = await parseExcelSchedule(buffer, month, year, role);
     console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
     
     if (parseResult.success && parseResult.data && parseResult.data.length > 0) {
@@ -526,18 +568,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to parse Excel file', details: parseResult.errors }, { status: 400 });
     }
 
-    // Get all operators from database for fuzzy matching
-    console.log('Fetching operators from database...');
-    let operators: {id: string, name: string | null, email: string}[];
+    // Get all users of the specified role from database for fuzzy matching
+    console.log(`Fetching ${role} users from database...`);
+    let users: {id: string, name: string | null, email: string}[];
     try {
-      operators = await prisma.user.findMany({
-        where: { role: 'OPERATOR' },
+      users = await prisma.user.findMany({
+        where: { role },
         select: { id: true, name: true, email: true }
       });
-      console.log('Found operators:', operators.length);
-      console.log('Operator names in database:', operators.map(op => `"${op.name}"`).join(', '));
+      console.log(`Found ${role} users:`, users.length);
+      console.log(`${role} names in database:`, users.map(user => `"${user.name}"`).join(', '));
     } catch (dbError) {
-      console.error('Database error fetching operators:', dbError);
+      console.error(`Database error fetching ${role} users:`, dbError);
       throw new Error(`Database error: ${dbError instanceof Error ? dbError.message : 'Unknown database error'}`);
     }
 
@@ -561,7 +603,7 @@ export async function POST(request: NextRequest) {
       matchingReport.totalEntries++;
       
       // Try to match user first
-      const matchedUser = findMatchingUser(entry.name, operators);
+      const matchedUser = findMatchingUser(entry.name, users);
       
       if (matchedUser) {
         console.log(`✓ Matched "${entry.name}" to "${matchedUser.name}" (${matchedUser.id})`);
@@ -602,10 +644,11 @@ export async function POST(request: NextRequest) {
       .map(entry => entry.shiftColor!)
     )];
     
-    // Fetch existing color legends to check for new colors
+    // Fetch existing color legends for this role to check for new colors
     let existingColorLegends: any[] = [];
     try {
       existingColorLegends = await prisma.shiftColorLegend.findMany({
+        where: { role },
         select: { colorCode: true },
         orderBy: { createdAt: 'asc' }
       });
@@ -613,7 +656,7 @@ export async function POST(request: NextRequest) {
       console.warn('Could not load color legends from database:', error);
     }
     
-    // Check for new colors not in legend
+    // Check for new colors not in legend for this role
     const newColors = detectedColors.filter(color => 
       !existingColorLegends.some((legend: any) => legend.colorCode.toLowerCase() === color.toLowerCase())
     );
@@ -630,7 +673,8 @@ export async function POST(request: NextRequest) {
               shiftName: 'Unnamed Shift',
               startTime: '00:00',
               endTime: '00:00',
-              description: `Automatically detected from Excel import. Please configure this color meaning.`
+              role: role,
+              description: `Automatically detected from ${role} Excel import. Please configure this color meaning.`
             }
           });
           console.log(`✓ Created auto-legend entry for color: ${color}`);

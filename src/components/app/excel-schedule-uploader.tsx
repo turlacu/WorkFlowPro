@@ -38,9 +38,10 @@ interface MatchingReport {
 interface ExcelScheduleUploaderProps {
   selectedDate?: Date;
   onUploadComplete?: () => void;
+  targetRole?: 'OPERATOR' | 'PRODUCER';
 }
 
-export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelScheduleUploaderProps) {
+export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRole = 'OPERATOR' }: ExcelScheduleUploaderProps) {
   const [file, setFile] = React.useState<File | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [previewData, setPreviewData] = React.useState<ScheduleEntry[]>([]);
@@ -85,6 +86,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
       formData.append('month', currentMonth.toString());
       formData.append('year', currentYear.toString());
       formData.append('preview', 'true');
+      formData.append('role', targetRole);
 
       const response = await fetch('/api/team-schedule/upload-excel', {
         method: 'POST',
@@ -136,6 +138,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
       formData.append('month', currentMonth.toString());
       formData.append('year', currentYear.toString());
       formData.append('preview', 'false');
+      formData.append('role', targetRole);
 
       const response = await fetch('/api/team-schedule/upload-excel', {
         method: 'POST',
@@ -293,11 +296,11 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete }: ExcelS
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Excel Schedule Upload
+            Excel Schedule Upload ({targetRole})
           </CardTitle>
           <CardDescription>
             Upload an Excel file to automatically populate the schedule for {getMonthName(currentMonth)} {currentYear}.
-            Only operators from the Excel file that match existing users will be imported.
+            Only {targetRole.toLowerCase()}s from the Excel file that match existing users will be imported.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
