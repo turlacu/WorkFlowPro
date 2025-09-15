@@ -353,12 +353,12 @@ const PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
     skipValues: []
   },
   PRODUCER: {
-    dateRow: 4,         // Row 5 in Excel (0-based = 4)
+    dateRow: 8,         // Row 9 in Excel (0-based = 8) - where dates 1,2,3...30 are
     nameColumn: 1,      // Column B in Excel (0-based = 1)
-    firstNameRow: 5,    // Row 6 in Excel (0-based = 5)
-    lastNameRow: 7,     // Row 8 in Excel (0-based = 7)
+    firstNameRow: 9,    // Row 10 in Excel (0-based = 9) - Marian Cosor
+    lastNameRow: 11,    // Row 12 in Excel (0-based = 11) - Victorina Oancea  
     firstDateColumn: 2, // Column C in Excel (0-based = 2)
-    lastDateColumn: 32, // Column AG in Excel (0-based = 32)
+    lastDateColumn: 31, // Column AF in Excel (0-based = 31) - September has 30 days (C=2, so C+29=AF=31)
     role: 'PRODUCER',
     skipValues: ['co']  // Skip "co" (concediu de odihnă - holiday)
   }
