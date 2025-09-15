@@ -385,7 +385,7 @@ async function getParsingConfiguration(role: string, filename?: string): Promise
           firstDateColumn: config.firstDateColumn,
           lastDateColumn: config.lastDateColumn,
           role: config.role,
-          skipValues: config.skipValues
+          skipValues: Array.isArray(config.skipValues) ? config.skipValues as string[] : []
         },
         configId: config.id
       };
