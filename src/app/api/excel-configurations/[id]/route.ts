@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,8 +18,9 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden - Only admins can access configurations' }, { status: 403 });
     }
 
+    const { id } = await params;
     const configuration = await prisma.excelUploadConfiguration.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         createdBy: {
           select: { id: true, name: true, email: true }
@@ -49,7 +50,7 @@ export async function GET(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -62,9 +63,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden - Only admins can delete configurations' }, { status: 403 });
     }
 
+    const { id } = await params;
     // Check if configuration exists and get usage count
     const configuration = await prisma.excelUploadConfiguration.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         _count: {
           select: { UploadConfigurationLog: true }
@@ -83,7 +85,7 @@ export async function DELETE(
     }
 
     await prisma.excelUploadConfiguration.delete({
-      where: { id: params.id }
+      where: { id }
     });
 
     return NextResponse.json({ message: 'Configuration deleted successfully' });
