@@ -167,6 +167,7 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
       51: '#843E1C', // dark green Day Shift
       52: '#FFFF00', // yellow Weekend Night
       53: '#FFC000', // orange Weekend Morning
+      64: '#FFFFFF', // white/auto background (common in Excel)
     };
     
     if (indexedColors[index]) {
@@ -186,7 +187,7 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
     // Use same mapping as above
     const indexedColors: { [key: number]: string } = {
       2: '#FF0000', 3: '#00FF00', 4: '#0000FF', 5: '#FFFF00',
-      6: '#FF00FF', 7: '#00FFFF', 10: '#99BB3B', 13: '#FFC000'
+      6: '#FF00FF', 7: '#00FFFF', 10: '#99BB3B', 13: '#FFC000', 64: '#FFFFFF'
     };
     if (indexedColors[index]) {
       console.log(`✓ Mapped pattern indexed color ${index} to ${indexedColors[index]}`);
@@ -227,7 +228,7 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
         12: '#0000FF', 13: '#FFC000', 14: '#FF00FF', 15: '#00FFFF', 16: '#800000', 17: '#843E1C',
         18: '#000080', 19: '#808000', 20: '#800080', 21: '#008080', 22: '#C0C0C0', 23: '#808080',
         40: '#FF99CC', 41: '#FFCC99', 42: '#FFFF00', 43: '#99BB3B', 44: '#CCFFFF', 45: '#99CCFF',
-        46: '#CC99FF', 50: '#99BB3B', 51: '#843E1C', 52: '#FFFF00', 53: '#FFC000'
+        46: '#CC99FF', 50: '#99BB3B', 51: '#843E1C', 52: '#FFFF00', 53: '#FFC000', 64: '#FFFFFF'
       };
       if (indexedColors[index]) {
         console.log(`✓ Mapped legacy indexed color ${index} to ${indexedColors[index]}`);
@@ -628,7 +629,9 @@ async function parseExcelSchedule(
           const dayAbbreviations = ['l', 'm', 'j', 'v', 's', 'd', 'L', 'M', 'J', 'V', 'S', 'D'];
           const shouldSkip = shiftHours.length === 0 || 
                            dayAbbreviations.includes(shiftHours) || 
-                           config.skipValues.includes(shiftHours.toLowerCase());
+                           config.skipValues.some(skip => skip.toLowerCase() === shiftHours.toLowerCase());
+          
+          console.log(`  Skip check: "${shiftHours}" - skipValues: [${config.skipValues.join(', ')}], shouldSkip: ${shouldSkip}`);
           
           if (!shouldSkip) {
             
