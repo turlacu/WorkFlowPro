@@ -37,21 +37,23 @@ model Session {
 }
 
 model User {
-  id                 String         @id @default(cuid())
-  name               String?
-  email              String         @unique
-  emailVerified      DateTime?
-  image              String?
-  password           String?
-  role               String         @default("OPERATOR")
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
-  accounts           Account[]
-  updatedAssignments Assignment[]   @relation("UpdatedByUser")
-  createdAssignments Assignment[]   @relation("CreatedByUser")
-  assignments        Assignment[]
-  sessions           Session[]
-  teamSchedules      TeamSchedule[]
+  id                        String                     @id @default(cuid())
+  name                      String?
+  email                     String                     @unique
+  emailVerified             DateTime?
+  image                     String?
+  password                  String?
+  role                      String                     @default("OPERATOR")
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  accounts                  Account[]
+  updatedAssignments        Assignment[]               @relation("UpdatedByUser")
+  createdAssignments        Assignment[]               @relation("CreatedByUser")
+  assignments               Assignment[]
+  sessions                  Session[]
+  teamSchedules             TeamSchedule[]
+  createdConfigurations     ExcelUploadConfiguration[]
+  uploadConfigurationLogs   UploadConfigurationLog[]
 
   @@map("users")
 }
@@ -116,4 +118,52 @@ model ShiftColorLegend {
 
   @@unique([colorCode, role])
   @@map("shift_color_legends")
+}
+
+model ExcelUploadConfiguration {
+  id               String   @id @default(cuid())
+  name             String
+  role             String
+  description      String?
+  active           Boolean  @default(true)
+  
+  // Coordinate configuration (stored as JSON)
+  dateRow          Int
+  dayLabelRow      Int?
+  nameColumn       Int
+  firstNameRow     Int
+  lastNameRow      Int
+  firstDateColumn  Int
+  lastDateColumn   Int
+  dynamicColumns   Boolean  @default(true)
+  
+  // Processing rules (stored as JSON)
+  skipValues       Json     @default("[]")
+  validPatterns    Json     @default("[]")
+  colorDetection   Boolean  @default(true)
+  defaultShift     String?
+  
+  // Metadata
+  createdById      String
+  createdBy        User     @relation(fields: [createdById], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([name, role])
+  @@map("excel_upload_configurations")
+}
+
+model UploadConfigurationLog {
+  id              String                   @id @default(cuid())
+  configurationId String
+  configuration   ExcelUploadConfiguration @relation(fields: [configurationId], references: [id])
+  filename        String
+  uploadedBy      String
+  uploadedByUser  User                     @relation(fields: [uploadedBy], references: [id])
+  entriesCount    Int
+  successCount    Int
+  errorCount      Int
+  createdAt       DateTime                 @default(now())
+
+  @@map("upload_configuration_logs")
 }

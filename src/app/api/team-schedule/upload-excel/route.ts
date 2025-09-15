@@ -329,7 +329,28 @@ function hexToRgb(hex: string): {r: number, g: number, b: number} | null {
 }
 
 
-// Role-specific parsing configuration
+// Database configuration interface
+interface DatabaseParsingConfig {
+  id: string;
+  name: string;
+  role: string;
+  description?: string;
+  active: boolean;
+  dateRow: number;
+  dayLabelRow?: number;
+  nameColumn: number;
+  firstNameRow: number;
+  lastNameRow: number;
+  firstDateColumn: number;
+  lastDateColumn: number;
+  dynamicColumns: boolean;
+  skipValues: string[];
+  validPatterns: string[];
+  colorDetection: boolean;
+  defaultShift?: string;
+}
+
+// Legacy interface for backward compatibility
 interface ParsingConfig {
   dateRow: number;
   nameColumn: number;
@@ -338,10 +359,66 @@ interface ParsingConfig {
   firstDateColumn: number;
   lastDateColumn: number;
   role: string;
-  skipValues: string[]; // Values to skip (like "co" for holidays)
+  skipValues: string[];
 }
 
-const PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
+// Helper function to fetch configuration from database
+async function getParsingConfiguration(role: string, filename?: string): Promise<{config: ParsingConfig, configId?: string} | null> {
+  try {
+    // First try to find an active configuration for the role
+    const config = await prisma.excelUploadConfiguration.findFirst({
+      where: { 
+        role: role,
+        active: true
+      },
+      orderBy: { createdAt: 'desc' } // Get most recent if multiple
+    });
+    
+    if (config) {
+      console.log(`Found database configuration: ${config.name} for role ${role}`);
+      return {
+        config: {
+          dateRow: config.dateRow,
+          nameColumn: config.nameColumn,
+          firstNameRow: config.firstNameRow,
+          lastNameRow: config.lastNameRow,
+          firstDateColumn: config.firstDateColumn,
+          lastDateColumn: config.lastDateColumn,
+          role: config.role,
+          skipValues: config.skipValues
+        },
+        configId: config.id
+      };
+    }
+    
+    console.log(`No active configuration found for role ${role}, using fallback`);
+    return null;
+  } catch (error) {
+    console.error('Error fetching parsing configuration from database:', error);
+    return null;
+  }
+}
+
+// Helper function to log configuration usage
+async function logConfigurationUsage(configId: string, userId: string, filename: string, success: boolean, details?: object) {
+  try {
+    await prisma.uploadConfigurationLog.create({
+      data: {
+        configurationId: configId,
+        uploadedByUserId: userId,
+        filename,
+        success,
+        details: details ? JSON.stringify(details) : null
+      }
+    });
+    console.log(`Logged configuration usage: ${configId} by ${userId}`);
+  } catch (error) {
+    console.error('Error logging configuration usage:', error);
+  }
+}
+
+// Fallback configurations (legacy support)
+const FALLBACK_PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
   OPERATOR: {
     dateRow: 12,        // Row 13 in Excel (0-based = 12)
     nameColumn: 1,      // Column B in Excel (0-based = 1)
@@ -365,16 +442,32 @@ const PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
 };
 
 // Parse Excel file and extract schedule data using role-specific configuration
-async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYear: number, role: string = 'OPERATOR'): Promise<ExcelParseResult> {
+async function parseExcelSchedule(
+  buffer: Buffer, 
+  targetMonth: number, 
+  targetYear: number, 
+  role: string = 'OPERATOR', 
+  filename?: string
+): Promise<ExcelParseResult & {configId?: string}> {
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true });
     const sheetName = workbook.SheetNames[0];
     const worksheet = workbook.Sheets[sheetName];
     
-    // Get role-specific configuration
-    const config = PARSING_CONFIGS[role];
-    if (!config) {
-      return { success: false, errors: [`Unsupported role: ${role}`] };
+    // Get role-specific configuration from database or fallback
+    let configResult = await getParsingConfiguration(role, filename);
+    let config: ParsingConfig;
+    let configId: string | undefined;
+    
+    if (configResult) {
+      config = configResult.config;
+      configId = configResult.configId;
+    } else {
+      config = FALLBACK_PARSING_CONFIGS[role];
+      if (!config) {
+        return { success: false, errors: [`No configuration found for role: ${role}. Please create a configuration in the admin panel.`] };
+      }
+      console.log(`Using fallback configuration for role: ${role}`);
     }
 
     // Fetch role-specific color legends from database
@@ -517,7 +610,7 @@ async function parseExcelSchedule(buffer: Buffer, targetMonth: number, targetYea
     }
     
     console.log(`Total schedule entries extracted: ${scheduleEntries.length}`);
-    return { success: true, data: scheduleEntries };
+    return { success: true, data: scheduleEntries, configId };
     
   } catch (error) {
     console.error('Error parsing Excel file:', error);
@@ -566,7 +659,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     console.log('File parsed, buffer size:', buffer.length);
     
-    const parseResult = await parseExcelSchedule(buffer, month, year, role);
+    const parseResult = await parseExcelSchedule(buffer, month, year, role, file.name);
     console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
     
     if (parseResult.success && parseResult.data && parseResult.data.length > 0) {
@@ -574,6 +667,15 @@ export async function POST(request: NextRequest) {
     }
     
     if (!parseResult.success || !parseResult.data) {
+      // Log failed configuration usage if we have a configId
+      if (parseResult.configId) {
+        await logConfigurationUsage(parseResult.configId, session.user.id, file.name, false, {
+          errors: parseResult.errors,
+          month,
+          year,
+          role
+        });
+      }
       return NextResponse.json({ error: 'Failed to parse Excel file', details: parseResult.errors }, { status: 400 });
     }
 
@@ -761,6 +863,19 @@ export async function POST(request: NextRequest) {
     } catch (createError) {
       console.error('Database error creating schedules:', createError);
       throw new Error(`Create error: ${createError instanceof Error ? createError.message : 'Unknown create error'}`);
+    }
+
+    // Log successful configuration usage
+    if (parseResult.configId) {
+      await logConfigurationUsage(parseResult.configId, session.user.id, file.name, true, {
+        imported: createdCount,
+        skipped: skippedCount,
+        matchingReport,
+        newColorsDetected: newColors.length,
+        month,
+        year,
+        role
+      });
     }
 
     return NextResponse.json({
