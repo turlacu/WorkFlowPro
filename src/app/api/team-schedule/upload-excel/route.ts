@@ -353,10 +353,10 @@ const PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
     skipValues: []
   },
   PRODUCER: {
-    dateRow: 8,         // Row 9 in Excel (0-based = 8)
+    dateRow: 4,         // Row 5 in Excel (0-based = 4)
     nameColumn: 1,      // Column B in Excel (0-based = 1)
-    firstNameRow: 9,    // Row 10 in Excel (0-based = 9)
-    lastNameRow: 11,    // Row 12 in Excel (0-based = 11)
+    firstNameRow: 5,    // Row 6 in Excel (0-based = 5)
+    lastNameRow: 7,     // Row 8 in Excel (0-based = 7)
     firstDateColumn: 2, // Column C in Excel (0-based = 2)
     lastDateColumn: 32, // Column AG in Excel (0-based = 32)
     role: 'PRODUCER',
