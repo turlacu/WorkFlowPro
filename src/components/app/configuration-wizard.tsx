@@ -176,8 +176,22 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
     }
   };
 
-  const columnToLetter = (col: number) => String.fromCharCode(65 + col);
-  const letterToColumn = (letter: string) => letter.charCodeAt(0) - 65;
+  const columnToLetter = (col: number) => {
+    let result = '';
+    while (col >= 0) {
+      result = String.fromCharCode(65 + (col % 26)) + result;
+      col = Math.floor(col / 26) - 1;
+    }
+    return result;
+  };
+  
+  const letterToColumn = (letters: string) => {
+    let result = 0;
+    for (let i = 0; i < letters.length; i++) {
+      result = result * 26 + (letters.charCodeAt(i) - 64);
+    }
+    return result - 1;
+  };
 
   const steps = [
     'Basic Information',
@@ -308,11 +322,14 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                     <Input
                       value={columnToLetter(formData.firstDateColumn)}
                       onChange={(e) => {
-                        const col = letterToColumn(e.target.value.toUpperCase());
-                        if (!isNaN(col)) handleInputChange('firstDateColumn', col);
+                        const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                        if (value.length > 0) {
+                          const col = letterToColumn(value);
+                          if (!isNaN(col) && col >= 0) handleInputChange('firstDateColumn', col);
+                        }
                       }}
                       placeholder="C"
-                      maxLength={2}
+                      maxLength={3}
                     />
                   </div>
                   <div className="space-y-2">
@@ -320,11 +337,14 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                     <Input
                       value={columnToLetter(formData.lastDateColumn)}
                       onChange={(e) => {
-                        const col = letterToColumn(e.target.value.toUpperCase());
-                        if (!isNaN(col)) handleInputChange('lastDateColumn', col);
+                        const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                        if (value.length > 0) {
+                          const col = letterToColumn(value);
+                          if (!isNaN(col) && col >= 0) handleInputChange('lastDateColumn', col);
+                        }
                       }}
-                      placeholder="AF"
-                      maxLength={2}
+                      placeholder="AG"
+                      maxLength={3}
                     />
                   </div>
                 </div>
@@ -338,11 +358,14 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                     <Input
                       value={columnToLetter(formData.nameColumn)}
                       onChange={(e) => {
-                        const col = letterToColumn(e.target.value.toUpperCase());
-                        if (!isNaN(col)) handleInputChange('nameColumn', col);
+                        const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+                        if (value.length > 0) {
+                          const col = letterToColumn(value);
+                          if (!isNaN(col) && col >= 0) handleInputChange('nameColumn', col);
+                        }
                       }}
                       placeholder="B"
-                      maxLength={1}
+                      maxLength={3}
                     />
                   </div>
                   <div className="space-y-2">
