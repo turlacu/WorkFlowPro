@@ -12,7 +12,7 @@ const CreateConfigurationSchema = z.object({
   
   // Coordinates
   dateRow: z.number().min(0, 'Date row must be >= 0'),
-  dayLabelRow: z.number().min(0).optional(),
+  dayLabelRow: z.number().min(0).nullable().optional(),
   nameColumn: z.number().min(0, 'Name column must be >= 0'),
   firstNameRow: z.number().min(0, 'First name row must be >= 0'),
   lastNameRow: z.number().min(0, 'Last name row must be >= 0'),
@@ -24,7 +24,7 @@ const CreateConfigurationSchema = z.object({
   skipValues: z.array(z.string()).default([]),
   validPatterns: z.array(z.string()).default([]),
   colorDetection: z.boolean().default(true),
-  defaultShift: z.string().optional(),
+  defaultShift: z.string().optional().transform(val => val === '' ? undefined : val),
 });
 
 const UpdateConfigurationSchema = CreateConfigurationSchema.extend({
