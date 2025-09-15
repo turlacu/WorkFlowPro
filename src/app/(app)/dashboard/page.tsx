@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Users, CalendarDays, BarChart3, DatabaseBackup, Save, Upload, Shield } from 'lucide-react';
+import { Users, CalendarDays, BarChart3, DatabaseBackup, Save, Upload, Shield, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import Link from 'next/link';
 import { getTranslation } from '@/lib/translations';
@@ -18,7 +18,10 @@ import { StatisticsDashboard } from '@/components/app/statistics-dashboard';
 import { UserManagementDashboard } from '@/components/app/user-management-dashboard';
 import { DataBackupRestoreDashboard } from '@/components/app/data-backup-restore-dashboard';
 import { ShiftColorLegendManager } from '@/components/app/shift-color-legend-manager';
-import { ExcelScheduleUploader } from '@/components/app/excel-schedule-uploader'; 
+import { ExcelScheduleUploader } from '@/components/app/excel-schedule-uploader';
+import dynamic from 'next/dynamic';
+
+const ExcelConfigurationsPage = dynamic(() => import('@/app/(app)/admin/excel-configurations/page'), { ssr: false }); 
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -311,7 +314,7 @@ export default function DashboardPage() {
       </div>
 
       <Tabs defaultValue="team-scheduling" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-4 sm:mb-6 h-auto">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-4 sm:mb-6 h-auto">
           <TabsTrigger value="user-management" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
             <Users className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
             <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'UserManagementTab')}</span>
@@ -319,6 +322,10 @@ export default function DashboardPage() {
           <TabsTrigger value="team-scheduling" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
             <CalendarDays className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
             <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'TeamSchedulingTab')}</span>
+          </TabsTrigger>
+          <TabsTrigger value="excel-configurations" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
+            <Settings className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
+            <span className="text-center sm:text-left leading-tight">Excel Configs</span>
           </TabsTrigger>
           <TabsTrigger value="statistics" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
             <BarChart3 className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
@@ -533,6 +540,22 @@ export default function DashboardPage() {
               </TabsContent>
             </Tabs>
           </div>
+        </TabsContent>
+
+        <TabsContent value="excel-configurations">
+          <Card>
+            <CardHeader className="pb-4 sm:pb-6">
+              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">
+                Excel Upload Configurations
+              </CardTitle>
+              <CardDescription className="text-sm sm:text-base">
+                Manage Excel file parsing configurations for different schedule formats
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ExcelConfigurationsPage />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="statistics">

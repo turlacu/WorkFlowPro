@@ -362,8 +362,77 @@ interface ParsingConfig {
   skipValues: string[];
 }
 
+// Helper function to create default configuration in database
+async function createDefaultConfiguration(role: string, session: any): Promise<{config: ParsingConfig, configId?: string} | null> {
+  try {
+    const defaultConfigs = {
+      OPERATOR: {
+        name: 'Default Operator Schedule',
+        description: 'Default configuration for operator schedule imports',
+        dateRow: 12,        // Row 13 in Excel (0-based = 12)
+        nameColumn: 1,      // Column B in Excel (0-based = 1)
+        firstNameRow: 14,   // Row 15 in Excel (0-based = 14)
+        lastNameRow: 17,    // Row 18 in Excel (0-based = 17)
+        firstDateColumn: 2, // Column C in Excel (0-based = 2)
+        lastDateColumn: 32, // Column AG in Excel (0-based = 32)
+        skipValues: []
+      },
+      PRODUCER: {
+        name: 'Default Producer Schedule (Coordonatori)',
+        description: 'Default configuration for producer/coordinator schedule imports',
+        dateRow: 8,         // Row 9 in Excel (0-based = 8) - where dates 1,2,3...30 are
+        nameColumn: 1,      // Column B in Excel (0-based = 1)
+        firstNameRow: 9,    // Row 10 in Excel (0-based = 9) - Marian Cosor
+        lastNameRow: 11,    // Row 12 in Excel (0-based = 11) - Victorina Oancea  
+        firstDateColumn: 2, // Column C in Excel (0-based = 2)
+        lastDateColumn: 31, // Column AF in Excel (0-based = 31) - September has 30 days (C=2, so C+29=AF=31)
+        skipValues: ['co']  // Skip "co" (concediu de odihnă - holiday)
+      }
+    };
+
+    const defaultConfig = defaultConfigs[role as keyof typeof defaultConfigs];
+    if (!defaultConfig) {
+      console.log(`No default configuration available for role: ${role}`);
+      return null;
+    }
+
+    console.log(`Creating default configuration for role: ${role}`);
+    
+    const createdConfig = await prisma.excelUploadConfiguration.create({
+      data: {
+        ...defaultConfig,
+        role,
+        active: true,
+        dynamicColumns: true,
+        validPatterns: [],
+        colorDetection: true,
+        createdById: session.user.id
+      }
+    });
+
+    console.log(`✓ Created default configuration: ${createdConfig.name} (${createdConfig.id})`);
+
+    return {
+      config: {
+        dateRow: createdConfig.dateRow,
+        nameColumn: createdConfig.nameColumn,
+        firstNameRow: createdConfig.firstNameRow,
+        lastNameRow: createdConfig.lastNameRow,
+        firstDateColumn: createdConfig.firstDateColumn,
+        lastDateColumn: createdConfig.lastDateColumn,
+        role: createdConfig.role,
+        skipValues: Array.isArray(createdConfig.skipValues) ? createdConfig.skipValues as string[] : []
+      },
+      configId: createdConfig.id
+    };
+  } catch (error) {
+    console.error('Error creating default configuration:', error);
+    return null;
+  }
+}
+
 // Helper function to fetch configuration from database
-async function getParsingConfiguration(role: string, filename?: string): Promise<{config: ParsingConfig, configId?: string} | null> {
+async function getParsingConfiguration(role: string, filename?: string, session?: any): Promise<{config: ParsingConfig, configId?: string} | null> {
   try {
     // First try to find an active configuration for the role
     const config = await prisma.excelUploadConfiguration.findFirst({
@@ -389,6 +458,12 @@ async function getParsingConfiguration(role: string, filename?: string): Promise
         },
         configId: config.id
       };
+    }
+    
+    // If no configuration exists and we have a session, try to create a default one
+    if (session) {
+      console.log(`No configuration found for role ${role}, attempting to create default...`);
+      return await createDefaultConfiguration(role, session);
     }
     
     console.log(`No active configuration found for role ${role}, using fallback`);
@@ -447,7 +522,8 @@ async function parseExcelSchedule(
   targetMonth: number, 
   targetYear: number, 
   role: string = 'OPERATOR', 
-  filename?: string
+  filename?: string,
+  session?: any
 ): Promise<ExcelParseResult & {configId?: string}> {
   try {
     const workbook = XLSX.read(buffer, { type: 'buffer', cellStyles: true });
@@ -455,7 +531,7 @@ async function parseExcelSchedule(
     const worksheet = workbook.Sheets[sheetName];
     
     // Get role-specific configuration from database or fallback
-    let configResult = await getParsingConfiguration(role, filename);
+    let configResult = await getParsingConfiguration(role, filename, session);
     let config: ParsingConfig;
     let configId: string | undefined;
     
@@ -659,7 +735,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(await file.arrayBuffer());
     console.log('File parsed, buffer size:', buffer.length);
     
-    const parseResult = await parseExcelSchedule(buffer, month, year, role, file.name);
+    const parseResult = await parseExcelSchedule(buffer, month, year, role, file.name, session);
     console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
     
     if (parseResult.success && parseResult.data && parseResult.data.length > 0) {
