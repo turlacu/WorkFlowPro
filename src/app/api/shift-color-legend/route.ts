@@ -11,6 +11,7 @@ const CreateShiftColorLegendSchema = z.object({
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
   description: z.string().optional(),
+  role: z.string().min(1, 'Role is required').default('OPERATOR'),
 });
 
 const UpdateShiftColorLegendSchema = CreateShiftColorLegendSchema.extend({
@@ -58,16 +59,21 @@ export async function POST(request: NextRequest) {
     const validatedData = CreateShiftColorLegendSchema.parse(body);
     console.log('Validated data:', validatedData);
 
-    // Check if color code already exists
+    // Check if color code already exists for this role
     const existingLegend = await prisma.shiftColorLegend.findUnique({
-      where: { colorCode: validatedData.colorCode }
+      where: { 
+        colorCode_role: {
+          colorCode: validatedData.colorCode,
+          role: validatedData.role
+        }
+      }
     });
 
     if (existingLegend) {
-      console.log('Color code already exists:', validatedData.colorCode);
+      console.log('Color code already exists for role:', validatedData.colorCode, validatedData.role);
       return NextResponse.json({ 
         error: 'Color code already exists', 
-        details: `A legend with color code "${validatedData.colorCode}" already exists.` 
+        details: `A legend with color code "${validatedData.colorCode}" already exists for role "${validatedData.role}".` 
       }, { status: 400 });
     }
 
@@ -121,6 +127,7 @@ export async function PUT(request: NextRequest) {
         startTime: validatedData.startTime,
         endTime: validatedData.endTime,
         description: validatedData.description,
+        role: validatedData.role,
       }
     });
 
