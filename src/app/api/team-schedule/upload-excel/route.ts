@@ -542,7 +542,16 @@ export async function POST(request: NextRequest) {
     const month = parseInt(formData.get('month') as string);
     const year = parseInt(formData.get('year') as string);
     const preview = formData.get('preview') === 'true';
-    const role = (formData.get('role') as string) || 'OPERATOR';
+    let role = (formData.get('role') as string) || 'OPERATOR';
+    
+    // Auto-detect role from filename if not explicitly provided
+    if (!formData.get('role') && file?.name) {
+      const filename = file.name.toLowerCase();
+      if (filename.includes('coordonator') || filename.includes('coordinator') || filename.includes('producer')) {
+        role = 'PRODUCER';
+        console.log('Auto-detected PRODUCER role from filename:', file.name);
+      }
+    }
 
     console.log('Excel upload request:', { filename: file?.name, month, year, preview, role });
 
