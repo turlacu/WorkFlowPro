@@ -547,7 +547,7 @@ export async function POST(request: NextRequest) {
     // Auto-detect role from filename if not explicitly provided
     if (!formData.get('role') && file?.name) {
       const filename = file.name.toLowerCase();
-      if (filename.includes('coordonator') || filename.includes('coordinator') || filename.includes('producer')) {
+      if (filename.includes('coordonator') || filename.includes('coordinator') || filename.includes('producer') || filename.includes('coord')) {
         role = 'PRODUCER';
         console.log('Auto-detected PRODUCER role from filename:', file.name);
       }
