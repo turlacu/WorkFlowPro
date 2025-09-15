@@ -5,11 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Users, Calendar, Palette } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Users, Calendar, Palette, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -35,13 +36,21 @@ interface MatchingReport {
   duplicates: string[];
 }
 
+interface ExcelConfiguration {
+  id: string;
+  name: string;
+  role: string;
+  description?: string;
+  active: boolean;
+}
+
 interface ExcelScheduleUploaderProps {
   selectedDate?: Date;
   onUploadComplete?: () => void;
-  targetRole?: 'OPERATOR' | 'PRODUCER';
+  targetRole?: 'OPERATOR' | 'PRODUCER'; // Keep for backward compatibility
 }
 
-export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRole = 'OPERATOR' }: ExcelScheduleUploaderProps) {
+export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRole }: ExcelScheduleUploaderProps) {
   const [file, setFile] = React.useState<File | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [previewData, setPreviewData] = React.useState<ScheduleEntry[]>([]);
@@ -51,12 +60,50 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
   const [detectedColors, setDetectedColors] = React.useState<string[]>([]);
   const [showColorMapping, setShowColorMapping] = React.useState(false);
   const [existingColorMappings, setExistingColorMappings] = React.useState<any[]>([]);
+  
+  // New state for configurations
+  const [configurations, setConfigurations] = React.useState<ExcelConfiguration[]>([]);
+  const [selectedConfig, setSelectedConfig] = React.useState<string>('');
+  const [loadingConfigs, setLoadingConfigs] = React.useState(true);
 
   const { currentLang } = useLanguage();
   const { toast } = useToast();
 
   const currentMonth = selectedDate ? selectedDate.getMonth() + 1 : new Date().getMonth() + 1;
   const currentYear = selectedDate ? selectedDate.getFullYear() : new Date().getFullYear();
+
+  // Fetch available configurations on component mount
+  React.useEffect(() => {
+    const fetchConfigurations = async () => {
+      try {
+        setLoadingConfigs(true);
+        const response = await fetch('/api/excel-configurations?active=true');
+        if (response.ok) {
+          const configs = await response.json();
+          setConfigurations(configs);
+          
+          // Auto-select configuration based on targetRole prop (backward compatibility)
+          if (targetRole) {
+            const matchingConfig = configs.find((config: ExcelConfiguration) => config.role === targetRole);
+            if (matchingConfig) {
+              setSelectedConfig(matchingConfig.id);
+            }
+          } else if (configs.length > 0) {
+            // Default to first available configuration
+            setSelectedConfig(configs[0].id);
+          }
+        } else {
+          console.error('Failed to fetch configurations');
+        }
+      } catch (error) {
+        console.error('Error fetching configurations:', error);
+      } finally {
+        setLoadingConfigs(false);
+      }
+    };
+
+    fetchConfigurations();
+  }, [targetRole]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
@@ -78,6 +125,16 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
 
   const handlePreview = async () => {
     if (!file) return;
+    
+    const selectedConfiguration = configurations.find(config => config.id === selectedConfig);
+    if (!selectedConfiguration) {
+      toast({
+        title: 'Error',
+        description: 'Please select a configuration',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       setUploading(true);
@@ -86,7 +143,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
       formData.append('month', currentMonth.toString());
       formData.append('year', currentYear.toString());
       formData.append('preview', 'true');
-      formData.append('role', targetRole);
+      formData.append('role', selectedConfiguration.role);
 
       const response = await fetch('/api/team-schedule/upload-excel', {
         method: 'POST',
@@ -130,6 +187,16 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
 
   const handleImport = async () => {
     if (!file) return;
+    
+    const selectedConfiguration = configurations.find(config => config.id === selectedConfig);
+    if (!selectedConfiguration) {
+      toast({
+        title: 'Error',
+        description: 'Please select a configuration',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     try {
       setUploading(true);
@@ -138,7 +205,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
       formData.append('month', currentMonth.toString());
       formData.append('year', currentYear.toString());
       formData.append('preview', 'false');
-      formData.append('role', targetRole);
+      formData.append('role', selectedConfiguration.role);
 
       const response = await fetch('/api/team-schedule/upload-excel', {
         method: 'POST',
@@ -290,20 +357,60 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
     return date.toLocaleDateString();
   };
 
+  const selectedConfiguration = configurations.find(config => config.id === selectedConfig);
+
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            Excel Schedule Upload ({targetRole})
+            Excel Schedule Upload
+            {selectedConfiguration && ` (${selectedConfiguration.role})`}
           </CardTitle>
           <CardDescription>
             Upload an Excel file to automatically populate the schedule for {getMonthName(currentMonth)} {currentYear}.
-            Only {targetRole.toLowerCase()}s from the Excel file that match existing users will be imported.
+            {selectedConfiguration && (
+              <>Only {selectedConfiguration.role.toLowerCase()}s from the Excel file that match existing users will be imported.</>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Configuration Selector */}
+          <div className="space-y-2">
+            <Label htmlFor="config-select">Configuration</Label>
+            {loadingConfigs ? (
+              <div className="text-sm text-muted-foreground">Loading configurations...</div>
+            ) : configurations.length === 0 ? (
+              <div className="p-3 border rounded-lg bg-muted">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    No active configurations found. Please create one in the Excel Configurations tab.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <Select value={selectedConfig} onValueChange={setSelectedConfig}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select configuration..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {configurations.map((config) => (
+                    <SelectItem key={config.id} value={config.id}>
+                      <div className="flex flex-col">
+                        <span>{config.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {config.role} - {config.description || 'No description'}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="excel-file">Select Excel File (.xls, .xlsx)</Label>
             <Input
@@ -328,7 +435,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
           <div className="flex gap-2">
             <Button
               onClick={handlePreview}
-              disabled={!file || uploading}
+              disabled={!file || !selectedConfig || uploading || loadingConfigs}
             >
               {uploading ? 'Processing...' : 'Preview Import'}
             </Button>
@@ -336,7 +443,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
             {previewData.length > 0 && (
               <Button
                 onClick={() => setShowConfirmDialog(true)}
-                disabled={uploading}
+                disabled={!selectedConfig || uploading || loadingConfigs}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Import Schedule
@@ -586,7 +693,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Schedule Import</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replace all existing operator schedules for {getMonthName(currentMonth)} {currentYear} with the data from the Excel file.
+              This will replace all existing {selectedConfiguration?.role.toLowerCase() || ''} schedules for {getMonthName(currentMonth)} {currentYear} with the data from the Excel file.
               Are you sure you want to continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
