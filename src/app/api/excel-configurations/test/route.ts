@@ -35,17 +35,17 @@ export async function POST(request: NextRequest) {
       sheetName,
       config: configData,
       validation: {
-        dateRowData: [],
-        nameColumnData: [],
-        sampleScheduleData: [],
-        errors: [],
-        warnings: []
+        dateRowData: [] as Array<{ column: number; value: any; type: string }>,
+        nameColumnData: [] as Array<{ row: number; value: any; type: string }>,
+        sampleScheduleData: [] as Array<{ row: number; col: string; value: any; hasStyle: boolean }>,
+        errors: [] as string[],
+        warnings: [] as string[]
       }
     };
 
     // Check date row
     try {
-      const dateRowData = [];
+      const dateRowData: Array<{ column: number; value: any; type: string }> = [];
       for (let col = configData.firstDateColumn; col <= configData.lastDateColumn; col++) {
         const cell = worksheet[XLSX.utils.encode_cell({ r: configData.dateRow, c: col })];
         if (cell && cell.v !== undefined) {
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     // Check name column
     try {
-      const nameColumnData = [];
+      const nameColumnData: Array<{ row: number; value: any; type: string }> = [];
       for (let row = configData.firstNameRow; row <= configData.lastNameRow; row++) {
         const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: configData.nameColumn })];
         if (cell && cell.v !== undefined) {
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Sample schedule data (first few intersections)
     try {
-      const sampleData = [];
+      const sampleData: Array<{ row: number; col: string; value: any; hasStyle: boolean }> = [];
       const sampleRows = Math.min(3, configData.lastNameRow - configData.firstNameRow + 1);
       const sampleCols = Math.min(7, configData.lastDateColumn - configData.firstDateColumn + 1);
       
