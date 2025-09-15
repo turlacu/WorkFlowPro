@@ -306,15 +306,15 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                 <h4 className="font-semibold mb-3">Date Location</h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>Date Row (0-based)</Label>
+                    <Label>Date Row (Excel row number)</Label>
                     <Input
                       type="number"
-                      value={formData.dateRow}
-                      onChange={(e) => handleInputChange('dateRow', parseInt(e.target.value))}
-                      min="0"
+                      value={formData.dateRow + 1}
+                      onChange={(e) => handleInputChange('dateRow', parseInt(e.target.value) - 1)}
+                      min="1"
                     />
                     <div className="text-sm text-muted-foreground">
-                      Excel row: {formData.dateRow + 1}
+                      The row containing date numbers (1, 2, 3, ...)
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -369,27 +369,27 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>First Name Row (0-based)</Label>
+                    <Label>First Name Row (Excel row number)</Label>
                     <Input
                       type="number"
-                      value={formData.firstNameRow}
-                      onChange={(e) => handleInputChange('firstNameRow', parseInt(e.target.value))}
-                      min="0"
+                      value={formData.firstNameRow + 1}
+                      onChange={(e) => handleInputChange('firstNameRow', parseInt(e.target.value) - 1)}
+                      min="1"
                     />
                     <div className="text-sm text-muted-foreground">
-                      Excel row: {formData.firstNameRow + 1}
+                      First row containing employee names
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Last Name Row (0-based)</Label>
+                    <Label>Last Name Row (Excel row number)</Label>
                     <Input
                       type="number"
-                      value={formData.lastNameRow}
-                      onChange={(e) => handleInputChange('lastNameRow', parseInt(e.target.value))}
-                      min="0"
+                      value={formData.lastNameRow + 1}
+                      onChange={(e) => handleInputChange('lastNameRow', parseInt(e.target.value) - 1)}
+                      min="1"
                     />
                     <div className="text-sm text-muted-foreground">
-                      Excel row: {formData.lastNameRow + 1}
+                      Last row containing employee names
                     </div>
                   </div>
                 </div>
