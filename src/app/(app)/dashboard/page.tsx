@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import { getTranslation } from '@/lib/translations';
 import { StatisticsDashboard } from '@/components/app/statistics-dashboard';
+import { ErrorBoundary } from '@/components/app/error-boundary';
 import { UserManagementDashboard } from '@/components/app/user-management-dashboard';
 import { DataBackupRestoreDashboard } from '@/components/app/data-backup-restore-dashboard';
 import { ShiftColorLegendManager } from '@/components/app/shift-color-legend-manager';
@@ -552,7 +553,9 @@ export default function DashboardPage() {
                 <CardDescription className="text-sm sm:text-base">{getTranslation(currentLang, 'StatisticsPageDescription')}</CardDescription>
             </CardHeader>
             <CardContent>
-              <StatisticsDashboard />
+              <ErrorBoundary>
+                <StatisticsDashboard />
+              </ErrorBoundary>
             </CardContent>
           </Card>
         </TabsContent>

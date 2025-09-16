@@ -38,6 +38,8 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     const { getServerSession } = await import('next-auth');
     const { authOptions } = await import('@/lib/auth');
     
+    console.log('📊 Statistics action started');
+    
     // Get current session for debugging
     const session = await getServerSession(authOptions);
     console.log('📊 Statistics called by user:', { 
