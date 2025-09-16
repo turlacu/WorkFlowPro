@@ -30,8 +30,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Only admins can access color legends' }, { status: 403 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const role = searchParams.get('role');
+
+    let whereClause: any = {};
+    if (role) {
+      whereClause.role = role;
+    }
+
     const colorLegends = await prisma.shiftColorLegend.findMany({
-      orderBy: { createdAt: 'asc' }
+      where: whereClause,
+      orderBy: [
+        { role: 'asc' },
+        { createdAt: 'asc' }
+      ]
     });
 
     return NextResponse.json(colorLegends);

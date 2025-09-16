@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -23,6 +25,7 @@ interface ShiftColorLegend {
   startTime: string;
   endTime: string;
   description?: string;
+  role: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +37,7 @@ interface ShiftColorLegendFormData {
   startTime: string;
   endTime: string;
   description: string;
+  role: string;
 }
 
 export function ShiftColorLegendManager() {
@@ -42,22 +46,25 @@ export function ShiftColorLegendManager() {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [editingLegend, setEditingLegend] = React.useState<ShiftColorLegend | null>(null);
   const [legendToDelete, setLegendToDelete] = React.useState<ShiftColorLegend | null>(null);
+  const [selectedRole, setSelectedRole] = React.useState<string>('ALL');
   const [formData, setFormData] = React.useState<ShiftColorLegendFormData>({
     colorCode: '#FF0000',
     colorName: '',
     shiftName: '',
     startTime: '08:00',
     endTime: '16:00',
-    description: ''
+    description: '',
+    role: 'OPERATOR'
   });
 
   const { currentLang } = useLanguage();
   const { toast } = useToast();
 
-  const fetchLegends = React.useCallback(async () => {
+  const fetchLegends = React.useCallback(async (role?: string) => {
     try {
       setLoading(true);
-      const response = await fetch('/api/shift-color-legend');
+      const url = role && role !== 'ALL' ? `/api/shift-color-legend?role=${role}` : '/api/shift-color-legend';
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch legends');
       const data = await response.json();
       setLegends(data);
@@ -74,8 +81,8 @@ export function ShiftColorLegendManager() {
   }, [toast]);
 
   React.useEffect(() => {
-    fetchLegends();
-  }, [fetchLegends]);
+    fetchLegends(selectedRole);
+  }, [fetchLegends, selectedRole]);
 
   const handleOpenModal = (legend?: ShiftColorLegend) => {
     if (legend) {
@@ -86,7 +93,8 @@ export function ShiftColorLegendManager() {
         shiftName: legend.shiftName,
         startTime: legend.startTime,
         endTime: legend.endTime,
-        description: legend.description || ''
+        description: legend.description || '',
+        role: legend.role
       });
     } else {
       setEditingLegend(null);
@@ -96,7 +104,8 @@ export function ShiftColorLegendManager() {
         shiftName: '',
         startTime: '08:00',
         endTime: '16:00',
-        description: ''
+        description: '',
+        role: selectedRole !== 'ALL' ? selectedRole : 'OPERATOR'
       });
     }
     setIsModalOpen(true);
@@ -136,7 +145,7 @@ export function ShiftColorLegendManager() {
       });
 
       setIsModalOpen(false);
-      await fetchLegends();
+      await fetchLegends(selectedRole);
     } catch (error) {
       console.error('Error saving legend:', error);
       toast({
@@ -163,7 +172,7 @@ export function ShiftColorLegendManager() {
       });
 
       setLegendToDelete(null);
-      await fetchLegends();
+      await fetchLegends(selectedRole);
     } catch (error) {
       console.error('Error deleting legend:', error);
       toast({
@@ -173,6 +182,9 @@ export function ShiftColorLegendManager() {
       });
     }
   };
+
+  // Get unique roles from legends for the role selector
+  const availableRoles = ['ALL', ...Array.from(new Set(legends.map(legend => legend.role)))];
 
   return (
     <div className="space-y-6">
@@ -185,12 +197,26 @@ export function ShiftColorLegendManager() {
             </CardTitle>
             <CardDescription>
               Define color codes for different shift types to be used when importing Excel schedules.
+              Each role can have its own color meanings.
             </CardDescription>
           </div>
-          <Button onClick={() => handleOpenModal()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Color Legend
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Roles</SelectItem>
+                <SelectItem value="OPERATOR">OPERATOR</SelectItem>
+                <SelectItem value="PRODUCER">PRODUCER</SelectItem>
+                <SelectItem value="ADMIN">ADMIN</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={() => handleOpenModal()}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Color Legend
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -206,6 +232,7 @@ export function ShiftColorLegendManager() {
                   <TableHead>Color</TableHead>
                   <TableHead>Color Name</TableHead>
                   <TableHead>Shift Name</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Actions</TableHead>
@@ -226,6 +253,11 @@ export function ShiftColorLegendManager() {
                     <TableCell>{legend.colorName}</TableCell>
                     <TableCell>
                       <Badge>{legend.shiftName}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={legend.role === 'ADMIN' ? 'destructive' : legend.role === 'PRODUCER' ? 'default' : 'secondary'}>
+                        {legend.role}
+                      </Badge>
                     </TableCell>
                     <TableCell>{legend.startTime} - {legend.endTime}</TableCell>
                     <TableCell className="max-w-xs truncate">{legend.description}</TableCell>
@@ -285,14 +317,32 @@ export function ShiftColorLegendManager() {
                 />
               </div>
             </div>
-            <div>
-              <Label htmlFor="shiftName">Shift Name</Label>
-              <Input
-                id="shiftName"
-                value={formData.shiftName}
-                onChange={(e) => setFormData({ ...formData, shiftName: e.target.value })}
-                placeholder="e.g., Morning Shift, Night Shift"
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="shiftName">Shift Name</Label>
+                <Input
+                  id="shiftName"
+                  value={formData.shiftName}
+                  onChange={(e) => setFormData({ ...formData, shiftName: e.target.value })}
+                  placeholder="e.g., Morning Shift, Night Shift"
+                />
+              </div>
+              <div>
+                <Label htmlFor="role">Role</Label>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OPERATOR">OPERATOR</SelectItem>
+                    <SelectItem value="PRODUCER">PRODUCER</SelectItem>
+                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
