@@ -362,15 +362,36 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
-    const canEdit = session.user.role === 'ADMIN' || 
-                   session.user.role === 'PRODUCER' || 
-                   existingAssignment.assignedToId === session.user.id;
+    // Check if user can edit assignment details (full edit)
+    const canEditDetails = session.user.role === 'ADMIN' || 
+                          session.user.role === 'PRODUCER' || 
+                          existingAssignment.assignedToId === session.user.id;
 
-    if (!canEdit) {
+    // Check if user can update status/completion (operators can help with any assignment)
+    const canUpdateStatus = session.user.role === 'ADMIN' || 
+                           session.user.role === 'OPERATOR' ||
+                           session.user.role === 'PRODUCER';
+
+    // Determine if this is a status-only update (workflow changes)
+    const isStatusOnlyUpdate = !validatedData.name || 
+      (validatedData.name === existingAssignment.name &&
+       validatedData.description === existingAssignment.description &&
+       validatedData.author === existingAssignment.author &&
+       validatedData.assignedToId === existingAssignment.assignedToId &&
+       validatedData.sourceLocation === existingAssignment.sourceLocation &&
+       validatedData.priority === existingAssignment.priority);
+
+    // Check permissions based on update type
+    const hasPermission = isStatusOnlyUpdate ? canUpdateStatus : canEditDetails;
+
+    if (!hasPermission) {
       console.log('PUT /api/assignments - Forbidden:', { 
         userRole: session.user.role, 
         userId: session.user.id, 
-        assignedToId: existingAssignment.assignedToId 
+        assignedToId: existingAssignment.assignedToId,
+        isStatusOnlyUpdate,
+        canEditDetails,
+        canUpdateStatus
       });
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
