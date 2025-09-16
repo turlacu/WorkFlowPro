@@ -33,23 +33,55 @@ export type GenerateStatisticsOutput = z.infer<typeof GenerateStatisticsOutputSc
 
 export async function getStatisticsAction(input: GenerateStatisticsInput): Promise<GenerateStatisticsOutput | { error: string }> {
   try {
-    // Import prisma here to avoid issues with server actions
-    const { prisma } = await import('@/lib/prisma');
-    const { getServerSession } = await import('next-auth');
-    const { authOptions } = await import('@/lib/auth');
-    
     console.log('📊 Statistics action started');
     
+    // Try to import modules and handle any import errors
+    let prisma, getServerSession, authOptions;
+    
+    try {
+      const prismaModule = await import('@/lib/prisma');
+      prisma = prismaModule.prisma;
+      console.log('✅ Prisma imported successfully');
+    } catch (prismaError) {
+      console.error('❌ Failed to import Prisma:', prismaError);
+      return { error: 'Database connection module failed to load' };
+    }
+    
+    try {
+      const nextAuthModule = await import('next-auth');
+      getServerSession = nextAuthModule.getServerSession;
+      console.log('✅ NextAuth imported successfully');
+    } catch (authError) {
+      console.error('❌ Failed to import NextAuth:', authError);
+      return { error: 'Authentication module failed to load' };
+    }
+    
+    try {
+      const authModule = await import('@/lib/auth');
+      authOptions = authModule.authOptions;
+      console.log('✅ Auth options imported successfully');
+    } catch (authOptionsError) {
+      console.error('❌ Failed to import auth options:', authOptionsError);
+      return { error: 'Authentication configuration failed to load' };
+    }
+    
     // Get current session for debugging
-    const session = await getServerSession(authOptions);
-    console.log('📊 Statistics called by user:', { 
-      id: session?.user?.id, 
-      role: session?.user?.role, 
-      email: session?.user?.email 
-    });
+    let session;
+    try {
+      session = await getServerSession(authOptions);
+      console.log('📊 Statistics called by user:', { 
+        id: session?.user?.id, 
+        role: session?.user?.role, 
+        email: session?.user?.email 
+      });
+    } catch (sessionError) {
+      console.error('❌ Failed to get session:', sessionError);
+      return { error: 'Failed to verify user session' };
+    }
     
     // Ensure we have proper authorization
     if (!session) {
+      console.log('❌ No session found');
       return { error: 'Unauthorized access to statistics' };
     }
     
@@ -59,21 +91,39 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     console.log('📊 User is admin:', isAdmin);
     
     // Input validation
-    const validated = GenerateStatisticsInputSchema.parse(input);
-    
-    if (new Date(validated.startDate) > new Date(validated.endDate)) {
-      return { error: 'Start date cannot be after end date.' };
+    let validated;
+    try {
+      validated = GenerateStatisticsInputSchema.parse(input);
+      console.log('✅ Input validation successful:', validated);
+    } catch (validationError) {
+      console.error('❌ Input validation failed:', validationError);
+      return { error: 'Invalid input parameters for statistics' };
     }
-
-    // Create date objects that capture full local date ranges
-    const startDate = new Date(validated.startDate);
-    startDate.setHours(0, 0, 0, 0); // Start of day
     
-    const endDate = new Date(validated.endDate);
-    endDate.setHours(23, 59, 59, 999); // End of day
+    // Date validation and processing
+    let startDate, endDate;
+    try {
+      startDate = new Date(validated.startDate);
+      endDate = new Date(validated.endDate);
+      
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        return { error: 'Invalid date format provided' };
+      }
+      
+      if (startDate > endDate) {
+        return { error: 'Start date cannot be after end date.' };
+      }
 
-    console.log('📊 Statistics Action Debug:');
-    console.log('Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+      // Create date objects that capture full local date ranges
+      startDate.setHours(0, 0, 0, 0); // Start of day
+      endDate.setHours(23, 59, 59, 999); // End of day
+
+      console.log('📊 Statistics Action Debug:');
+      console.log('Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+    } catch (dateError) {
+      console.error('❌ Date processing failed:', dateError);
+      return { error: 'Failed to process date range' };
+    }
 
     // First check total assignments in database
     let totalAssignmentsInDb;
