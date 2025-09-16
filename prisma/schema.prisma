@@ -50,6 +50,7 @@ model User {
   updatedAssignments      Assignment[]               @relation("UpdatedByUser")
   createdAssignments      Assignment[]               @relation("CreatedByUser")
   assignments             Assignment[]
+  completedAssignments    Assignment[]               @relation("CompletedByUser")
   sessions                Session[]
   teamSchedules           TeamSchedule[]
   createdConfigurations   ExcelUploadConfiguration[]
@@ -80,12 +81,14 @@ model Assignment {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   completedAt     DateTime?
+  completedById   String?   // Who marked the assignment as completed
   assignedToId    String?
   createdById     String
   lastUpdatedById String
   lastUpdatedBy   User      @relation("UpdatedByUser", fields: [lastUpdatedById], references: [id])
   createdBy       User      @relation("CreatedByUser", fields: [createdById], references: [id])
   assignedTo      User?     @relation(fields: [assignedToId], references: [id])
+  completedBy     User?     @relation("CompletedByUser", fields: [completedById], references: [id])
 
   @@map("assignments")
 }

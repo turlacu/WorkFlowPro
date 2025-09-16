@@ -19,6 +19,8 @@ const UpdateAssignmentSchema = CreateAssignmentSchema.extend({
   id: z.string(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
   comment: z.string().optional(),
+  completedById: z.string().nullable().optional(),
+  completedAt: z.string().datetime().nullable().optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -66,6 +68,9 @@ export async function GET(request: NextRequest) {
             select: { id: true, name: true, email: true },
           },
           lastUpdatedBy: {
+            select: { id: true, name: true, email: true },
+          },
+          completedBy: {
             select: { id: true, name: true, email: true },
           },
         },
@@ -392,6 +397,15 @@ export async function PUT(request: NextRequest) {
       updateData.comment = validatedData.comment;
     }
 
+    // Handle completedBy and completedAt from request
+    if (validatedData.completedById !== undefined) {
+      updateData.completedById = validatedData.completedById;
+    }
+
+    if (validatedData.completedAt !== undefined) {
+      updateData.completedAt = validatedData.completedAt ? new Date(validatedData.completedAt) : null;
+    }
+
     console.log('PUT /api/assignments - Update data:', updateData);
 
     try {
@@ -406,6 +420,9 @@ export async function PUT(request: NextRequest) {
             select: { id: true, name: true, email: true },
           },
           lastUpdatedBy: {
+            select: { id: true, name: true, email: true },
+          },
+          completedBy: {
             select: { id: true, name: true, email: true },
           },
         },
@@ -480,9 +497,15 @@ export async function PUT(request: NextRequest) {
           paramIndex++;
         }
         
-        if (updateData.completedAt) {
+        if (updateData.completedAt !== undefined) {
           setClause.push(`"completedAt" = $${paramIndex}`);
           params.push(updateData.completedAt);
+          paramIndex++;
+        }
+
+        if (updateData.completedById !== undefined) {
+          setClause.push(`"completedById" = $${paramIndex}`);
+          params.push(updateData.completedById);
           paramIndex++;
         }
         

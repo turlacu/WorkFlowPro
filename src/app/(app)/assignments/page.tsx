@@ -340,6 +340,16 @@ export default function AssignmentsPage() {
         return;
       }
 
+      // Only ADMIN can uncheck "Done" (unmark as completed)
+      if (!completed && assignment.status === 'COMPLETED' && session?.user?.role !== 'ADMIN') {
+        toast({
+          title: 'Access Denied',
+          description: 'Only Admin users can unmark assignments as Done.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
       // If trying to check "Done" but "Uploaded to Q" is not checked, show warning
       if (completed && assignment.status !== 'IN_PROGRESS') {
         toast({
@@ -367,6 +377,9 @@ export default function AssignmentsPage() {
         description: assignment.description || '',
         author: (assignment as any).author || '',
         sourceLocation: assignment.sourceLocation || '',
+        // Track who marked it as completed
+        completedById: completed ? session?.user?.id : null,
+        completedAt: completed ? new Date().toISOString() : null,
       };
 
       console.log('Toggle complete - Update data being sent:', updateData);
@@ -383,13 +396,23 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments]);
+  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.id, session?.user?.role]);
 
   const handleToggleUploadedToQ = useCallback(async (assignmentId: string, uploaded: boolean) => {
     try {
       const assignment = allAssignments.find(a => a.id === assignmentId);
       if (!assignment) {
         console.error('Assignment not found for ID:', assignmentId);
+        return;
+      }
+
+      // Only ADMIN can uncheck "Uploaded to Q" once it's been checked
+      if (!uploaded && assignment.status === 'IN_PROGRESS' && session?.user?.role !== 'ADMIN') {
+        toast({
+          title: 'Access Denied',
+          description: 'Only Admin users can uncheck "Uploaded to Q" once it has been marked.',
+          variant: 'destructive',
+        });
         return;
       }
 
@@ -429,7 +452,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments]);
+  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
 
   const displaySelectedDateString = selectedDate ? format(selectedDate, 'MMMM do, yyyy') : getTranslation(currentLang, 'None');
 

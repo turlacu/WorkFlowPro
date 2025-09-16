@@ -4,6 +4,7 @@ export interface AssignmentWithUsers extends Assignment {
   assignedTo?: Pick<User, 'id' | 'name' | 'email'>;
   createdBy: Pick<User, 'id' | 'name' | 'email'>;
   lastUpdatedBy: Pick<User, 'id' | 'name' | 'email'>;
+  completedBy?: Pick<User, 'id' | 'name' | 'email'>;
 }
 
 export interface CreateAssignmentData {
@@ -20,6 +21,8 @@ export interface UpdateAssignmentData extends CreateAssignmentData {
   id: string;
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   comment?: string;
+  completedById?: string | null;
+  completedAt?: string | null;
 }
 
 export interface CreateUserData {

@@ -272,6 +272,16 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
                   <p className="text-foreground/90">{formatDate(assignment.completedAt!, 'MMM do, yyyy \'at\' h:mm a')}</p>
                 </div>
               )}
+
+              {assignment.status === 'COMPLETED' && assignment.completedBy && (
+                <div className="space-y-1 sm:col-span-2">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <UserCircle size={16} />
+                    <span>Completed by</span>
+                  </div>
+                  <p className="text-foreground/90">{assignment.completedBy.name || assignment.completedBy.email}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
