@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { ListChecks, PieChart as PieChartIcon, Users, AreaChart as AreaChartIcon, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getStatisticsAction } from '@/app/actions/statistics';
+// import { getStatisticsAction } from '@/app/actions/statistics'; // Using API route instead
 // Local type definition for statistics data
 type GenerateStatisticsOutput = {
   producerStats: { producerId: string; assignmentsCreated: number; }[];
@@ -73,10 +73,23 @@ export function StatisticsDashboard() {
         
         console.log('📅 Date range for statistics:', { startDate, endDate });
         
-        const result = await getStatisticsAction({
-          startDate,
-          endDate,
+        const response = await fetch('/api/statistics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            startDate,
+            endDate,
+          }),
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch statistics`);
+        }
+        
+        const result = await response.json();
         
         console.log('📊 Full statistics result:', result);
         
@@ -133,10 +146,23 @@ export function StatisticsDashboard() {
       
       console.log('📅 Fetching statistics for date range:', { startDate, endDate });
       
-      const result = await getStatisticsAction({
-        startDate,
-        endDate,
+      const response = await fetch('/api/statistics', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startDate,
+          endDate,
+        }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch statistics`);
+      }
+      
+      const result = await response.json();
       
       if (!('error' in result)) {
         setStatsData(result);
