@@ -245,7 +245,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                 />
               </div>
             </div>
-            {currentUserRole === 'OPERATOR' && (
+            {(currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN') && (
               <div onClick={(e) => e.stopPropagation()} className="flex items-center">
                 <div className="flex items-center justify-center min-h-[44px] min-w-[44px] pl-2">
                   <Checkbox
@@ -281,7 +281,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
               <TableHead>{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
               <TableHead>{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
               <TableHead className="text-right">Uploaded to Q</TableHead>
-              {currentUserRole === 'OPERATOR' && <TableHead className="w-[50px] text-right">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>}
+              {(currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN') && <TableHead className="w-[50px] text-right">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -340,7 +340,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                     )}
                   </div>
                 </TableCell>
-                {currentUserRole === 'OPERATOR' && (
+                {(currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN') && (
                   <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
                     <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">
                       <Checkbox
