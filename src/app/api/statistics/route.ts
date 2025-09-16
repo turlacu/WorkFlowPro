@@ -69,14 +69,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Get assignments for the date range
-    const whereClause = isAdmin ? {} : {
+    // Note: Always apply date filter when specific dates are requested (Day/Month view)
+    // Only ignore date filter for the initial broad overview
+    const isInitialOverview = (end.getTime() - start.getTime()) > (180 * 24 * 60 * 60 * 1000); // > 6 months
+    
+    const whereClause = (isAdmin && isInitialOverview) ? {} : {
       createdAt: {
         gte: start,
         lte: end,
       },
     };
 
-    console.log('📊 Query where clause:', whereClause);
+    console.log('📊 Query details:', {
+      isAdmin,
+      isInitialOverview,
+      dateRange: `${start.toISOString()} to ${end.toISOString()}`,
+      daysDifference: Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)),
+      whereClause
+    });
 
     const assignments = await prisma.assignment.findMany({
       where: whereClause,
