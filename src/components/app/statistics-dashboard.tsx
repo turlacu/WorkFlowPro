@@ -52,6 +52,7 @@ const generatePieData = (statsData: GenerateStatisticsOutput | null) => {
 export function StatisticsDashboard() {
   const { currentLang } = useLanguage();
   const [statsData, setStatsData] = React.useState<GenerateStatisticsOutput | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [userActivityDate, setUserActivityDate] = React.useState<Date>(new Date());
   const [trendChartMonth, setTrendChartMonth] = React.useState<Date>(new Date());
@@ -87,13 +88,16 @@ export function StatisticsDashboard() {
             operatorCount: result.operatorStats.length
           });
           setStatsData(result);
+          setError(null);
         } else {
           console.error("❌ Error fetching initial stats:", result.error);
-          setStatsData({ error: result.error });
+          setStatsData(null);
+          setError(result.error);
         }
-      } catch (error) {
-        console.error("❌ Exception while fetching statistics:", error);
+      } catch (fetchError) {
+        console.error("❌ Exception while fetching statistics:", fetchError);
         setStatsData(null);
+        setError(fetchError instanceof Error ? fetchError.message : 'Unknown error occurred');
       } finally {
         setLoading(false);
       }
@@ -136,12 +140,17 @@ export function StatisticsDashboard() {
       
       if (!('error' in result)) {
         setStatsData(result);
+        setError(null);
         console.log('✅ Statistics updated successfully');
       } else {
         console.error("Error fetching filtered stats:", result.error);
+        setStatsData(null);
+        setError(result.error);
       }
-    } catch (error) {
-      console.error("Error refreshing statistics:", error);
+    } catch (refreshError) {
+      console.error("Error refreshing statistics:", refreshError);
+      setStatsData(null);
+      setError(refreshError instanceof Error ? refreshError.message : 'Unknown error occurred');
     } finally {
       setLoading(false);
     }
@@ -178,14 +187,14 @@ export function StatisticsDashboard() {
   }
 
   // Show error message if database connection failed
-  if (statsData && 'error' in statsData) {
+  if (error) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center space-y-4">
           <div className="text-6xl">⚠️</div>
           <h3 className="text-xl font-semibold">Database Connection Error</h3>
           <p className="text-muted-foreground max-w-md">
-            {statsData.error}
+            {error}
           </p>
           <div className="flex gap-2 justify-center">
             <Button onClick={() => window.location.reload()} className="border border-input bg-background hover:bg-accent hover:text-accent-foreground">
