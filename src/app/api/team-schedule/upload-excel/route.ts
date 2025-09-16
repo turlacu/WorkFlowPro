@@ -886,8 +886,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No entries could be matched to existing operators' }, { status: 400 });
     }
 
-    // Clear existing schedules for the month (simplified approach)
-    console.log('Clearing existing schedules for month:', { year, month });
+    // Clear existing schedules for the month for this specific role only
+    console.log('Clearing existing schedules for month and role:', { year, month, role });
     
     // Create proper date range - be more explicit about timezone
     const startOfMonth = new Date(year, month - 1, 1); // First day of month
@@ -898,6 +898,15 @@ export async function POST(request: NextRequest) {
       end: endOfMonth.toISOString() 
     });
     
+    // Get all user IDs for this role to target deletion
+    const roleUsers = await prisma.user.findMany({
+      where: { role },
+      select: { id: true }
+    });
+    const roleUserIds = roleUsers.map(user => user.id);
+    
+    console.log(`Found ${roleUserIds.length} users with role ${role} for deletion targeting`);
+    
     let deleteResult;
     try {
       deleteResult = await prisma.teamSchedule.deleteMany({
@@ -905,6 +914,9 @@ export async function POST(request: NextRequest) {
           date: {
             gte: startOfMonth,
             lt: endOfMonth
+          },
+          userId: {
+            in: roleUserIds
           }
         }
       });
