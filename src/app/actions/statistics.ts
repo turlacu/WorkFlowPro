@@ -35,6 +35,16 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
   try {
     // Import prisma here to avoid issues with server actions
     const { prisma } = await import('@/lib/prisma');
+    const { getServerSession } = await import('next-auth');
+    const { authOptions } = await import('@/lib/auth');
+    
+    // Get current session for debugging
+    const session = await getServerSession(authOptions);
+    console.log('📊 Statistics called by user:', { 
+      id: session?.user?.id, 
+      role: session?.user?.role, 
+      email: session?.user?.email 
+    });
     
     // Input validation
     const validated = GenerateStatisticsInputSchema.parse(input);
@@ -116,6 +126,12 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
         name: true,
         createdAt: true,
         status: true,
+        createdBy: {
+          select: { role: true, name: true }
+        },
+        assignedTo: {
+          select: { role: true, name: true }
+        }
       },
       orderBy: { createdAt: 'desc' },
       take: 5,
@@ -123,7 +139,7 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     
     console.log('Recent assignments in DB (any date):');
     allAssignments.forEach(a => {
-      console.log(`  - ${a.name}: ${a.createdAt.toISOString()} (${a.status})`);
+      console.log(`  - ${a.name}: ${a.createdAt.toISOString()} (${a.status}) - Created by: ${a.createdBy?.role}(${a.createdBy?.name}), Assigned to: ${a.assignedTo?.role}(${a.assignedTo?.name})`);
     });
     
     if (assignments.length > 0) {
@@ -143,7 +159,9 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     // Calculate producer statistics (assignments created)
     const producerStatsMap = new Map<string, { name: string; count: number }>();
     
+    console.log('🔍 Processing assignments for producer stats...');
     assignments.forEach(assignment => {
+      console.log(`  - Assignment "${assignment.name}" created by ${assignment.createdBy.role}(${assignment.createdBy.name})`);
       if (assignment.createdBy.role === 'PRODUCER' || assignment.createdBy.role === 'ADMIN') {
         const producerId = assignment.createdBy.id;
         const producerName = assignment.createdBy.name || assignment.createdBy.id;
@@ -153,14 +171,22 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
         } else {
           producerStatsMap.set(producerId, { name: producerName, count: 1 });
         }
+        console.log(`    ✅ Counted for producer: ${producerName}`);
+      } else {
+        console.log(`    ❌ Skipped (role: ${assignment.createdBy.role})`);
       }
     });
+    
+    console.log('📊 Producer stats map:', Array.from(producerStatsMap.entries()));
 
     // Calculate operator statistics (assignments completed)
     const operatorStatsMap = new Map<string, { name: string; completed: number; commented: number }>();
     
     const completedAssignments = assignments.filter(a => a.status === 'COMPLETED' && a.assignedTo);
     const commentedAssignments = assignments.filter(a => a.comment && a.comment.trim() !== '' && a.assignedTo);
+    
+    console.log('🔍 Processing completed assignments for operator stats...');
+    console.log(`Found ${completedAssignments.length} completed assignments out of ${assignments.length} total`);
 
     // Count completed assignments by operator
     completedAssignments.forEach(assignment => {
