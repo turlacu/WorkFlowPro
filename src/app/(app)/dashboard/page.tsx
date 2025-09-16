@@ -314,7 +314,7 @@ export default function DashboardPage() {
       </div>
 
       <Tabs defaultValue="team-scheduling" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 mb-4 sm:mb-6 h-auto">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-4 sm:mb-6 h-auto">
           <TabsTrigger value="user-management" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
             <Users className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
             <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'UserManagementTab')}</span>
@@ -322,10 +322,6 @@ export default function DashboardPage() {
           <TabsTrigger value="team-scheduling" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
             <CalendarDays className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
             <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'TeamSchedulingTab')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="excel-configurations" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
-            <Settings className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
-            <span className="text-center sm:text-left leading-tight">Excel Configs</span>
           </TabsTrigger>
           <TabsTrigger value="statistics" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
             <BarChart3 className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
@@ -358,12 +354,15 @@ export default function DashboardPage() {
             </div>
             
             <Tabs defaultValue="manual-scheduling" className="w-full">
-              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 gap-1 sm:gap-0 h-auto sm:h-10">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-0 h-auto sm:h-10">
                 <TabsTrigger value="manual-scheduling" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
                   Manual Scheduling
                 </TabsTrigger>
                 <TabsTrigger value="excel-upload" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
                   Excel Upload
+                </TabsTrigger>
+                <TabsTrigger value="excel-configurations" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
+                  Excel Configs
                 </TabsTrigger>
                 <TabsTrigger value="color-legend" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
                   Color Legend
@@ -535,27 +534,15 @@ export default function DashboardPage() {
                 />
               </TabsContent>
 
+              <TabsContent value="excel-configurations" className="mt-6">
+                <ExcelConfigurationsPage />
+              </TabsContent>
+
               <TabsContent value="color-legend" className="mt-6">
                 <ShiftColorLegendManager />
               </TabsContent>
             </Tabs>
           </div>
-        </TabsContent>
-
-        <TabsContent value="excel-configurations">
-          <Card>
-            <CardHeader className="pb-4 sm:pb-6">
-              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">
-                Excel Upload Configurations
-              </CardTitle>
-              <CardDescription className="text-sm sm:text-base">
-                Manage Excel file parsing configurations for different schedule formats
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ExcelConfigurationsPage />
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="statistics">
