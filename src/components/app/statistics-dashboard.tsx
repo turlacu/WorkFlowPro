@@ -77,8 +77,15 @@ export function StatisticsDashboard() {
           endDate,
         });
         
+        console.log('📊 Full statistics result:', result);
+        
         if (!('error' in result)) {
-          console.log('✅ Statistics loaded successfully:', result);
+          console.log('✅ Statistics loaded successfully:', {
+            totalCreated: result.totalAssignmentsCreated,
+            totalCompleted: result.totalAssignmentsCompleted,
+            producerCount: result.producerStats.length,
+            operatorCount: result.operatorStats.length
+          });
           setStatsData(result);
         } else {
           console.error("❌ Error fetching initial stats:", result.error);

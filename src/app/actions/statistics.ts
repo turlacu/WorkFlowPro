@@ -46,6 +46,16 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
       email: session?.user?.email 
     });
     
+    // Ensure we have proper authorization
+    if (!session) {
+      return { error: 'Unauthorized access to statistics' };
+    }
+    
+    // For non-admin users, we might want to add role-based restrictions in the future
+    // For now, ADMIN should see all data, others should also see all data
+    const isAdmin = session.user.role === 'ADMIN';
+    console.log('📊 User is admin:', isAdmin);
+    
     // Input validation
     const validated = GenerateStatisticsInputSchema.parse(input);
     
@@ -70,13 +80,23 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     // Get all assignments in the date range
     let assignments;
     try {
-      assignments = await prisma.assignment.findMany({
-        where: {
-          createdAt: {
-            gte: startDate,
-            lte: endDate,
-          },
+      // For ADMIN users, get ALL assignments for comprehensive organizational statistics
+      // For other users, still get all assignments but we could add role-based filtering later
+      const whereClause = isAdmin ? {} : {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
         },
+      };
+      
+      // Actually, let's always get all assignments for now and filter by date in memory if needed
+      // This ensures ADMIN sees complete organizational data
+      const finalWhereClause = isAdmin ? {} : whereClause;
+      
+      console.log('📊 Query where clause:', finalWhereClause);
+      
+      assignments = await prisma.assignment.findMany({
+        where: finalWhereClause,
         include: {
           createdBy: {
             select: {
@@ -96,7 +116,7 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
       });
     } catch (prismaError) {
       console.error('Error fetching assignments in statistics:', prismaError);
-      // Fallback: try to get all assignments without date filter
+      // Fallback: try to get all assignments without any filter
       assignments = await prisma.assignment.findMany({
         include: {
           createdBy: {
@@ -115,7 +135,7 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
           },
         },
       });
-      console.log('Fallback: fetched all assignments without date filter:', assignments.length);
+      console.log('Fallback: fetched all assignments without any filter:', assignments.length);
     }
 
     console.log('Assignments found in date range:', assignments.length);
@@ -253,12 +273,17 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     };
 
     console.log('📈 Final statistics result:', {
+      userRole: session.user.role,
+      isAdmin,
+      assignmentsProcessed: assignments.length,
       producerStats: producerStats.length,
       operatorStats: operatorStats.length,
       totalAssignmentsCreated,
       totalAssignmentsCompleted,
       mostActiveProducer,
-      mostActiveOperator
+      mostActiveOperator,
+      producerDetails: producerStats,
+      operatorDetails: operatorStats
     });
 
     return statistics;
