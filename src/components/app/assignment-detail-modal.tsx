@@ -233,55 +233,74 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
 
             <Separator />
 
-            {/* Audit Trail Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 sm:gap-x-6 gap-y-3 sm:gap-y-4 text-sm">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <UserCircle size={16} />
-                  <span>{getTranslation(currentLang, 'AssignmentDetailCreatedByLabel')}</span>
-                </div>
-                <p className="text-foreground/90">{assignment.createdBy?.name || 'Unknown'}</p>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock size={16} />
-                  <span>{getTranslation(currentLang, 'AssignmentDetailCreatedAtLabel')}</span>
-                </div>
-                <p className="text-foreground/90">{formatDate(assignment.createdAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Edit3 size={16} />
-                  <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedByLabel')}</span>
-                </div>
-                <p className="text-foreground/90">{assignment.lastUpdatedBy?.name || 'Unknown'}</p>
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock size={16} />
-                  <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedAtLabel')}</span>
-                </div>
-                <p className="text-foreground/90">{formatDate(assignment.updatedAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
-              </div>
-              {assignment.status === 'COMPLETED' && assignment.completedAt && (
-                <div className="space-y-1 sm:col-span-2"> {/* Allow completed at to span if needed */}
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <CalendarCheck size={16} />
-                    <span>{getTranslation(currentLang, 'AssignmentDetailCompletedAtLabel')}</span>
+            {/* Audit Trail Section - Professional Layout */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-4 text-sm">
+              
+              {/* Left Column - All "BY" Labels */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">People</h4>
+                
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <UserCircle size={16} />
+                      <span>{getTranslation(currentLang, 'AssignmentDetailCreatedByLabel')}</span>
+                    </div>
+                    <p className="text-foreground/90 ml-6">{assignment.createdBy?.name || 'Unknown'}</p>
                   </div>
-                  <p className="text-foreground/90">{formatDate(assignment.completedAt!, 'MMM do, yyyy \'at\' h:mm a')}</p>
-                </div>
-              )}
 
-              {assignment.status === 'COMPLETED' && assignment.completedBy && (
-                <div className="space-y-1 sm:col-span-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <UserCircle size={16} />
-                    <span>Completed by</span>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Edit3 size={16} />
+                      <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedByLabel')}</span>
+                    </div>
+                    <p className="text-foreground/90 ml-6">{assignment.lastUpdatedBy?.name || 'Unknown'}</p>
                   </div>
-                  <p className="text-foreground/90">{assignment.completedBy.name || assignment.completedBy.email}</p>
+
+                  {assignment.status === 'COMPLETED' && assignment.completedBy && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <UserCircle size={16} />
+                        <span>Completed by</span>
+                      </div>
+                      <p className="text-foreground/90 ml-6">{assignment.completedBy.name || assignment.completedBy.email}</p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Right Column - All "AT" Labels */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Timeline</h4>
+                
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock size={16} />
+                      <span>{getTranslation(currentLang, 'AssignmentDetailCreatedAtLabel')}</span>
+                    </div>
+                    <p className="text-foreground/90 ml-6">{formatDate(assignment.createdAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Clock size={16} />
+                      <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedAtLabel')}</span>
+                    </div>
+                    <p className="text-foreground/90 ml-6">{formatDate(assignment.updatedAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
+                  </div>
+
+                  {assignment.status === 'COMPLETED' && assignment.completedAt && (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <CalendarCheck size={16} />
+                        <span>{getTranslation(currentLang, 'AssignmentDetailCompletedAtLabel')}</span>
+                      </div>
+                      <p className="text-foreground/90 ml-6">{formatDate(assignment.completedAt!, 'MMM do, yyyy \'at\' h:mm a')}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
