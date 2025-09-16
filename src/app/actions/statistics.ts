@@ -1,4 +1,5 @@
-'use server';
+// Note: This file is no longer used as a server action - using API route instead
+// Remove 'use server' directive since we export schemas and types, not just async functions
 
 import { z } from 'zod';
 
