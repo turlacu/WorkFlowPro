@@ -126,16 +126,35 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Calculate operator statistics
+    // Calculate operator statistics (based on who actually completed assignments)
     const operatorStatsMap = new Map<string, { name: string; completed: number; commented: number }>();
     
+    // Get assignments completed by operators (use completedBy field)
+    const assignmentsWithCompletedBy = await prisma.assignment.findMany({
+      where: {
+        ...whereClause,
+        status: 'COMPLETED',
+        completedById: { not: null }
+      },
+      include: {
+        completedBy: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    });
+
     const completedAssignments = assignments.filter(a => a.status === 'COMPLETED' && a.assignedTo);
     const commentedAssignments = assignments.filter(a => a.comment && a.comment.trim() !== '' && a.assignedTo);
 
-    completedAssignments.forEach(assignment => {
-      if (assignment.assignedTo && assignment.assignedTo.role === 'OPERATOR') {
-        const operatorId = assignment.assignedTo.id;
-        const operatorName = assignment.assignedTo.name || assignment.assignedTo.id;
+    // Count completions by actual completing user
+    assignmentsWithCompletedBy.forEach(assignment => {
+      if (assignment.completedBy && assignment.completedBy.role === 'OPERATOR') {
+        const operatorId = assignment.completedBy.id;
+        const operatorName = assignment.completedBy.name || assignment.completedBy.id;
         
         if (operatorStatsMap.has(operatorId)) {
           operatorStatsMap.get(operatorId)!.completed++;
@@ -171,7 +190,7 @@ export async function POST(request: NextRequest) {
     }));
 
     const totalAssignmentsCreated = assignments.length;
-    const totalAssignmentsCompleted = completedAssignments.length;
+    const totalAssignmentsCompleted = assignmentsWithCompletedBy.length;
 
     const mostActiveProducer = producerStats.reduce((max, current) => 
       current.assignmentsCreated > max.assignmentsCreated ? current : max, 
