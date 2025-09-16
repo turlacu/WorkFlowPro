@@ -58,30 +58,55 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     console.log('Total assignments in database:', totalAssignmentsInDb);
 
     // Get all assignments in the date range
-    const assignments = await prisma.assignment.findMany({
-      where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
-      },
-      include: {
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            role: true,
+    let assignments;
+    try {
+      assignments = await prisma.assignment.findMany({
+        where: {
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
           },
         },
-        assignedTo: {
-          select: {
-            id: true,
-            name: true,
-            role: true,
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (prismaError) {
+      console.error('Error fetching assignments in statistics:', prismaError);
+      // Fallback: try to get all assignments without date filter
+      assignments = await prisma.assignment.findMany({
+        include: {
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
+          },
+          assignedTo: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
+            },
+          },
+        },
+      });
+      console.log('Fallback: fetched all assignments without date filter:', assignments.length);
+    }
 
     console.log('Assignments found in date range:', assignments.length);
     

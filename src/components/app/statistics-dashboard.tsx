@@ -76,13 +76,17 @@ export function StatisticsDashboard() {
           startDate,
           endDate,
         });
+        
         if (!('error' in result)) {
+          console.log('✅ Statistics loaded successfully:', result);
           setStatsData(result);
         } else {
-          console.error("Error fetching initial stats:", result.error);
+          console.error("❌ Error fetching initial stats:", result.error);
+          setStatsData(null);
         }
       } catch (error) {
-        console.error("Error fetching statistics:", error);
+        console.error("❌ Exception while fetching statistics:", error);
+        setStatsData(null);
       } finally {
         setLoading(false);
       }
@@ -161,6 +165,26 @@ export function StatisticsDashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading statistics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show no data message if there are no assignments
+  if (!statsData || (statsData.totalAssignmentsCreated === 0 && statsData.producerStats.length === 0 && statsData.operatorStats.length === 0)) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <div className="text-6xl">📊</div>
+          <h3 className="text-xl font-semibold">No Statistics Available</h3>
+          <p className="text-muted-foreground">
+            No assignment data found to generate statistics. Create some assignments first to see statistics here.
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => window.location.href = '/assignments'} className="border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+              Create Assignments
+            </Button>
+          </div>
         </div>
       </div>
     );
