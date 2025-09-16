@@ -56,6 +56,7 @@ export function StatisticsDashboard() {
   const [loading, setLoading] = React.useState(true);
   const [userActivityDate, setUserActivityDate] = React.useState<Date>(new Date());
   const [trendChartMonth, setTrendChartMonth] = React.useState<Date>(new Date());
+  const [currentViewType, setCurrentViewType] = React.useState<'broad' | 'day' | 'month'>('broad');
 
   React.useEffect(() => {
     // Fetch initial overall statistics (e.g., for last 30 days or a default range)
@@ -102,6 +103,7 @@ export function StatisticsDashboard() {
           });
           setStatsData(result);
           setError(null);
+          setCurrentViewType('broad');
         } else {
           console.error("❌ Error fetching initial stats:", result.error);
           setStatsData(null);
@@ -167,6 +169,7 @@ export function StatisticsDashboard() {
       if (!('error' in result)) {
         setStatsData(result);
         setError(null);
+        setCurrentViewType(viewType);
         console.log('✅ Statistics updated successfully');
       } else {
         console.error("Error fetching filtered stats:", result.error);
@@ -198,6 +201,23 @@ export function StatisticsDashboard() {
     totalOperators: statsData?.operatorStats.length || 0,
     mostActiveProducer: statsData?.mostActiveProducer || 'None',
     mostActiveOperator: statsData?.mostActiveOperator || 'None',
+  };
+
+  // Generate description text based on current view type
+  const getViewDescription = () => {
+    const selectedDate = format(userActivityDate, 'MMMM do, yyyy');
+    
+    switch (currentViewType) {
+      case 'day':
+        return `Day View: Statistics for ${selectedDate} only`;
+      case 'month':
+        return `Month View: Statistics for ${format(userActivityDate, 'MMMM yyyy')}`;
+      case 'broad':
+        const currentYear = new Date().getFullYear();
+        return `Broad View: Statistics from January 1st, ${currentYear} to present day`;
+      default:
+        return `Statistics for ${selectedDate}`;
+    }
   };
 
 
@@ -345,7 +365,7 @@ export function StatisticsDashboard() {
                 {getTranslation(currentLang, 'StatisticsUserActivityTitle')}
               </CardTitle>
               <CardDescription>
-                {getTranslation(currentLang, 'StatisticsStatsForDate', { date: format(userActivityDate, 'MMMM do, yyyy') })}
+                {getViewDescription()}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
