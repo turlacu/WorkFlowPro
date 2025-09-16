@@ -3,27 +3,100 @@
 
 import * as React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { format, eachDayOfInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
 
 interface MonthlyCompletionsTrendChartProps {
   selectedMonth: Date;
-  // data prop could be added here if real data is passed
+}
+
+interface DailyData {
+  date: string;
+  fullDate: string;
+  completions: number;
 }
 
 export function MonthlyCompletionsTrendChart({ selectedMonth }: MonthlyCompletionsTrendChartProps) {
   const { currentLang } = useLanguage();
+  const [chartData, setChartData] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const chartData = React.useMemo(() => {
-    const start = startOfMonth(selectedMonth);
-    const end = endOfMonth(selectedMonth);
-    return eachDayOfInterval({ start, end }).map(day => ({
-      date: format(day, 'MMM d'), // Format for X-axis label
-      // Empty data for completed trend
-      [getTranslation(currentLang, 'StatisticsChartLegendCompleted')]: 0, 
-    }));
+  React.useEffect(() => {
+    async function fetchDailyCompletions() {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const monthStr = format(selectedMonth, 'yyyy-MM');
+        console.log('📊 Fetching daily completions for month:', monthStr);
+        
+        const response = await fetch('/api/statistics/daily-completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ month: monthStr }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch daily completions: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📈 Daily completions received:', result);
+
+        // Transform the data for the chart
+        const transformedData = result.dailyData.map((day: DailyData) => ({
+          date: day.date,
+          [getTranslation(currentLang, 'StatisticsChartLegendCompleted')]: day.completions,
+        }));
+
+        setChartData(transformedData);
+      } catch (fetchError) {
+        console.error('❌ Error fetching daily completions:', fetchError);
+        setError(fetchError instanceof Error ? fetchError.message : 'Unknown error');
+        setChartData([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDailyCompletions();
   }, [selectedMonth, currentLang]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-[300px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+          <p className="text-sm text-muted-foreground">Loading chart data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-[300px]">
+        <div className="text-center">
+          <p className="text-sm text-destructive mb-2">Failed to load chart data</p>
+          <p className="text-xs text-muted-foreground">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (chartData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[300px]">
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground">No completion data available for this month</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ResponsiveContainer width="100%" height={300}>
