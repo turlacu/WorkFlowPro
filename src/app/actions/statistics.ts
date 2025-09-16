@@ -74,8 +74,14 @@ export async function getStatisticsAction(input: GenerateStatisticsInput): Promi
     console.log('Date range:', { startDate: startDate.toISOString(), endDate: endDate.toISOString() });
 
     // First check total assignments in database
-    const totalAssignmentsInDb = await prisma.assignment.count();
-    console.log('Total assignments in database:', totalAssignmentsInDb);
+    let totalAssignmentsInDb;
+    try {
+      totalAssignmentsInDb = await prisma.assignment.count();
+      console.log('Total assignments in database:', totalAssignmentsInDb);
+    } catch (countError) {
+      console.error('❌ Error counting assignments:', countError);
+      return { error: `Database connection failed: ${countError instanceof Error ? countError.message : 'Unknown error'}. Please check if the Supabase database is accessible.` };
+    }
 
     // Get all assignments in the date range
     let assignments;

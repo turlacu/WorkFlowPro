@@ -89,7 +89,7 @@ export function StatisticsDashboard() {
           setStatsData(result);
         } else {
           console.error("❌ Error fetching initial stats:", result.error);
-          setStatsData(null);
+          setStatsData({ error: result.error });
         }
       } catch (error) {
         console.error("❌ Exception while fetching statistics:", error);
@@ -172,6 +172,26 @@ export function StatisticsDashboard() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading statistics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error message if database connection failed
+  if (statsData && 'error' in statsData) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center space-y-4">
+          <div className="text-6xl">⚠️</div>
+          <h3 className="text-xl font-semibold">Database Connection Error</h3>
+          <p className="text-muted-foreground max-w-md">
+            {statsData.error}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => window.location.reload()} className="border border-input bg-background hover:bg-accent hover:text-accent-foreground">
+              Retry
+            </Button>
+          </div>
         </div>
       </div>
     );
