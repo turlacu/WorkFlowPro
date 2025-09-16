@@ -161,10 +161,11 @@ model UploadConfigurationLog {
   configurationId  String
   configuration    ExcelUploadConfiguration @relation(fields: [configurationId], references: [id])
   filename         String
-  uploadedByUserId String
-  uploadedByUser   User                     @relation(fields: [uploadedByUserId], references: [id])
-  success          Boolean
-  details          String?
+  uploadedBy       String
+  uploadedByUser   User                     @relation(fields: [uploadedBy], references: [id])
+  entriesCount     Int
+  successCount     Int
+  errorCount       Int
   createdAt        DateTime                 @default(now())
 
   @@map("upload_configuration_logs")

@@ -476,18 +476,19 @@ async function getParsingConfiguration(role: string, filename?: string, session?
 }
 
 // Helper function to log configuration usage
-async function logConfigurationUsage(configId: string, userId: string, filename: string, success: boolean, details?: object) {
+async function logConfigurationUsage(configId: string, userId: string, filename: string, entriesCount: number, successCount: number, errorCount: number) {
   try {
     await prisma.uploadConfigurationLog.create({
       data: {
         configurationId: configId,
-        uploadedByUserId: userId,
+        uploadedBy: userId,
         filename,
-        success,
-        details: details ? JSON.stringify(details) : null
+        entriesCount,
+        successCount,
+        errorCount
       }
     });
-    console.log(`Logged configuration usage: ${configId} by ${userId}`);
+    console.log(`Logged configuration usage: ${configId} by ${userId} - ${successCount}/${entriesCount} successful`);
   } catch (error) {
     console.error('Error logging configuration usage:', error);
   }
@@ -753,12 +754,14 @@ export async function POST(request: NextRequest) {
     if (!parseResult.success || !parseResult.data) {
       // Log failed configuration usage if we have a configId
       if (parseResult.configId) {
-        await logConfigurationUsage(parseResult.configId, session.user.id, file.name, false, {
-          errors: parseResult.errors,
-          month,
-          year,
-          role
-        });
+        await logConfigurationUsage(
+          parseResult.configId, 
+          session.user.id, 
+          file.name, 
+          0, // entriesCount
+          0, // successCount
+          parseResult.errors?.length || 0 // errorCount
+        );
       }
       return NextResponse.json({ error: 'Failed to parse Excel file', details: parseResult.errors }, { status: 400 });
     }
@@ -963,15 +966,14 @@ export async function POST(request: NextRequest) {
 
     // Log successful configuration usage
     if (parseResult.configId) {
-      await logConfigurationUsage(parseResult.configId, session.user.id, file.name, true, {
-        imported: createdCount,
-        skipped: skippedCount,
-        matchingReport,
-        newColorsDetected: newColors.length,
-        month,
-        year,
-        role
-      });
+      await logConfigurationUsage(
+        parseResult.configId, 
+        session.user.id, 
+        file.name, 
+        parseResult.data.length, // entriesCount
+        createdCount, // successCount
+        skippedCount // errorCount (skipped entries)
+      );
     }
 
     return NextResponse.json({
