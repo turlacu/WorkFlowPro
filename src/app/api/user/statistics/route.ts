@@ -77,16 +77,16 @@ export async function GET(request: NextRequest) {
         busiestMonth
       };
     } else if (userRole === 'OPERATOR') {
-      // Get assignment statistics for operators (assignments completed)
+      // Get assignment statistics for operators (assignments completed BY this user)
       const completedAssignments = await prisma.assignment.findMany({
         where: { 
-          assignedToId: userId,
-          completedAt: { not: null }
+          completedById: userId,
+          status: 'COMPLETED'
         },
         select: {
           id: true,
           completedAt: true,
-          assignedToId: true,
+          completedById: true,
         },
         orderBy: { completedAt: 'asc' }
       });
