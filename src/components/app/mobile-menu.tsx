@@ -99,13 +99,15 @@ export default function MobileMenu() {
               </Button>
             </Link>
 
-            {/* Admin Panel/Dashboard */}
-            <Link href="/dashboard" onClick={closeMobileMenu}>
-              <Button variant="ghost" className="w-full justify-start h-11 text-sm rounded-lg">
-                <ShieldCheck className="mr-3 h-4 w-4" />
-                {getTranslation(String(currentLang), 'GoToAdminPanel')}
-              </Button>
-            </Link>
+            {/* Admin Panel/Dashboard - Only visible to ADMIN users */}
+            {session?.user?.role === 'ADMIN' && (
+              <Link href="/dashboard" onClick={closeMobileMenu}>
+                <Button variant="ghost" className="w-full justify-start h-11 text-sm rounded-lg">
+                  <ShieldCheck className="mr-3 h-4 w-4" />
+                  {getTranslation(String(currentLang), 'GoToAdminPanel')}
+                </Button>
+              </Link>
+            )}
 
             {/* Today's Schedule */}
             <Link href="/todays-schedule" onClick={closeMobileMenu}>

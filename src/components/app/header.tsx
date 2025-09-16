@@ -49,18 +49,23 @@ export default function AppHeader() {
   let AssignmentsButtonIcon = null;
 
   if (pathname === '/assignments') {
-    navButtonTextKey = 'GoToAdminPanel';
-    navButtonHref = '/dashboard';
-    NavButtonIcon = ShieldCheck;
+    // Only show Admin Panel button for ADMIN users
+    if (session?.user?.role === 'ADMIN') {
+      navButtonTextKey = 'GoToAdminPanel';
+      navButtonHref = '/dashboard';
+      NavButtonIcon = ShieldCheck;
+    }
   } else if (pathname === '/dashboard') {
     navButtonTextKey = 'GoToAssignments';
     navButtonHref = '/assignments';
     NavButtonIcon = ClipboardList;
   } else if (pathname === '/todays-schedule') {
-    // Show both Admin Panel and Assignments buttons
-    navButtonTextKey = 'GoToAdminPanel';
-    navButtonHref = '/dashboard';
-    NavButtonIcon = ShieldCheck;
+    // Show Admin Panel button only for ADMIN users
+    if (session?.user?.role === 'ADMIN') {
+      navButtonTextKey = 'GoToAdminPanel';
+      navButtonHref = '/dashboard';
+      NavButtonIcon = ShieldCheck;
+    }
     
     assignmentsButtonTextKey = 'GoToAssignments';
     assignmentsButtonHref = '/assignments';
