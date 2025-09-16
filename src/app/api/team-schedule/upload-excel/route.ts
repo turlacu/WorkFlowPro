@@ -592,6 +592,7 @@ async function parseExcelSchedule(
     const operators: { [row: number]: string } = {};
     for (let row = FIRST_NAME_ROW; row <= LAST_NAME_ROW; row++) {
       const nameCell = worksheet[XLSX.utils.encode_cell({ r: row, c: NAME_COLUMN })];
+      console.log(`Checking row ${row + 1} (Excel row ${row + 1}) for names:`, nameCell?.v);
       if (nameCell && typeof nameCell.v === 'string') {
         const employeeName = nameCell.v.trim();
         
@@ -599,8 +600,12 @@ async function parseExcelSchedule(
         if (employeeName.length > 2 && 
             /^[a-zA-ZăâîșțĂÂÎȘȚ\s\-\.]+$/.test(employeeName)) {
           operators[row] = employeeName;
-          console.log(`Found operator "${employeeName}" in row ${row + 1} (Excel row ${row + 1})`);
+          console.log(`✓ Found operator "${employeeName}" in row ${row + 1} (Excel row ${row + 1})`);
+        } else {
+          console.log(`✗ Name validation failed for "${employeeName}" in row ${row + 1}`);
         }
+      } else {
+        console.log(`✗ No valid name found in row ${row + 1}`);
       }
     }
     
