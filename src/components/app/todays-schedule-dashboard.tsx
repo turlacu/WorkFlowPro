@@ -8,11 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CalendarDays, Upload, FileText, Edit, Trash2, Download, User, Clock, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, isToday, startOfDay } from 'date-fns';
+import { DocumentViewer } from './document-viewer';
 
 interface DailySchedule {
   id: string;
@@ -22,6 +24,7 @@ interface DailySchedule {
   fileName?: string;
   fileSize?: number;
   mimeType?: string;
+  filePath?: string;
   uploadedBy: string;
   uploader: {
     id: string;
@@ -364,39 +367,65 @@ export function TodaysScheduleDashboard() {
                     )}
                   </div>
                   
-                  {currentSchedule.content ? (
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <pre className="whitespace-pre-wrap text-sm font-mono">
-                        {currentSchedule.content}
-                      </pre>
-                    </div>
-                  ) : (
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                      <div className="flex items-start gap-3">
-                        <FileText className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                            Content Not Available
-                          </p>
-                          <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                            The file was uploaded successfully but no content is displayed. This usually means:
-                          </p>
-                          <ul className="text-xs text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-1 ml-2">
-                            <li>The file is a binary format (.doc, .pdf) that requires manual content entry</li>
-                            <li>The automatic text extraction didn't work for this file type</li>
-                          </ul>
-                          {canUpload && (
-                            <div className="pt-2">
-                              <Button variant="outline" size="sm" onClick={handleEdit}>
-                                <Edit className="h-3 w-3 mr-1" />
-                                Add Content Manually
-                              </Button>
-                            </div>
-                          )}
+                  <Tabs defaultValue={currentSchedule.filePath ? "document" : "content"} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="content">Text Content</TabsTrigger>
+                      <TabsTrigger value="document" disabled={!currentSchedule.filePath}>
+                        Document Viewer {!currentSchedule.filePath && "(No File)"}
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="content" className="mt-4">
+                      {currentSchedule.content ? (
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <pre className="whitespace-pre-wrap text-sm font-mono">
+                            {currentSchedule.content}
+                          </pre>
                         </div>
-                      </div>
-                    </div>
-                  )}
+                      ) : (
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <FileText className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                No Text Content Available
+                              </p>
+                              <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                                {currentSchedule.filePath 
+                                  ? "No text content has been added. You can view the original document in the Document Viewer tab or add text content manually."
+                                  : "No content is available. This usually means the file is a binary format (.doc, .pdf) that requires manual content entry."
+                                }
+                              </p>
+                              {canUpload && (
+                                <div className="pt-2">
+                                  <Button variant="outline" size="sm" onClick={handleEdit}>
+                                    <Edit className="h-3 w-3 mr-1" />
+                                    Add Text Content
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </TabsContent>
+
+                    <TabsContent value="document" className="mt-4">
+                      {currentSchedule.filePath ? (
+                        <DocumentViewer
+                          fileName={currentSchedule.fileName}
+                          filePath={currentSchedule.filePath}
+                          mimeType={currentSchedule.mimeType}
+                          fileSize={currentSchedule.fileSize}
+                        />
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <FileText className="mx-auto h-12 w-12 opacity-50 mb-4" />
+                          <p>No document file available for viewing</p>
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                   
                   <div className="flex items-center gap-4 text-xs text-muted-foreground pt-4 border-t">
                     <div className="flex items-center gap-1">

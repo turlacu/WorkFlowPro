@@ -2,6 +2,34 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
+
+// Helper function to save uploaded file to disk
+async function saveUploadedFile(file: File, fileName: string): Promise<string> {
+  try {
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'schedules');
+    await mkdir(uploadsDir, { recursive: true });
+
+    // Create unique filename with timestamp
+    const timestamp = Date.now();
+    const fileExtension = path.extname(fileName);
+    const baseName = path.basename(fileName, fileExtension);
+    const uniqueFileName = `${timestamp}-${baseName}${fileExtension}`;
+    const filePath = path.join(uploadsDir, uniqueFileName);
+
+    // Save file
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(filePath, buffer);
+
+    // Return public URL path
+    return `/uploads/schedules/${uniqueFileName}`;
+  } catch (error) {
+    console.error('Error saving file:', error);
+    throw new Error('Failed to save file');
+  }
+}
 
 // Helper function to extract text from different file types
 async function extractTextFromFile(file: File): Promise<string> {
@@ -132,6 +160,18 @@ export async function POST(request: NextRequest) {
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
 
+    // Save file to disk
+    let filePath: string;
+    try {
+      filePath = await saveUploadedFile(file, file.name);
+    } catch (error) {
+      console.error('Error saving file:', error);
+      return NextResponse.json(
+        { error: 'Failed to save uploaded file' },
+        { status: 500 }
+      );
+    }
+
     // Extract text content from file
     let content: string;
     try {
@@ -158,6 +198,7 @@ export async function POST(request: NextRequest) {
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
+          filePath,
           uploadedBy: session.user.id,
         },
         include: {
@@ -180,6 +221,7 @@ export async function POST(request: NextRequest) {
           fileName: file.name,
           fileSize: file.size,
           mimeType: file.type,
+          filePath,
           uploadedBy: session.user.id,
         },
         include: {

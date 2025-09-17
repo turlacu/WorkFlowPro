@@ -183,6 +183,7 @@ model DailySchedule {
   fileName    String?
   fileSize    Int?
   mimeType    String?
+  filePath    String?  // Path to stored file for viewing
   uploadedBy  String
   uploader    User     @relation(fields: [uploadedBy], references: [id])
   createdAt   DateTime @default(now())
