@@ -398,9 +398,9 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
                 <SelectContent>
                   {configurations.map((config) => (
                     <SelectItem key={config.id} value={config.id}>
-                      <div className="flex flex-col">
-                        <span>{config.name}</span>
-                        <span className="text-xs text-muted-foreground">
+                      <div className="flex flex-col w-full min-w-0">
+                        <span className="font-medium truncate">{config.name}</span>
+                        <span className="text-xs text-muted-foreground truncate">
                           {config.role} - {config.description || 'No description'}
                         </span>
                       </div>
