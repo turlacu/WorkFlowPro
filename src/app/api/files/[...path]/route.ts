@@ -5,9 +5,12 @@ import { existsSync } from 'fs';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  context: { params: Promise<{ path: string[] }> }
 ) {
   try {
+    // Await the params (Next.js 15 requirement)
+    const params = await context.params;
+    
     // Reconstruct the file path
     const filePath = params.path.join('/');
     
