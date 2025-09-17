@@ -124,22 +124,6 @@ export function PDFScheduleViewer({ fileName, filePath, fileSize }: PDFScheduleV
 
   return (
     <div className="space-y-4">
-      {!isFullscreen && (
-        <div className="flex items-center justify-between">
-          <h4 className="font-medium">PDF Schedule Viewer</h4>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
-            <Button variant="outline" size="sm" onClick={toggleFullscreen}>
-              <Maximize className="h-4 w-4 mr-1" />
-              Fullscreen
-            </Button>
-          </div>
-        </div>
-      )}
-
       {pdfContent}
 
       {error && !isFullscreen && (
