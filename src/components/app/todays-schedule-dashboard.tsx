@@ -9,9 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CalendarDays, Upload, FileText, Edit, Trash2, Download, User, Clock, Save, X } from 'lucide-react';
+import { CalendarDays, Upload, FileText, Edit, Trash2, User, Clock, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { format, isToday, startOfDay } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { PDFScheduleViewer } from './pdf-schedule-viewer';
 
 interface DailySchedule {

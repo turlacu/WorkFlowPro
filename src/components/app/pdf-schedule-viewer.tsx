@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Download, Maximize, Minimize, AlertCircle } from 'lucide-react';
 
 interface PDFScheduleViewerProps {
@@ -14,6 +13,27 @@ interface PDFScheduleViewerProps {
 export function PDFScheduleViewer({ fileName, filePath, fileSize }: PDFScheduleViewerProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  const handleKeyDown = React.useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape' && isFullscreen) {
+      setIsFullscreen(false);
+    }
+  }, [isFullscreen]);
+
+  React.useEffect(() => {
+    if (isFullscreen) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'auto';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'auto';
+    };
+  }, [isFullscreen, handleKeyDown]);
 
   if (!filePath || !fileName) {
     return (
@@ -43,27 +63,6 @@ export function PDFScheduleViewer({ fileName, filePath, fileSize }: PDFScheduleV
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
   };
-
-  const handleKeyDown = React.useCallback((event: KeyboardEvent) => {
-    if (event.key === 'Escape' && isFullscreen) {
-      setIsFullscreen(false);
-    }
-  }, [isFullscreen]);
-
-  React.useEffect(() => {
-    if (isFullscreen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'auto';
-    }
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'auto';
-    };
-  }, [isFullscreen, handleKeyDown]);
 
   const pdfContent = (
     <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-white dark:bg-gray-900' : 'border rounded-lg'} overflow-hidden`}>
