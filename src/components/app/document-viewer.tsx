@@ -47,10 +47,21 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
 
   const handleOfficeView = () => {
     if (isWord) {
-      // Use Microsoft Office Online viewer
-      const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + filePath)}`;
+      // Note: Microsoft Office Online viewer requires publicly accessible URLs
+      // For local development, this might not work. In production, ensure your domain is publicly accessible.
+      const fileUrl = `${window.location.origin}/api/files${filePath}`;
+      const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(fileUrl)}`;
       window.open(officeUrl, '_blank');
     }
+  };
+
+  const handleDirectDownload = () => {
+    // Use the file API endpoint for better file serving
+    const fileUrl = `/api/files${filePath}`;
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = fileName;
+    link.click();
   };
 
   const renderPDFViewer = () => {
@@ -64,7 +75,7 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
             <Button variant="outline" size="sm" onClick={() => setViewMode('info')}>
               Back to Info
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
+            <Button variant="outline" size="sm" onClick={handleDirectDownload}>
               <Download className="h-4 w-4 mr-1" />
               Download
             </Button>
@@ -74,7 +85,7 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
         {/* PDF Embed */}
         <div className="border rounded-lg overflow-hidden">
           <iframe
-            src={`${filePath}#toolbar=1&navpanes=1&scrollbar=1`}
+            src={`/api/files${filePath}#toolbar=1&navpanes=1&scrollbar=1`}
             width="100%"
             height="600px"
             title={`PDF Viewer - ${fileName}`}
@@ -109,7 +120,7 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
             <Button variant="outline" size="sm" onClick={() => setViewMode('info')}>
               Back to Info
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
+            <Button variant="outline" size="sm" onClick={handleDirectDownload}>
               <Download className="h-4 w-4 mr-1" />
               Download
             </Button>
@@ -126,27 +137,58 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <p className="text-xs text-muted-foreground mb-3">
-                Open the document in Microsoft's online viewer (opens in new tab)
-              </p>
-              <Button size="sm" onClick={handleOfficeView}>
-                <Eye className="h-4 w-4 mr-1" />
-                Open in Office Online
-              </Button>
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Open the document in Microsoft's online viewer (opens in new tab)
+                </p>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded p-2">
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                    <strong>Note:</strong> This requires your server to be publicly accessible on the internet. 
+                    It may not work in local development environments.
+                  </p>
+                </div>
+                <Button size="sm" onClick={handleOfficeView}>
+                  <Eye className="h-4 w-4 mr-1" />
+                  Try Office Online
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {/* Option 2: Embedded Viewer (may not work for all Word docs) */}
+          {/* Option 2: Direct Download and Info */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Embedded Viewer (Beta)
+                <Download className="h-4 w-4" />
+                Download Document
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               <p className="text-xs text-muted-foreground mb-3">
-                Try to view the document directly in this page (may not work for all documents)
+                Download the document to view it with Microsoft Word or compatible application
+              </p>
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={handleDirectDownload}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Download File
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Option 3: Local viewer (for development) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Browser Preview (Limited)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-xs text-muted-foreground mb-3">
+                Try to preview in browser (works better for newer .docx files)
               </p>
               <Button 
                 size="sm" 
@@ -154,7 +196,7 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
                 onClick={() => setViewMode('iframe')}
               >
                 <Eye className="h-4 w-4 mr-1" />
-                Try Embedded View
+                Try Browser Preview
               </Button>
             </CardContent>
           </Card>
@@ -172,7 +214,7 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
             <Button variant="outline" size="sm" onClick={() => setViewMode('office')}>
               Back to Options
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
+            <Button variant="outline" size="sm" onClick={handleDirectDownload}>
               <Download className="h-4 w-4 mr-1" />
               Download
             </Button>
@@ -188,7 +230,7 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
 
         <div className="border rounded-lg overflow-hidden">
           <iframe
-            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + filePath)}`}
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + '/api/files' + filePath)}`}
             width="100%"
             height="600px"
             title={`Document Viewer - ${fileName}`}
@@ -217,7 +259,7 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h4 className="font-medium">Document Information</h4>
-          <Button variant="outline" size="sm" onClick={handleDownload}>
+          <Button variant="outline" size="sm" onClick={handleDirectDownload}>
             <Download className="h-4 w-4 mr-1" />
             Download
           </Button>
