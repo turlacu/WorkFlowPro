@@ -70,12 +70,7 @@ export function PDFScheduleViewer({ fileName, filePath, fileSize }: PDFScheduleV
       <div className={`flex items-center justify-between p-3 border-b bg-muted/50 ${isFullscreen ? 'absolute top-0 left-0 right-0 z-10' : ''}`}>
         <div className="flex items-center gap-2">
           <FileText className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium truncate">{fileName}</span>
-          {fileSize && (
-            <span className="text-xs text-muted-foreground">
-              ({formatFileSize(fileSize)})
-            </span>
-          )}
+          <span className="text-sm font-medium">PDF Document</span>
         </div>
         
         <div className="flex items-center gap-2">
