@@ -393,7 +393,18 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
             ) : (
               <Select value={selectedConfig} onValueChange={setSelectedConfig}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select configuration..." />
+                  <SelectValue placeholder="Select configuration...">
+                    {selectedConfiguration ? (
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">{selectedConfiguration.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {selectedConfiguration.role} - {selectedConfiguration.description || 'No description'}
+                        </span>
+                      </div>
+                    ) : (
+                      "Select configuration..."
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {configurations.map((config) => (
