@@ -135,7 +135,22 @@ export function MonthScheduleDeleter({ selectedDate, onDeleteComplete }: MonthSc
             </label>
             <Select value={selectedUserRole} onValueChange={setSelectedUserRole}>
               <SelectTrigger>
-                <SelectValue placeholder="Select user type to delete..." />
+                <SelectValue placeholder="Select user type to delete...">
+                  {selectedUserRole ? (
+                    <div className="flex flex-col text-left">
+                      <span className="font-medium">
+                        {selectedUserRole === 'OPERATOR' && 'Operators Only'}
+                        {selectedUserRole === 'PRODUCER' && 'Producers Only'}
+                        {selectedUserRole === 'ALL' && 'All Users'}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {getUserRoleDescription(selectedUserRole)}
+                      </span>
+                    </div>
+                  ) : (
+                    "Select user type to delete..."
+                  )}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="OPERATOR">
