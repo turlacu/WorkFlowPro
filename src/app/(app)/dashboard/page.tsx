@@ -20,6 +20,7 @@ import { UserManagementDashboard } from '@/components/app/user-management-dashbo
 import { DataBackupRestoreDashboard } from '@/components/app/data-backup-restore-dashboard';
 import { ShiftColorLegendManager } from '@/components/app/shift-color-legend-manager';
 import { ExcelScheduleUploader } from '@/components/app/excel-schedule-uploader';
+import { MonthScheduleDeleter } from '@/components/app/month-schedule-deleter';
 import dynamic from 'next/dynamic';
 
 const ExcelConfigurationsPage = dynamic(() => import('@/app/(app)/admin/excel-configurations/page'), { ssr: false }); 
@@ -355,12 +356,15 @@ export default function DashboardPage() {
             </div>
             
             <Tabs defaultValue="manual-scheduling" className="w-full">
-              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1 sm:gap-0 h-auto sm:h-10">
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1 sm:gap-0 h-auto sm:h-10">
                 <TabsTrigger value="manual-scheduling" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
                   Manual Scheduling
                 </TabsTrigger>
                 <TabsTrigger value="excel-upload" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
                   Excel Upload
+                </TabsTrigger>
+                <TabsTrigger value="delete-schedule" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
+                  Delete Schedule
                 </TabsTrigger>
                 <TabsTrigger value="excel-configurations" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
                   Excel Configs
@@ -530,6 +534,22 @@ export default function DashboardPage() {
                     toast({
                       title: 'Upload Complete',
                       description: 'Schedule has been updated successfully.',
+                    });
+                  }}
+                />
+              </TabsContent>
+
+              <TabsContent value="delete-schedule" className="mt-6">
+                <MonthScheduleDeleter 
+                  selectedDate={selectedDate}
+                  onDeleteComplete={() => {
+                    // Refresh schedule data after successful deletion
+                    if (selectedDate) {
+                      fetchExistingSchedule(selectedDate);
+                    }
+                    toast({
+                      title: 'Delete Complete',
+                      description: 'Schedule has been deleted successfully.',
                     });
                   }}
                 />
