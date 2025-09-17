@@ -7,9 +7,11 @@ import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AssignmentTable } from '@/components/app/assignment-table';
 import { InteractiveCalendar } from '@/components/app/interactive-calendar';
 import { NewAssignmentModal, type NewAssignmentFormValues } from '@/components/app/new-assignment-modal';
+import { TodaysScheduleDashboard } from '@/components/app/todays-schedule-dashboard';
 import { PlusCircle, Users, CalendarDays, ShieldCheck, Search } from 'lucide-react';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { getTranslation } from '@/lib/translations';
@@ -482,6 +484,14 @@ export default function AssignmentsPage() {
        <div className="flex justify-between items-center">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{getTranslation(currentLang, 'AssignmentsDashboardTitle')}</h1>
       </div>
+
+      <Tabs defaultValue="assignments" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="assignments">Work Assignments</TabsTrigger>
+          <TabsTrigger value="schedule">Today's Schedule</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="assignments" className="mt-6">
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
         <div className="xl:col-span-3">
           <Card className="shadow-lg h-full">
@@ -664,6 +674,12 @@ export default function AssignmentsPage() {
         assignmentToEdit={editingAssignment}
         availableOperators={operators.filter(op => op.name !== null).map(op => ({ id: op.id, name: op.name! }))}
       />
+        </TabsContent>
+
+        <TabsContent value="schedule" className="mt-6">
+          <TodaysScheduleDashboard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
