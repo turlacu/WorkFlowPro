@@ -13,14 +13,63 @@ async function extractTextFromFile(file: File): Promise<string> {
     return new TextDecoder('utf-8').decode(uint8Array);
   }
 
-  // For other file types, we'll store basic info and let the user manually add content
-  // In a production environment, you'd want to integrate with libraries like:
-  // - mammoth for .docx files
-  // - pdf-parse for PDF files
-  // - xlsx for Excel files
-  return `File uploaded: ${file.name} (${file.type})
-Size: ${file.size} bytes
-Please edit this schedule to add the actual content.`;
+  // For .doc/.docx files and other binary formats, provide helpful instructions
+  if (file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.type.includes('msword')) {
+    return `📄 Document File Uploaded: ${file.name}
+
+📁 File Details:
+• Type: ${file.type || 'Microsoft Word Document'}
+• Size: ${Math.round(file.size / 1024)} KB
+
+📝 Content Extraction Notice:
+This is a Microsoft Word document (.doc/.docx file). The document has been uploaded successfully, but automatic text extraction is not available for this file format.
+
+✏️ To display the schedule content:
+1. Click the "Edit" button above
+2. Copy the content from your original document
+3. Paste it into the text area
+4. Save your changes
+
+The file has been stored and is ready for manual content entry.`;
+  }
+
+  // For PDF files
+  if (file.name.endsWith('.pdf') || file.type.includes('pdf')) {
+    return `📄 PDF File Uploaded: ${file.name}
+
+📁 File Details:
+• Type: PDF Document
+• Size: ${Math.round(file.size / 1024)} KB
+
+📝 Content Extraction Notice:
+This is a PDF file. The document has been uploaded successfully, but automatic text extraction is not available for PDF files.
+
+✏️ To display the schedule content:
+1. Click the "Edit" button above
+2. Copy the content from your PDF document
+3. Paste it into the text area
+4. Save your changes
+
+The file has been stored and is ready for manual content entry.`;
+  }
+
+  // For other file types
+  return `📄 File Uploaded: ${file.name}
+
+📁 File Details:
+• Type: ${file.type || 'Unknown'}
+• Size: ${Math.round(file.size / 1024)} KB
+
+📝 Content Extraction Notice:
+The file has been uploaded successfully, but automatic content extraction is not available for this file format.
+
+✏️ To display the schedule content:
+1. Click the "Edit" button above
+2. Copy the content from your original document
+3. Paste it into the text area
+4. Save your changes
+
+The file has been stored and is ready for manual content entry.`;
 }
 
 export async function POST(request: NextRequest) {

@@ -364,11 +364,37 @@ export function TodaysScheduleDashboard() {
                     )}
                   </div>
                   
-                  {currentSchedule.content && (
+                  {currentSchedule.content ? (
                     <div className="bg-muted/50 rounded-lg p-4">
                       <pre className="whitespace-pre-wrap text-sm font-mono">
                         {currentSchedule.content}
                       </pre>
+                    </div>
+                  ) : (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                      <div className="flex items-start gap-3">
+                        <FileText className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                            Content Not Available
+                          </p>
+                          <p className="text-xs text-yellow-700 dark:text-yellow-300">
+                            The file was uploaded successfully but no content is displayed. This usually means:
+                          </p>
+                          <ul className="text-xs text-yellow-700 dark:text-yellow-300 list-disc list-inside space-y-1 ml-2">
+                            <li>The file is a binary format (.doc, .pdf) that requires manual content entry</li>
+                            <li>The automatic text extraction didn't work for this file type</li>
+                          </ul>
+                          {canUpload && (
+                            <div className="pt-2">
+                              <Button variant="outline" size="sm" onClick={handleEdit}>
+                                <Edit className="h-3 w-3 mr-1" />
+                                Add Content Manually
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   )}
                   
