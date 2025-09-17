@@ -15,10 +15,6 @@ const CreateDailyScheduleSchema = z.object({
 
 const UpdateDailyScheduleSchema = z.object({
   title: z.string().min(1).optional(),
-  content: z.string().optional(),
-  fileName: z.string().optional(),
-  fileSize: z.number().optional(),
-  mimeType: z.string().optional(),
 });
 
 // GET - Fetch daily schedules

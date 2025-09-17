@@ -31,73 +31,17 @@ async function saveUploadedFile(file: File, fileName: string): Promise<string> {
   }
 }
 
-// Helper function to extract text from different file types
-async function extractTextFromFile(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-  const uint8Array = new Uint8Array(arrayBuffer);
-
-  // For text files, just decode as UTF-8
-  if (file.type.includes('text/') || file.name.endsWith('.txt')) {
-    return new TextDecoder('utf-8').decode(uint8Array);
-  }
-
-  // For .doc/.docx files and other binary formats, provide helpful instructions
-  if (file.name.endsWith('.doc') || file.name.endsWith('.docx') || file.type.includes('msword')) {
-    return `📄 Document File Uploaded: ${file.name}
-
-📁 File Details:
-• Type: ${file.type || 'Microsoft Word Document'}
-• Size: ${Math.round(file.size / 1024)} KB
-
-📝 Content Extraction Notice:
-This is a Microsoft Word document (.doc/.docx file). The document has been uploaded successfully, but automatic text extraction is not available for this file format.
-
-✏️ To display the schedule content:
-1. Click the "Edit" button above
-2. Copy the content from your original document
-3. Paste it into the text area
-4. Save your changes
-
-The file has been stored and is ready for manual content entry.`;
-  }
-
-  // For PDF files
-  if (file.name.endsWith('.pdf') || file.type.includes('pdf')) {
-    return `📄 PDF File Uploaded: ${file.name}
+// Helper function for PDF files
+async function getPDFInfo(file: File): Promise<string> {
+  return `📄 PDF Schedule Uploaded: ${file.name}
 
 📁 File Details:
 • Type: PDF Document
 • Size: ${Math.round(file.size / 1024)} KB
+• Uploaded: ${new Date().toLocaleString()}
 
-📝 Content Extraction Notice:
-This is a PDF file. The document has been uploaded successfully, but automatic text extraction is not available for PDF files.
-
-✏️ To display the schedule content:
-1. Click the "Edit" button above
-2. Copy the content from your PDF document
-3. Paste it into the text area
-4. Save your changes
-
-The file has been stored and is ready for manual content entry.`;
-  }
-
-  // For other file types
-  return `📄 File Uploaded: ${file.name}
-
-📁 File Details:
-• Type: ${file.type || 'Unknown'}
-• Size: ${Math.round(file.size / 1024)} KB
-
-📝 Content Extraction Notice:
-The file has been uploaded successfully, but automatic content extraction is not available for this file format.
-
-✏️ To display the schedule content:
-1. Click the "Edit" button above
-2. Copy the content from your original document
-3. Paste it into the text area
-4. Save your changes
-
-The file has been stored and is ready for manual content entry.`;
+✅ The PDF document has been uploaded successfully and is ready for viewing.
+You can view the schedule content in the Document Viewer below.`;
 }
 
 export async function POST(request: NextRequest) {
@@ -140,19 +84,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file type
-    const allowedTypes = [
-      'text/plain',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/pdf',
-      'text/html',
-      'application/rtf',
-    ];
+    // Validate file type - only PDF files allowed
+    const allowedTypes = ['application/pdf'];
 
-    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(txt|doc|docx|pdf|html|rtf)$/i)) {
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.pdf$/i)) {
       return NextResponse.json(
-        { error: 'Unsupported file type. Allowed: .txt, .doc, .docx, .pdf, .html, .rtf' },
+        { error: 'Only PDF files are supported for daily schedules.' },
         { status: 400 }
       );
     }
@@ -172,13 +109,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract text content from file
+    // Generate PDF info content
     let content: string;
     try {
-      content = await extractTextFromFile(file);
+      content = await getPDFInfo(file);
     } catch (error) {
-      console.error('Error extracting text from file:', error);
-      content = `Error reading file content. File: ${file.name} (${file.type})`;
+      console.error('Error generating PDF info:', error);
+      content = `PDF uploaded: ${file.name} (${Math.round(file.size / 1024)} KB)`;
     }
 
     // Check if schedule already exists for this date

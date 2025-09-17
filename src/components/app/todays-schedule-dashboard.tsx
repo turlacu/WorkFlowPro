@@ -6,15 +6,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { CalendarDays, Upload, FileText, Edit, Trash2, Download, User, Clock, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, isToday, startOfDay } from 'date-fns';
-import { DocumentViewer } from './document-viewer';
+import { PDFScheduleViewer } from './pdf-schedule-viewer';
 
 interface DailySchedule {
   id: string;
@@ -54,7 +52,6 @@ export function TodaysScheduleDashboard() {
 
   // Edit form state
   const [editTitle, setEditTitle] = React.useState('');
-  const [editContent, setEditContent] = React.useState('');
 
   const canUpload = session?.user?.role === 'ADMIN' || session?.user?.role === 'PRODUCER';
 
@@ -167,7 +164,6 @@ export function TodaysScheduleDashboard() {
   const handleEdit = () => {
     if (!currentSchedule) return;
     setEditTitle(currentSchedule.title);
-    setEditContent(currentSchedule.content || '');
     setShowEditDialog(true);
   };
 
@@ -190,14 +186,13 @@ export function TodaysScheduleDashboard() {
         },
         body: JSON.stringify({
           title: editTitle.trim(),
-          content: editContent.trim(),
         }),
       });
 
       if (response.ok) {
         toast({
           title: 'Schedule Updated',
-          description: 'Schedule has been updated successfully.',
+          description: 'Schedule title has been updated successfully.',
         });
         
         setShowEditDialog(false);
@@ -335,7 +330,7 @@ export function TodaysScheduleDashboard() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={handleEdit}>
                       <Edit className="h-4 w-4 mr-1" />
-                      Edit
+                      Edit Title
                     </Button>
                     {session?.user?.role === 'ADMIN' && (
                       <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
@@ -367,65 +362,18 @@ export function TodaysScheduleDashboard() {
                     )}
                   </div>
                   
-                  <Tabs defaultValue={currentSchedule.filePath ? "document" : "content"} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                      <TabsTrigger value="content">Text Content</TabsTrigger>
-                      <TabsTrigger value="document" disabled={!currentSchedule.filePath}>
-                        Document Viewer {!currentSchedule.filePath && "(No File)"}
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="content" className="mt-4">
-                      {currentSchedule.content ? (
-                        <div className="bg-muted/50 rounded-lg p-4">
-                          <pre className="whitespace-pre-wrap text-sm font-mono">
-                            {currentSchedule.content}
-                          </pre>
-                        </div>
-                      ) : (
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                          <div className="flex items-start gap-3">
-                            <FileText className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-                            <div className="space-y-2">
-                              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                No Text Content Available
-                              </p>
-                              <p className="text-xs text-yellow-700 dark:text-yellow-300">
-                                {currentSchedule.filePath 
-                                  ? "No text content has been added. You can view the original document in the Document Viewer tab or add text content manually."
-                                  : "No content is available. This usually means the file is a binary format (.doc, .pdf) that requires manual content entry."
-                                }
-                              </p>
-                              {canUpload && (
-                                <div className="pt-2">
-                                  <Button variant="outline" size="sm" onClick={handleEdit}>
-                                    <Edit className="h-3 w-3 mr-1" />
-                                    Add Text Content
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </TabsContent>
-
-                    <TabsContent value="document" className="mt-4">
-                      {currentSchedule.filePath ? (
-                        <DocumentViewer
-                          fileName={currentSchedule.fileName}
-                          filePath={currentSchedule.filePath}
-                          mimeType={currentSchedule.mimeType}
-                          fileSize={currentSchedule.fileSize}
-                        />
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          <FileText className="mx-auto h-12 w-12 opacity-50 mb-4" />
-                          <p>No document file available for viewing</p>
-                        </div>
-                      )}
-                    </TabsContent>
-                  </Tabs>
+                  {currentSchedule.filePath ? (
+                    <PDFScheduleViewer
+                      fileName={currentSchedule.fileName}
+                      filePath={currentSchedule.filePath}
+                      fileSize={currentSchedule.fileSize}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground border rounded-lg">
+                      <FileText className="mx-auto h-12 w-12 opacity-50 mb-4" />
+                      <p>No PDF file available for viewing</p>
+                    </div>
+                  )}
                   
                   <div className="flex items-center gap-4 text-xs text-muted-foreground pt-4 border-t">
                     <div className="flex items-center gap-1">
@@ -464,8 +412,8 @@ export function TodaysScheduleDashboard() {
           <DialogHeader>
             <DialogTitle>Upload Daily Schedule</DialogTitle>
             <DialogDescription>
-              Upload a schedule document for {format(selectedDate, 'MMMM do, yyyy')}.
-              Supported formats: .txt, .doc, .docx, .pdf, .html, .rtf
+              Upload a PDF schedule for {format(selectedDate, 'MMMM do, yyyy')}.
+              Only PDF files are supported.
             </DialogDescription>
           </DialogHeader>
           
@@ -485,7 +433,7 @@ export function TodaysScheduleDashboard() {
               <Input
                 id="schedule-file"
                 type="file"
-                accept=".txt,.doc,.docx,.pdf,.html,.rtf"
+                accept=".pdf"
                 onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
               />
             </div>
@@ -518,9 +466,9 @@ export function TodaysScheduleDashboard() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Edit Schedule</DialogTitle>
+            <DialogTitle>Edit Schedule Title</DialogTitle>
             <DialogDescription>
-              Edit the schedule for {format(selectedDate, 'MMMM do, yyyy')}
+              Edit the title for the schedule on {format(selectedDate, 'MMMM do, yyyy')}
             </DialogDescription>
           </DialogHeader>
           
@@ -531,17 +479,7 @@ export function TodaysScheduleDashboard() {
                 id="edit-title"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="edit-content">Schedule Content</Label>
-              <Textarea
-                id="edit-content"
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[300px] font-mono"
-                placeholder="Enter the schedule content here..."
+                placeholder="Enter the schedule title..."
               />
             </div>
           </div>
