@@ -33,6 +33,10 @@ test('container startup migrates without destructive seeding', () => {
   assert.match(compose, /service_completed_successfully/);
   assert.match(dockerfile, /apk add --no-cache libc6-compat openssl/);
   assert.match(dockerfile, /FROM dependencies AS migrator/);
+  assert.match(
+    dockerfile,
+    /FROM dependencies AS bootstrap[\s\S]*COPY prisma \.\/prisma[\s\S]*RUN npx prisma generate/,
+  );
   for (const runtimeSecret of [
     'POSTGRES_PASSWORD',
     'DATABASE_URL',

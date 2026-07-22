@@ -26,6 +26,7 @@ FROM dependencies AS bootstrap
 WORKDIR /app
 ENV NODE_ENV=production
 COPY prisma ./prisma
+RUN npx prisma generate
 ENTRYPOINT ["./node_modules/.bin/tsx"]
 CMD ["prisma/seed.ts"]
 
