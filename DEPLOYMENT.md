@@ -11,8 +11,8 @@ Generate independent values on your workstation or server:
 ```bash
 openssl rand -hex 32       # POSTGRES_PASSWORD
 openssl rand -base64 48    # NEXTAUTH_SECRET
-openssl rand -hex 20       # MINIO_ACCESS_KEY
-openssl rand -hex 32       # MINIO_SECRET_KEY
+openssl rand -hex 20       # MINIO_ROOT_USER
+openssl rand -hex 32       # MINIO_ROOT_PASSWORD
 ```
 
 If the PostgreSQL password contains URL-reserved characters, URL-encode it in `DATABASE_URL`.
@@ -44,8 +44,8 @@ NEXTAUTH_SECRET=<random value>
 INITIAL_ADMIN_EMAIL=<your administrator email>
 INITIAL_ADMIN_PASSWORD=<random password of at least 12 characters>
 
-MINIO_ACCESS_KEY=<random value>
-MINIO_SECRET_KEY=<random value>
+MINIO_ROOT_USER=<random value>
+MINIO_ROOT_PASSWORD=<random value>
 MINIO_BUCKET_NAME=workflowpro-storage
 
 CLOUDFLARE_TUNNEL_TOKEN=<token copied from Cloudflare>

@@ -58,8 +58,8 @@ jobs:
         NEXTAUTH_URL: "http://localhost:3000"
         NEXTAUTH_SECRET: "test-secret"
         MINIO_ENDPOINT: "localhost:9000"
-        MINIO_ACCESS_KEY: "test"
-        MINIO_SECRET_KEY: "test"
+        MINIO_ROOT_USER: "test"
+        MINIO_ROOT_PASSWORD: "test"
         MINIO_BUCKET_NAME: "test"
 
   docker-build:

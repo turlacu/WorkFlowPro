@@ -1,6 +1,9 @@
 FROM node:22.23.1-alpine3.24 AS dependencies
 WORKDIR /app
-RUN apk add --no-cache libc6-compat
+# Prisma's native engines need a detectable OpenSSL runtime. Keep these
+# packages in the shared base so migrations, bootstrap, and builds all use
+# the same compatible runtime libraries.
+RUN apk add --no-cache libc6-compat openssl
 COPY package.json package-lock.json ./
 RUN npm ci
 
@@ -12,11 +15,9 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:22.23.1-alpine3.24 AS migrator
+FROM dependencies AS migrator
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=dependencies /app/node_modules ./node_modules
-COPY package.json package-lock.json ./
 COPY prisma ./prisma
 ENTRYPOINT ["./node_modules/.bin/prisma"]
 CMD ["migrate", "deploy"]
@@ -34,7 +35,8 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN addgroup --system --gid 1001 nodejs \
+RUN apk add --no-cache libc6-compat openssl \
+  && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public

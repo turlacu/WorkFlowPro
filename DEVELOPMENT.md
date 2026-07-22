@@ -106,8 +106,8 @@ NODE_ENV="development"
 ```env
 # MinIO Configuration (for file uploads)
 MINIO_ENDPOINT="localhost:9000"
-MINIO_ACCESS_KEY="<local access key>"
-MINIO_SECRET_KEY="<local secret key>"
+MINIO_ROOT_USER="<local access key>"
+MINIO_ROOT_PASSWORD="<local secret key>"
 MINIO_USE_SSL="false"
 MINIO_BUCKET_NAME="workflowpro"
 

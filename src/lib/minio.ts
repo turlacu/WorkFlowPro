@@ -7,10 +7,10 @@ function getMinioClient(): Client {
   if (minioClient) return minioClient;
 
   const endpoint = process.env.MINIO_ENDPOINT;
-  const accessKey = process.env.MINIO_ACCESS_KEY;
-  const secretKey = process.env.MINIO_SECRET_KEY;
+  const accessKey = process.env.MINIO_ROOT_USER;
+  const secretKey = process.env.MINIO_ROOT_PASSWORD;
   if (!endpoint || !accessKey || !secretKey) {
-    throw new Error('MINIO_ENDPOINT, MINIO_ACCESS_KEY, and MINIO_SECRET_KEY are required');
+    throw new Error('MINIO_ENDPOINT, MINIO_ROOT_USER, and MINIO_ROOT_PASSWORD are required');
   }
 
   const [endPoint, portValue] = endpoint.split(':');

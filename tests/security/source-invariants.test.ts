@@ -31,12 +31,14 @@ test('container startup migrates without destructive seeding', () => {
   assert.doesNotMatch(compose, /:latest|prisma db push|prisma migrate reset|db:seed/);
   assert.match(compose, /target: migrator/);
   assert.match(compose, /service_completed_successfully/);
+  assert.match(dockerfile, /apk add --no-cache libc6-compat openssl/);
+  assert.match(dockerfile, /FROM dependencies AS migrator/);
   for (const runtimeSecret of [
     'POSTGRES_PASSWORD',
     'DATABASE_URL',
     'NEXTAUTH_SECRET',
-    'MINIO_ACCESS_KEY',
-    'MINIO_SECRET_KEY',
+    'MINIO_ROOT_USER',
+    'MINIO_ROOT_PASSWORD',
     'CLOUDFLARE_TUNNEL_TOKEN',
   ]) {
     assert.doesNotMatch(
