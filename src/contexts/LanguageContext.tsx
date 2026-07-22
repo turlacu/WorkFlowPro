@@ -16,17 +16,17 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const setLanguage = (lang: keyof AppTranslations) => {
     setCurrentLang(lang);
-    // Optionally, persist language preference (e.g., localStorage)
-    // localStorage.setItem('appLanguage', lang);
+    window.localStorage.setItem('workflowpro-language', lang);
+    document.documentElement.lang = lang;
+    document.cookie = `workflowpro-language=${lang}; path=/; max-age=31536000; samesite=lax`;
   };
 
-  // Optionally, load preference on initial mount
-  // React.useEffect(() => {
-  //   const storedLang = localStorage.getItem('appLanguage') as keyof AppTranslations | null;
-  //   if (storedLang) {
-  //     setCurrentLang(storedLang);
-  //   }
-  // }, []);
+  React.useEffect(() => {
+    const storedLang = window.localStorage.getItem('workflowpro-language');
+    const lang = storedLang === 'ro' ? 'ro' : 'en';
+    setCurrentLang(lang);
+    document.documentElement.lang = lang;
+  }, []);
 
   return (
     <LanguageContext.Provider value={{ currentLang, setLanguage }}>

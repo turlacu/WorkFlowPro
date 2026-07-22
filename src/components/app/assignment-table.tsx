@@ -11,14 +11,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Edit, Trash2, AlertTriangle, Eye, Calendar, User, Clock } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Edit, Trash2, AlertTriangle, Calendar } from 'lucide-react';
 import { AssignmentDetailModal } from './assignment-detail-modal';
 import { cn } from '@/lib/utils';
-import { format as formatDate, parseISO } from 'date-fns';
+import { format as formatDate } from 'date-fns';
+import { enUS, ro } from 'date-fns/locale';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSession } from 'next-auth/react';
@@ -34,35 +35,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-interface Operator {
-  id: string;
-  name: string;
-}
-
 interface AssignmentTableProps {
   assignments: AssignmentWithUsers[];
-  operators: Operator[];
   onEditAssignment: (assignment: AssignmentWithUsers) => void;
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
 }
 
-export function AssignmentTable({ assignments, operators, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = React.useState<{id: string, name: string} | null>(null);
   const { currentLang } = useLanguage();
+  const locale = currentLang === 'ro' ? ro : enUS;
 
   const currentUserRole = session?.user?.role;
-
-  const operatorNameMap = React.useMemo(() =>
-    operators.reduce((acc, operator) => {
-      acc[operator.id] = operator.name;
-      return acc;
-    }, {} as Record<string, string>),
-  [operators]);
 
   const handleViewDetails = (assignment: AssignmentWithUsers) => {
     setSelectedAssignmentForDetail(assignment);
@@ -121,7 +110,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
     }
   };
 
-   const getPriorityBadgeClassName = (priority: AssignmentWithUsers['priority']) => {
+   const getPriorityBadgeClassName = () => {
     return "";
   };
 
@@ -132,7 +121,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
     const text = getTranslation(currentLang, `AssignmentStatus${status.replace(' ', '')}`);
 
     return (
-      <Badge className={cn(className, "capitalize")}>
+      <Badge variant={variant} className={cn(className, "capitalize")}>
         {text}
       </Badge>
     );
@@ -140,10 +129,10 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
 
   const getPriorityBadge = (priority: AssignmentWithUsers['priority']) => {
     const variant = getPriorityBadgeVariant(priority);
-    const className = getPriorityBadgeClassName(priority);
+    const className = getPriorityBadgeClassName();
     const text = getTranslation(currentLang, `Priority${priority}`);
     return (
-      <Badge className={cn(className, "capitalize")}>
+      <Badge variant={variant} className={cn(className, "capitalize")}>
         {text}
         {priority === 'URGENT' && <AlertTriangle className="ml-1 h-3 w-3" />}
       </Badge>
@@ -162,6 +151,15 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
         {'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800': assignment.status === 'COMPLETED'},
       )}
       onClick={() => handleViewDetails(assignment)}
+      role="button"
+      tabIndex={0}
+      aria-label={`${getTranslation(currentLang, 'View')} ${assignment.name}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          handleViewDetails(assignment);
+        }
+      }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
@@ -198,7 +196,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">
-                  {formatDate(assignment.dueDate, 'MMM d, yyyy')}
+                  {formatDate(assignment.dueDate, 'PP', { locale })}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {getTranslation(currentLang, 'AssignmentTableDueDate')}
@@ -219,7 +217,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                     variant="outline"
                     size="sm"
                     onClick={(e) => handleEditClick(assignment, e)}
-                    className="flex items-center gap-1.5 h-8 px-3"
+                    className="flex min-h-11 items-center gap-1.5 px-3"
                   >
                     <Edit className="h-3 w-3" />
                     <span className="text-xs">{getTranslation(currentLang, 'Edit')}</span>
@@ -228,7 +226,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                     variant="outline"
                     size="sm"
                     onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)}
-                    className="flex items-center gap-1.5 h-8 px-3 text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                    className="flex min-h-11 items-center gap-1.5 px-3 text-destructive hover:text-destructive-foreground hover:bg-destructive"
                   >
                     <Trash2 className="h-3 w-3" />
                     <span className="text-xs">{getTranslation(currentLang, 'Delete')}</span>
@@ -236,12 +234,12 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                 </>
               )}
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Uploaded to Q:</span>
+                <span className="text-xs text-muted-foreground">{getTranslation(currentLang, 'UploadedToQ')}:</span>
                 <Checkbox
                   checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                   onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
-                  aria-label={`Mark ${assignment.name} as uploaded to Q`}
-                  className="touch-manipulation h-4 w-4"
+                  aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
+                  className="touch-manipulation"
                 />
               </div>
             </div>
@@ -251,7 +249,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                   <Checkbox
                     checked={assignment.status === 'COMPLETED'}
                     onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
-                    aria-label={`Mark ${assignment.name} as complete`}
+                    aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
                     className="touch-manipulation h-5 w-5"
                   />
                 </div>
@@ -271,7 +269,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
   return (
     <>
       {/* Desktop Table - Hidden on mobile, visible md and up */}
-      <div className="hidden md:block overflow-auto h-[calc(100vh-350px)]">
+      <div className="hidden overflow-x-auto md:block">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
@@ -280,7 +278,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
               <TableHead>{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
               <TableHead>{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
               <TableHead>{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
-              <TableHead className="text-right">Uploaded to Q</TableHead>
+              <TableHead className="text-right">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
               {(currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN') && <TableHead className="w-[50px] text-right">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>}
             </TableRow>
           </TableHeader>
@@ -295,10 +293,15 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                 onClick={() => handleViewDetails(assignment)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => e.key === 'Enter' && handleViewDetails(assignment)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleViewDetails(assignment);
+                  }
+                }}
               >
                 <TableCell className="font-medium">{assignment.name}</TableCell>
-                <TableCell>{formatDate(assignment.dueDate, 'MMM d, yyyy')}</TableCell>
+                <TableCell>{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
                 <TableCell>{getStatusBadge(assignment.status)}</TableCell>
                 <TableCell>{getPriorityBadge(assignment.priority)}</TableCell>
                 <TableCell>
@@ -312,7 +315,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                       <Checkbox
                         checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                         onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
-                        aria-label={`Mark ${assignment.name} as uploaded to Q`}
+                        aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
                         className="touch-manipulation"
                       />
                     </div>
@@ -323,7 +326,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                           size="sm"
                           onClick={(e) => handleEditClick(assignment, e)} 
                           aria-label={getTranslation(currentLang, 'Edit')}
-                          className="h-8 w-8 p-0 touch-manipulation"
+                          className="h-11 w-11 p-0 touch-manipulation"
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
@@ -332,7 +335,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                           size="sm"
                           onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)} 
                           aria-label={getTranslation(currentLang, 'Delete')}
-                          className="h-8 w-8 p-0 touch-manipulation text-destructive hover:text-destructive-foreground hover:bg-destructive"
+                          className="h-11 w-11 p-0 touch-manipulation text-destructive hover:text-destructive-foreground hover:bg-destructive"
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -346,7 +349,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
                       <Checkbox
                         checked={assignment.status === 'COMPLETED'}
                         onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
-                        aria-label={`Mark ${assignment.name} as complete`}
+                        aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
                         className="touch-manipulation"
                       />
                     </div>
@@ -359,7 +362,7 @@ export function AssignmentTable({ assignments, operators, onEditAssignment, onDe
       </div>
 
       {/* Mobile Cards - Visible on mobile, hidden md and up */}
-      <div className="block md:hidden max-h-[calc(100vh-300px)] overflow-y-auto space-y-4 px-1">
+      <div className="block space-y-4 px-1 md:hidden">
         {assignments.map((assignment) => (
           <AssignmentCard key={assignment.id} assignment={assignment} />
         ))}

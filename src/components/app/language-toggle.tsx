@@ -17,7 +17,7 @@ export function LanguageToggle() {
 
     const langName = getTranslation(newLang, newLang === 'en' ? 'LanguageName_en' : 'LanguageName_ro');
     
-    let description = getTranslation(newLang, 'LanguageSetTo_description', { langName });
+    const description = getTranslation(newLang, 'LanguageSetTo_description', { langName });
     // The partial translation message was previously removed, keeping it that way.
     // if (newLang === 'ro') {
     //   description += getTranslation(newLang, 'PartialTranslation_message');

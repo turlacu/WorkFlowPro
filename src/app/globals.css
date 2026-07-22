@@ -21,16 +21,16 @@
     --secondary-foreground: 222 47.4% 11.2%;
  
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted-foreground: 215 18% 38%;
  
-    --accent: 47 100% 48%; /* #F7C300 - Golden Yellow */
+    --accent: 38 92% 42%;
     --accent-foreground: 222 47.4% 11.2%;
  
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 214 24% 84%;
+    --input: 214 24% 84%;
     --ring: 208 62% 44%;
  
     --radius: 0.5rem;
@@ -197,5 +197,20 @@
   /* Mobile form spacing */
   .mobile-form {
     @apply space-y-4 sm:space-y-3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }

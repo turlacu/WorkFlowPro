@@ -10,43 +10,40 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { AssignmentTable } from '@/components/app/assignment-table';
 import { InteractiveCalendar } from '@/components/app/interactive-calendar';
 import { NewAssignmentModal, type NewAssignmentFormValues } from '@/components/app/new-assignment-modal';
-import { PlusCircle, Users, CalendarDays, ShieldCheck, Search } from 'lucide-react';
-import { format, isSameDay, parseISO } from 'date-fns';
+import { PlusCircle, Users, CalendarDays, Search } from 'lucide-react';
+import { format } from 'date-fns';
+import { enUS, ro } from 'date-fns/locale';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from "@/hooks/use-toast";
 import { api, type AssignmentWithUsers } from '@/lib/api';
 import { User } from '@prisma/client';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
+type ScheduledUser = User & {
+  shiftColor?: string | null;
+  shiftHours?: string | null;
+  timeRange?: string | null;
+  shiftName?: string | null;
+};
 
 export default function AssignmentsPage() {
   const { data: session } = useSession();
   const [allAssignments, setAllAssignments] = useState<AssignmentWithUsers[]>([]);
   const [calendarAssignments, setCalendarAssignments] = useState<AssignmentWithUsers[]>([]);
   const [operators, setOperators] = useState<User[]>([]);
-  const [producers, setProducers] = useState<User[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<AssignmentWithUsers | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-  const [actualCurrentDate, setActualCurrentDate] = useState<Date | null>(null);
-  const [teamForSelectedDay, setTeamForSelectedDay] = useState<{ producers: User[], operators: User[] }>({ producers: [], operators: [] });
+  const [teamForSelectedDay, setTeamForSelectedDay] = useState<{ producers: ScheduledUser[], operators: ScheduledUser[] }>({ producers: [], operators: [] });
   const [formattedSelectedDateString, setFormattedSelectedDateString] = useState<string>('');
 
   const { currentLang } = useLanguage();
+  const dateLocale = currentLang === 'ro' ? ro : enUS;
   const { toast } = useToast();
 
   // Fetch initial data (only once on session load)
@@ -54,26 +51,22 @@ export default function AssignmentsPage() {
     const fetchInitialData = async () => {
       try {
         setLoading(true);
+        setLoadError(false);
         
         // Fetch operators and producers
-        const [operatorsList, producersList] = await Promise.all([
-          api.getUsers('OPERATOR'),
-          api.getUsers('PRODUCER'),
-        ]);
+        const operatorsList = await api.getUsers('OPERATOR');
         
         setOperators(operatorsList);
-        setProducers(producersList);
 
         // Set up current date info
         const today = new Date();
-        setActualCurrentDate(today);
-        
         // Initial load - set selected date if not already set
         if (!selectedDate) {
           setSelectedDate(today);
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setLoadError(true);
         toast({
           title: 'Error',
           description: 'Failed to load data. Please try again.',
@@ -92,6 +85,7 @@ export default function AssignmentsPage() {
 
   const fetchAssignments = useCallback(async () => {
     try {
+      setLoadError(false);
       const params: { date?: string; search?: string } = {};
       
       // Include date filter when a date is selected and no search is active
@@ -110,6 +104,7 @@ export default function AssignmentsPage() {
       console.error('Error fetching assignments:', error);
       // Set empty array on error to prevent UI issues
       setAllAssignments([]);
+      setLoadError(true);
       toast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to load assignments. Please try again.',
@@ -147,14 +142,14 @@ export default function AssignmentsPage() {
         producers: scheduledProducers,
         operators: scheduledOperators,
       });
-      setFormattedSelectedDateString(format(date, 'MMMM do, yyyy'));
+      setFormattedSelectedDateString(format(date, 'PPP', { locale: dateLocale }));
     } catch (error) {
       console.error('Error fetching team schedule for date:', error);
       // Reset team on error
       setTeamForSelectedDay({ producers: [], operators: [] });
-      setFormattedSelectedDateString(format(date, 'MMMM do, yyyy'));
+      setFormattedSelectedDateString(format(date, 'PPP', { locale: dateLocale }));
     }
-  }, []);
+  }, [dateLocale]);
 
   // Fetch assignments when search term or selected date changes
   useEffect(() => {
@@ -375,7 +370,7 @@ export default function AssignmentsPage() {
         priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
         assignedToId: assignment.assignedToId || undefined,
         description: assignment.description || '',
-        author: (assignment as any).author || '',
+        author: assignment.author || '',
         sourceLocation: assignment.sourceLocation || '',
         // Track who marked it as completed
       };
@@ -432,7 +427,7 @@ export default function AssignmentsPage() {
         priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
         assignedToId: assignment.assignedToId || undefined,
         description: assignment.description || '',
-        author: (assignment as any).author || '',
+        author: assignment.author || '',
         sourceLocation: assignment.sourceLocation || '',
       };
 
@@ -452,7 +447,7 @@ export default function AssignmentsPage() {
     }
   }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
 
-  const displaySelectedDateString = selectedDate ? format(selectedDate, 'MMMM do, yyyy') : getTranslation(currentLang, 'None');
+  const displaySelectedDateString = selectedDate ? format(selectedDate, 'PPP', { locale: dateLocale }) : getTranslation(currentLang, 'None');
 
   let workAssignmentsCardTitleKey = 'WorkAssignmentsForDate';
   let workAssignmentsCardTitleParams: Record<string, string> = { date: displaySelectedDateString };
@@ -469,8 +464,11 @@ export default function AssignmentsPage() {
 
   if ((loading && !initialDataLoaded) || !session) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p>{getTranslation(currentLang, 'Loading')}</p>
+      <div className="flex min-h-[40vh] items-center justify-center" role="status" aria-live="polite">
+        <div className="space-y-3 text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+          <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'Loading')}</p>
+        </div>
       </div>
     );
   }
@@ -482,9 +480,9 @@ export default function AssignmentsPage() {
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
         <div className="xl:col-span-3">
-          <Card className="shadow-lg h-full">
-            <CardHeader className="pb-4 sm:pb-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-2 mb-2">
+          <Card className="h-full">
+            <CardHeader className="space-y-4 pb-4 sm:pb-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-2">
                 <div className="flex-grow">
                   <CardTitle className="text-lg sm:text-xl md:text-2xl">{workAssignmentsTitle}</CardTitle>
                   <CardDescription className="text-sm">{workAssignmentsDescription}</CardDescription>
@@ -500,12 +498,29 @@ export default function AssignmentsPage() {
                   </Button>
                 )}
               </div>
+              <div className="relative max-w-xl">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  aria-label={getTranslation(currentLang, 'SearchCardTitle')}
+                  placeholder={getTranslation(currentLang, 'SearchAssignmentsPlaceholder')}
+                  className="h-11 w-full pl-9"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+              </div>
             </CardHeader>
             <CardContent>
-              {assignmentsToDisplay.length > 0 ? (
+              {loadError ? (
+                <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
+                  <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'LoadFailed')}</p>
+                  <Button variant="outline" onClick={() => void Promise.all([fetchAssignments(), fetchCalendarAssignments()])}>
+                    {getTranslation(currentLang, 'Retry')}
+                  </Button>
+                </div>
+              ) : assignmentsToDisplay.length > 0 ? (
                 <AssignmentTable
                   assignments={assignmentsToDisplay}
-                  operators={operators.filter(op => op.name !== null).map(op => ({ id: op.id, name: op.name! }))}
                   onEditAssignment={handleOpenEditModal}
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
@@ -514,7 +529,7 @@ export default function AssignmentsPage() {
               ) : (
                 <div className="text-center py-10">
                   <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground" />
-                  <p className="mt-4 text-lg font-semibold text-accent">
+                  <p className="mt-4 text-lg font-semibold text-foreground">
                     {searchTerm.trim() !== ''
                       ? getTranslation(currentLang, 'NoAssignmentsFoundSearch')
                       : getTranslation(currentLang, 'NoAssignmentsForDay')}
@@ -531,25 +546,7 @@ export default function AssignmentsPage() {
         </div>
 
         <div className="xl:col-span-1 space-y-4 sm:space-y-6">
-          <Card className="shadow-md">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg sm:text-xl">{getTranslation(currentLang, 'SearchCardTitle')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder={getTranslation(currentLang, 'SearchAssignmentsPlaceholder')}
-                  className="pl-8 w-full"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-md">
+          <Card>
             <CardHeader className="pb-4">
               <CardTitle className="text-lg sm:text-xl">
                 {getTranslation(currentLang, 'CalendarTitle')}
@@ -579,7 +576,7 @@ export default function AssignmentsPage() {
             </CardFooter>
           </Card>
 
-          <Card className="shadow-md">
+          <Card>
             <CardHeader className="pb-4">
               <CardTitle className="text-lg sm:text-xl">
                 {getTranslation(currentLang, 'TeamScheduleTitle')}
@@ -597,18 +594,18 @@ export default function AssignmentsPage() {
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
                     {teamForSelectedDay.producers.map(p => (
                       <li key={p.id} className="flex items-center gap-2">
-                        {(p as any).shiftColor && (
+                        {p.shiftColor && (
                           <div
                             className="w-3 h-3 rounded border"
-                            style={{ backgroundColor: (p as any).shiftColor }}
-                            title={(p as any).shiftColor}
+                            style={{ backgroundColor: p.shiftColor }}
+                            title={p.shiftColor}
                           />
                         )}
                         <span>{p.name}</span>
-                        {(p as any).timeRange ? (
-                          <span className="text-xs text-muted-foreground">({(p as any).timeRange})</span>
-                        ) : (p as any).shiftHours && (
-                          <span className="text-xs text-muted-foreground">({(p as any).shiftHours})</span>
+                        {p.timeRange ? (
+                          <span className="text-xs text-muted-foreground">({p.timeRange})</span>
+                        ) : p.shiftHours && (
+                          <span className="text-xs text-muted-foreground">({p.shiftHours})</span>
                         )}
                       </li>
                     ))}
@@ -626,18 +623,18 @@ export default function AssignmentsPage() {
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
                     {teamForSelectedDay.operators.map(o => (
                       <li key={o.id} className="flex items-center gap-2">
-                        {(o as any).shiftColor && (
+                        {o.shiftColor && (
                           <div
                             className="w-3 h-3 rounded border"
-                            style={{ backgroundColor: (o as any).shiftColor }}
-                            title={(o as any).shiftColor}
+                            style={{ backgroundColor: o.shiftColor }}
+                            title={o.shiftColor}
                           />
                         )}
                         <span>{o.name}</span>
-                        {(o as any).timeRange ? (
-                          <span className="text-xs text-muted-foreground">({(o as any).timeRange})</span>
-                        ) : (o as any).shiftHours && (
-                          <span className="text-xs text-muted-foreground">({(o as any).shiftHours})</span>
+                        {o.timeRange ? (
+                          <span className="text-xs text-muted-foreground">({o.timeRange})</span>
+                        ) : o.shiftHours && (
+                          <span className="text-xs text-muted-foreground">({o.shiftHours})</span>
                         )}
                       </li>
                     ))}

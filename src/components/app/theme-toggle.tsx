@@ -10,11 +10,11 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
 
 export function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
   const { currentLang } = useLanguage();
 
   const toggleTheme = () => {
-    setTheme(theme === 'dark' || theme === 'system' ? 'light' : 'dark');
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
 
   const buttonAriaLabel = getTranslation(currentLang, 'ToggleTheme_aria');

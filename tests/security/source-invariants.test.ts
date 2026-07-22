@@ -29,6 +29,20 @@ test('login errors do not advertise credentials', () => {
   assert.doesNotMatch(translations, /LoginFailedDescription:.*(?:Hint|Sugestie)/);
 });
 
+test('UI accessibility foundations remain enabled', () => {
+  const globals = read('src/app/globals.css');
+  const mobileMenu = read('src/components/app/mobile-menu.tsx');
+  const assignments = read('src/components/app/assignment-table.tsx');
+  const themeToggle = read('src/components/app/theme-toggle.tsx');
+
+  assert.match(globals, /prefers-reduced-motion/);
+  assert.match(mobileMenu, /SheetContent/);
+  assert.match(mobileMenu, /aria-current/);
+  assert.doesNotMatch(assignments, /calc\(100vh-3(?:00|50)px\)/);
+  assert.match(assignments, /event\.key === 'Enter' \|\| event\.key === ' '/);
+  assert.match(themeToggle, /resolvedTheme/);
+});
+
 test('container startup migrates without destructive seeding', () => {
   const dockerfile = read('Dockerfile');
   const compose = read('docker-compose.coolify.yml');

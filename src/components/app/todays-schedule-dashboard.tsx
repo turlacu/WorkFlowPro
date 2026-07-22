@@ -12,7 +12,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CalendarDays, Upload, FileText, Edit, Trash2, User, Clock, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format, isToday } from 'date-fns';
+import { enUS, ro } from 'date-fns/locale';
 import { PDFScheduleViewer } from './pdf-schedule-viewer';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { getTranslation } from '@/lib/translations';
 
 interface DailySchedule {
   id: string;
@@ -36,11 +39,16 @@ interface DailySchedule {
 export function TodaysScheduleDashboard() {
   const { data: session } = useSession();
   const { toast } = useToast();
+  const { currentLang } = useLanguage();
+  const locale = currentLang === 'ro' ? ro : enUS;
+  const displayDate = (date: Date) => format(date, 'PPP', { locale });
+  const t = (key: string, params?: Record<string, string>) => getTranslation(currentLang, key, params);
 
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [schedules, setSchedules] = React.useState<DailySchedule[]>([]);
   const [currentSchedule, setCurrentSchedule] = React.useState<DailySchedule | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [loadError, setLoadError] = React.useState(false);
   const [showUploadDialog, setShowUploadDialog] = React.useState(false);
   const [showEditDialog, setShowEditDialog] = React.useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -59,6 +67,7 @@ export function TodaysScheduleDashboard() {
   const fetchSchedule = React.useCallback(async (date: Date) => {
     try {
       setLoading(true);
+      setLoadError(false);
       const dateStr = format(date, 'yyyy-MM-dd');
       const response = await fetch(`/api/daily-schedules?date=${dateStr}`);
       
@@ -71,6 +80,7 @@ export function TodaysScheduleDashboard() {
     } catch (error) {
       console.error('Error fetching schedule:', error);
       setCurrentSchedule(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -107,8 +117,8 @@ export function TodaysScheduleDashboard() {
   const handleFileUpload = async () => {
     if (!uploadFile || !uploadTitle.trim()) {
       toast({
-        title: 'Missing Information',
-        description: 'Please provide both a file and a title.',
+        title: t('MissingInformation'),
+        description: t('FileAndTitleRequired'),
         variant: 'destructive',
       });
       return;
@@ -129,7 +139,7 @@ export function TodaysScheduleDashboard() {
       if (response.ok) {
         const result = await response.json();
         toast({
-          title: 'Upload Successful',
+          title: t('UploadSuccessful'),
           description: result.message,
         });
         
@@ -152,8 +162,8 @@ export function TodaysScheduleDashboard() {
     } catch (error) {
       console.error('Error uploading schedule:', error);
       toast({
-        title: 'Upload Failed',
-        description: error instanceof Error ? error.message : 'Failed to upload schedule.',
+        title: t('UploadFailed'),
+        description: error instanceof Error ? error.message : t('UploadFailed'),
         variant: 'destructive',
       });
     } finally {
@@ -170,8 +180,8 @@ export function TodaysScheduleDashboard() {
   const handleSaveEdit = async () => {
     if (!currentSchedule || !editTitle.trim()) {
       toast({
-        title: 'Missing Information',
-        description: 'Please provide a title.',
+        title: t('MissingInformation'),
+        description: t('TitleRequired'),
         variant: 'destructive',
       });
       return;
@@ -191,7 +201,7 @@ export function TodaysScheduleDashboard() {
 
       if (response.ok) {
         toast({
-          title: 'Schedule Updated',
+          title: t('ScheduleUpdated'),
           description: 'Schedule title has been updated successfully.',
         });
         
@@ -205,8 +215,8 @@ export function TodaysScheduleDashboard() {
     } catch (error) {
       console.error('Error updating schedule:', error);
       toast({
-        title: 'Update Failed',
-        description: error instanceof Error ? error.message : 'Failed to update schedule.',
+        title: t('UpdateFailed'),
+        description: error instanceof Error ? error.message : t('UpdateFailed'),
         variant: 'destructive',
       });
     }
@@ -223,7 +233,7 @@ export function TodaysScheduleDashboard() {
 
       if (response.ok) {
         toast({
-          title: 'Schedule Deleted',
+          title: t('ScheduleDeleted'),
           description: 'Schedule has been deleted successfully.',
         });
         
@@ -237,8 +247,8 @@ export function TodaysScheduleDashboard() {
     } catch (error) {
       console.error('Error deleting schedule:', error);
       toast({
-        title: 'Delete Failed',
-        description: error instanceof Error ? error.message : 'Failed to delete schedule.',
+        title: t('DeleteFailed'),
+        description: error instanceof Error ? error.message : t('DeleteFailed'),
         variant: 'destructive',
       });
     }
@@ -258,17 +268,17 @@ export function TodaysScheduleDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <h2 className="text-2xl font-bold">Today's Schedule Dashboard</h2>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t('TodaysScheduleTitle')}</h1>
           <p className="text-muted-foreground">
-            View and manage daily schedules. {canUpload ? 'Upload new schedules or edit existing ones.' : 'View schedules uploaded by admins and producers.'}
+            {t(canUpload ? 'TodaysScheduleDescriptionManager' : 'TodaysScheduleDescriptionViewer')}
           </p>
         </div>
         {canUpload && (
           <Button onClick={() => setShowUploadDialog(true)}>
             <Upload className="h-4 w-4 mr-2" />
-            Upload Schedule
+            {t('UploadSchedule')}
           </Button>
         )}
       </div>
@@ -279,10 +289,10 @@ export function TodaysScheduleDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDays className="h-5 w-5" />
-              Select Date
+              {t('SelectDate')}
             </CardTitle>
             <CardDescription>
-              Days with schedules are highlighted
+              {t('ScheduledDaysHighlighted')}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
@@ -309,11 +319,11 @@ export function TodaysScheduleDashboard() {
         <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col items-start justify-between gap-3 sm:flex-row">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
-                    Schedule for {format(selectedDate, 'MMMM do, yyyy')}
+                    {t('ScheduleForDate', { date: displayDate(selectedDate) })}
                     {isToday(selectedDate) && (
                       <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
                         Today
@@ -322,7 +332,7 @@ export function TodaysScheduleDashboard() {
                   </CardTitle>
                   {currentSchedule && (
                     <CardDescription>
-                      Uploaded by {currentSchedule.uploader.name} ({currentSchedule.uploader.role})
+                      {t('UploadedBy', { name: currentSchedule.uploader.name, role: currentSchedule.uploader.role })}
                     </CardDescription>
                   )}
                 </div>
@@ -330,7 +340,7 @@ export function TodaysScheduleDashboard() {
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={handleEdit}>
                       <Edit className="h-4 w-4 mr-1" />
-                      Edit Title
+                      {t('EditTitle')}
                     </Button>
                     {session?.user?.role === 'ADMIN' && (
                       <Button variant="destructive" size="sm" onClick={() => setShowDeleteDialog(true)}>
@@ -345,7 +355,12 @@ export function TodaysScheduleDashboard() {
             <CardContent>
               {loading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="text-sm text-muted-foreground">Loading schedule...</div>
+                  <div role="status" className="text-sm text-muted-foreground">{t('LoadingSchedule')}</div>
+                </div>
+              ) : loadError ? (
+                <div role="alert" className="flex flex-col items-center gap-3 py-10 text-center">
+                  <p className="text-sm text-muted-foreground">{t('LoadFailed')}</p>
+                  <Button variant="outline" onClick={() => fetchSchedule(selectedDate)}>{t('Retry')}</Button>
                 </div>
               ) : currentSchedule ? (
                 <div className="space-y-4">
@@ -371,7 +386,7 @@ export function TodaysScheduleDashboard() {
                   ) : (
                     <div className="text-center py-8 text-muted-foreground border rounded-lg">
                       <FileText className="mx-auto h-12 w-12 opacity-50 mb-4" />
-                      <p>No PDF file available for viewing</p>
+                      <p>{t('NoPdfAvailable')}</p>
                     </div>
                   )}
                   
@@ -382,21 +397,21 @@ export function TodaysScheduleDashboard() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(new Date(currentSchedule.updatedAt), 'MMM do, yyyy at h:mm a')}
+                      {format(new Date(currentSchedule.updatedAt), 'PPp', { locale })}
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Schedule Available</h3>
+                  <h3 className="text-lg font-semibold mb-2">{t('NoScheduleAvailable')}</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    No schedule has been uploaded for {format(selectedDate, 'MMMM do, yyyy')}.
+                    {t('NoScheduleForDate', { date: displayDate(selectedDate) })}
                   </p>
                   {canUpload && (
                     <Button onClick={() => setShowUploadDialog(true)}>
                       <Upload className="h-4 w-4 mr-2" />
-                      Upload Schedule
+                      {t('UploadSchedule')}
                     </Button>
                   )}
                 </div>
@@ -410,26 +425,25 @@ export function TodaysScheduleDashboard() {
       <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Upload Daily Schedule</DialogTitle>
+            <DialogTitle>{t('UploadDailySchedule')}</DialogTitle>
             <DialogDescription>
-              Upload a PDF schedule for {format(selectedDate, 'MMMM do, yyyy')}.
-              Only PDF files are supported.
+              {t('UploadScheduleDescription', { date: displayDate(selectedDate) })}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="schedule-title">Schedule Title</Label>
+              <Label htmlFor="schedule-title">{t('ScheduleTitle')}</Label>
               <Input
                 id="schedule-title"
                 value={uploadTitle}
                 onChange={(e) => setUploadTitle(e.target.value)}
-                placeholder="e.g., Production Schedule - September 12th"
+                placeholder={t('ScheduleTitlePlaceholder')}
               />
             </div>
             
             <div>
-              <Label htmlFor="schedule-file">Select File</Label>
+              <Label htmlFor="schedule-file">{t('SelectFile')}</Label>
               <Input
                 id="schedule-file"
                 type="file"
@@ -453,10 +467,10 @@ export function TodaysScheduleDashboard() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowUploadDialog(false)}>
-              Cancel
+              {t('CancelButton')}
             </Button>
             <Button onClick={handleFileUpload} disabled={uploading || !uploadFile || !uploadTitle.trim()}>
-              {uploading ? 'Uploading...' : 'Upload Schedule'}
+              {uploading ? t('Uploading') : t('UploadSchedule')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -466,20 +480,20 @@ export function TodaysScheduleDashboard() {
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Edit Schedule Title</DialogTitle>
+            <DialogTitle>{t('EditScheduleTitle')}</DialogTitle>
             <DialogDescription>
-              Edit the title for the schedule on {format(selectedDate, 'MMMM do, yyyy')}
+              {t('EditScheduleDescription', { date: displayDate(selectedDate) })}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="edit-title">Schedule Title</Label>
+              <Label htmlFor="edit-title">{t('ScheduleTitle')}</Label>
               <Input
                 id="edit-title"
                 value={editTitle}
                 onChange={(e) => setEditTitle(e.target.value)}
-                placeholder="Enter the schedule title..."
+                placeholder={t('ScheduleTitlePlaceholder')}
               />
             </div>
           </div>
@@ -487,11 +501,11 @@ export function TodaysScheduleDashboard() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               <X className="h-4 w-4 mr-2" />
-              Cancel
+              {t('CancelButton')}
             </Button>
             <Button onClick={handleSaveEdit} disabled={!editTitle.trim()}>
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              {t('SaveChangesButton')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -501,16 +515,15 @@ export function TodaysScheduleDashboard() {
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Schedule</AlertDialogTitle>
+            <AlertDialogTitle>{t('DeleteScheduleTitle')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the schedule for {format(selectedDate, 'MMMM do, yyyy')}?
-              This action cannot be undone.
+              {t('DeleteScheduleConfirmation', { date: displayDate(selectedDate) })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('CancelButton')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete Schedule
+              {t('DeleteScheduleTitle')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

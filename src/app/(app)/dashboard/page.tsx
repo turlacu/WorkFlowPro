@@ -4,14 +4,14 @@
 import * as React from 'react';
 import { useSession } from 'next-auth/react';
 import { InteractiveCalendar } from '@/components/app/interactive-calendar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Users, CalendarDays, BarChart3, DatabaseBackup, Save, Upload, Shield, Settings } from 'lucide-react';
+import { Users, CalendarDays, BarChart3, DatabaseBackup, Save, Shield } from 'lucide-react';
 import { format } from 'date-fns';
+import { enUS, ro } from 'date-fns/locale';
 import Link from 'next/link';
 import { getTranslation } from '@/lib/translations';
 import { StatisticsDashboard } from '@/components/app/statistics-dashboard';
@@ -22,6 +22,8 @@ import { ShiftColorLegendManager } from '@/components/app/shift-color-legend-man
 import { ExcelScheduleUploader } from '@/components/app/excel-schedule-uploader';
 import { MonthScheduleDeleter } from '@/components/app/month-schedule-deleter';
 import dynamic from 'next/dynamic';
+import { usePathname, useRouter } from 'next/navigation';
+import { AdminNavigation } from '@/components/app/admin-navigation';
 
 const ExcelConfigurationsPage = dynamic(() => import('@/app/(app)/admin/excel-configurations/page'), { ssr: false }); 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -34,6 +36,16 @@ interface User {
   role?: string;
   shiftColor?: string;
   shiftHours?: string;
+  timeRange?: string;
+  shiftName?: string;
+}
+
+interface TeamScheduleResponse {
+  user: User;
+  shiftColor?: string;
+  shiftHours?: string;
+  timeRange?: string;
+  shiftName?: string;
 }
 
 // Users will be fetched from the database
@@ -48,7 +60,7 @@ interface UserCheckboxItemProps {
 const UserCheckboxItem = React.memo<UserCheckboxItemProps>(({ user, type, isChecked, onToggleSelection }) => {
   const { currentLang } = useLanguage();
   const handleCheckedChange = React.useCallback(
-    (_checked: boolean | 'indeterminate') => {
+    () => {
       onToggleSelection(user, type);
     },
     [user, type, onToggleSelection]
@@ -82,8 +94,29 @@ export default function DashboardPage() {
   const [existingSchedule, setExistingSchedule] = React.useState<{producers: User[], operators: User[]}>({producers: [], operators: []});
   const [loadingSchedule, setLoadingSchedule] = React.useState(false);
   const { currentLang } = useLanguage();
-  const [selectedScheduleFile, setSelectedScheduleFile] = React.useState<File | null>(null);
+  const dateLocale = currentLang === 'ro' ? ro : enUS;
   const { toast } = useToast();
+  const pathname = usePathname();
+  const router = useRouter();
+  React.useEffect(() => {
+    if (pathname === '/dashboard') router.replace('/dashboard/scheduling/manual');
+  }, [pathname, router]);
+  const primarySection = pathname.includes('/users')
+    ? 'user-management'
+    : pathname.includes('/statistics')
+      ? 'statistics'
+      : pathname.includes('/backups')
+        ? 'data-backup'
+        : 'team-scheduling';
+  const schedulingSection = pathname.endsWith('/import')
+    ? 'excel-upload'
+    : pathname.endsWith('/delete')
+      ? 'delete-schedule'
+      : pathname.endsWith('/excel-configurations')
+        ? 'excel-configurations'
+        : pathname.endsWith('/color-legend')
+          ? 'color-legend'
+          : 'manual-scheduling';
 
   // Fetch users for manual role assignment
   React.useEffect(() => {
@@ -122,19 +155,19 @@ export default function DashboardPage() {
       const response = await fetch(`/api/team-schedule?date=${dateString}`);
       
       if (response.ok) {
-        const scheduleData = await response.json();
+        const scheduleData: TeamScheduleResponse[] = await response.json();
         console.log('Fetched schedule data:', scheduleData);
         
         // Store full schedule data including shift information
-        const scheduledUsers = scheduleData.map((schedule: any) => ({
+        const scheduledUsers: User[] = scheduleData.map((schedule) => ({
           ...schedule.user,
           shiftColor: schedule.shiftColor,
           shiftHours: schedule.shiftHours,
           timeRange: schedule.timeRange,
           shiftName: schedule.shiftName
         }));
-        const scheduledProducers = scheduledUsers.filter((user: any) => user.role === 'PRODUCER');
-        const scheduledOperators = scheduledUsers.filter((user: any) => user.role === 'OPERATOR');
+        const scheduledProducers = scheduledUsers.filter((user) => user.role === 'PRODUCER');
+        const scheduledOperators = scheduledUsers.filter((user) => user.role === 'OPERATOR');
         
         setExistingSchedule({
           producers: scheduledProducers,
@@ -242,23 +275,23 @@ export default function DashboardPage() {
 
   // Security check - only ADMIN users can access this dashboard
   if (status === 'loading') {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex min-h-[40vh] items-center justify-center" role="status">{getTranslation(currentLang, 'Loading')}</div>;
   }
 
   if (!session || session.user.role !== 'ADMIN') {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-[40vh] items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <Shield className="mx-auto h-12 w-12 text-muted-foreground" />
-            <CardTitle className="text-xl">Access Denied</CardTitle>
+            <CardTitle className="text-xl">{getTranslation(currentLang, 'AccessDenied')}</CardTitle>
             <CardDescription>
-              This dashboard is only accessible to administrators. Please contact an administrator if you believe this is an error.
+              {getTranslation(currentLang, 'AdminOnlyDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <Button asChild>
-              <Link href="/assignments">Go to Assignments</Link>
+              <Link href="/assignments">{getTranslation(currentLang, 'GoToAssignments')}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -272,51 +305,20 @@ export default function DashboardPage() {
       : !!selectedOperators.find(o => o.id === userId);
   };
 
-  const handleScheduleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
-      setSelectedScheduleFile(event.target.files[0]);
-    } else {
-      setSelectedScheduleFile(null);
-    }
-  };
-
-  const handleUploadScheduleFile = async () => {
-    if (!selectedScheduleFile) {
-      toast({
-        title: getTranslation(currentLang, 'Error'),
-        description: getTranslation(currentLang, 'NoFileSelectedForUpload'),
-        variant: 'destructive',
-      });
-      return;
-    }
-    // Simulate API call for upload and processing
-    toast({ title: getTranslation(currentLang, 'Processing'), description: `Simulating upload of ${selectedScheduleFile.name}` });
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    toast({
-      title: getTranslation(currentLang, 'ScheduleUploadSuccessTitle'),
-      description: getTranslation(currentLang, 'ScheduleUploadSuccessDescription', { fileName: selectedScheduleFile.name }),
-    });
-    setSelectedScheduleFile(null); // Reset file input state
-    
-    // Attempt to clear the actual file input element
-    const fileInput = document.getElementById('schedule-file-upload') as HTMLInputElement | null;
-    if (fileInput) {
-      fileInput.value = '';
-    }
-  };
-
-  const formattedSelectedDate = selectedDate ? format(selectedDate, 'MMMM do, yyyy') : getTranslation(currentLang, 'None');
+  const formattedSelectedDate = selectedDate ? format(selectedDate, 'PPP', { locale: dateLocale }) : getTranslation(currentLang, 'None');
   const producersOnDutyText = selectedProducers.length > 0 ? selectedProducers.map(p => p.name).join(', ') : getTranslation(currentLang, 'None');
   const operatorsOnDutyText = selectedOperators.length > 0 ? selectedOperators.map(o => o.name).join(', ') : getTranslation(currentLang, 'None');
 
   return (
-    <div className="space-y-6 sm:space-y-8 px-1 sm:px-0">
+    <div className="space-y-6 px-1 sm:px-0">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{getTranslation(currentLang, 'DashboardTitle')}</h1>
       </div>
 
-      <Tabs defaultValue="team-scheduling" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 mb-4 sm:mb-6 h-auto">
+      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
+      <AdminNavigation />
+      <Tabs value={primarySection} className="min-w-0 w-full">
+        <TabsList className="hidden">
           <TabsTrigger value="user-management" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
             <Users className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
             <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'UserManagementTab')}</span>
@@ -355,8 +357,8 @@ export default function DashboardPage() {
               <p className="text-sm sm:text-base text-muted-foreground">{getTranslation(currentLang, 'ManageTeamScheduleDescription')}</p>
             </div>
             
-            <Tabs defaultValue="manual-scheduling" className="w-full">
-              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-1 sm:gap-0 h-auto sm:h-10">
+            <Tabs value={schedulingSection} className="w-full">
+              <TabsList className="hidden">
                 <TabsTrigger value="manual-scheduling" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
                   Manual Scheduling
                 </TabsTrigger>
@@ -375,16 +377,16 @@ export default function DashboardPage() {
               </TabsList>
 
               <TabsContent value="manual-scheduling" className="mt-4 sm:mt-6">
-                <Card className="shadow-lg">
+                <Card>
                   <CardContent className="grid lg:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
                     <div className="lg:col-span-1 space-y-4">
-                      <Card className="shadow-md">
+                      <Card>
                         <CardHeader className="pb-4"><CardTitle className="text-lg">{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle></CardHeader>
                         <CardContent className="p-0 flex justify-center">
                           <InteractiveCalendar onDateSelect={handleDateSelect} initialDate={selectedDate} />
                         </CardContent>
                       </Card>
-                      <Card className="shadow-md">
+                      <Card>
                         <CardContent className="p-4 space-y-2 text-sm">
                           <div className="flex items-center">
                             <div className="w-3 h-3 rounded-full bg-[hsl(var(--calendar-selected-day-bg))] mr-2"></div>
@@ -399,14 +401,14 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-                      <Card className="shadow-md">
+                      <Card>
                         <CardHeader className="pb-4"><CardTitle className="text-lg">{getTranslation(currentLang, 'AssignRolesForDateTitle', { date: formattedSelectedDate })}</CardTitle></CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
                           <div>
                             <h3 className="text-base sm:text-lg font-semibold mb-4 text-primary">{getTranslation(currentLang, 'ProducersTitle')}</h3>
                             <div className="space-y-3 max-h-60 overflow-y-auto border rounded-md p-2">
                               {loading ? (
-                                <p className="text-sm text-muted-foreground">Loading users...</p>
+                                <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'LoadingUsers')}</p>
                               ) : users.filter(user => user.role === 'PRODUCER').length > 0 ? (
                                 users
                                   .filter(user => user.role === 'PRODUCER')
@@ -428,7 +430,7 @@ export default function DashboardPage() {
                             <h3 className="text-base sm:text-lg font-semibold mb-4 text-primary">{getTranslation(currentLang, 'OperatorsTitle')}</h3>
                             <div className="space-y-3 max-h-60 overflow-y-auto border rounded-md p-2">
                               {loading ? (
-                                <p className="text-sm text-muted-foreground">Loading users...</p>
+                                <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'LoadingUsers')}</p>
                               ) : users.filter(user => user.role === 'OPERATOR').length > 0 ? (
                                 users
                                   .filter(user => user.role === 'OPERATOR')
@@ -449,20 +451,20 @@ export default function DashboardPage() {
                         </CardContent>
                       </Card>
 
-                      <Card className="shadow-md">
+                      <Card>
                         <CardHeader className="pb-4">
                           <CardTitle className="text-lg">{getTranslation(currentLang, 'SummaryForDateTitle', {date: formattedSelectedDate})}</CardTitle>
-                          {loadingSchedule && <p className="text-sm text-muted-foreground">Loading existing schedule...</p>}
+                          {loadingSchedule && <p className="text-sm text-muted-foreground">{getTranslation(currentLang, 'LoadingExistingSchedule')}</p>}
                         </CardHeader>
                         <CardContent className="space-y-1 text-sm">
                           <p><strong>{getTranslation(currentLang, 'ProducersOnDutySummary')}</strong> {producersOnDutyText}</p>
                           <p><strong>{getTranslation(currentLang, 'OperatorsOnDutySummary')}</strong> {operatorsOnDutyText}</p>
                           {(existingSchedule.producers.length > 0 || existingSchedule.operators.length > 0) && (
                             <div className="mt-4 p-3 bg-muted rounded-md">
-                              <p className="font-medium text-sm text-primary mb-2">Existing Schedule:</p>
+                              <p className="font-medium text-sm text-primary mb-2">{getTranslation(currentLang, 'ExistingSchedule')}</p>
                               {existingSchedule.producers.length > 0 && (
                                 <div className="mb-2">
-                                  <p className="text-xs font-medium mb-1">Producers:</p>
+                                  <p className="text-xs font-medium mb-1">{getTranslation(currentLang, 'ProducersTitle')}:</p>
                                   <div className="space-y-1">
                                     {existingSchedule.producers.map(p => (
                                       <div key={p.id} className="flex items-center gap-2 text-xs">
@@ -474,8 +476,8 @@ export default function DashboardPage() {
                                           />
                                         )}
                                         <span>{p.name}</span>
-                                        {(p as any).timeRange ? (
-                                          <span className="text-muted-foreground">({(p as any).timeRange})</span>
+                                        {p.timeRange ? (
+                                          <span className="text-muted-foreground">({p.timeRange})</span>
                                         ) : p.shiftHours && (
                                           <span className="text-muted-foreground">({p.shiftHours})</span>
                                         )}
@@ -486,7 +488,7 @@ export default function DashboardPage() {
                               )}
                               {existingSchedule.operators.length > 0 && (
                                 <div>
-                                  <p className="text-xs font-medium mb-1">Operators:</p>
+                                  <p className="text-xs font-medium mb-1">{getTranslation(currentLang, 'OperatorsTitle')}:</p>
                                   <div className="space-y-1">
                                     {existingSchedule.operators.map(o => (
                                       <div key={o.id} className="flex items-center gap-2 text-xs">
@@ -498,8 +500,8 @@ export default function DashboardPage() {
                                           />
                                         )}
                                         <span>{o.name}</span>
-                                        {(o as any).timeRange ? (
-                                          <span className="text-muted-foreground">({(o as any).timeRange})</span>
+                                        {o.timeRange ? (
+                                          <span className="text-muted-foreground">({o.timeRange})</span>
                                         ) : o.shiftHours && (
                                           <span className="text-muted-foreground">({o.shiftHours})</span>
                                         )}
@@ -532,8 +534,8 @@ export default function DashboardPage() {
                       fetchExistingSchedule(selectedDate);
                     }
                     toast({
-                      title: 'Upload Complete',
-                      description: 'Schedule has been updated successfully.',
+                      title: getTranslation(currentLang, 'UploadComplete'),
+                      description: getTranslation(currentLang, 'ScheduleUpdatedSuccessfully'),
                     });
                   }}
                 />
@@ -548,8 +550,8 @@ export default function DashboardPage() {
                       fetchExistingSchedule(selectedDate);
                     }
                     toast({
-                      title: 'Delete Complete',
-                      description: 'Schedule has been deleted successfully.',
+                      title: getTranslation(currentLang, 'DeleteComplete'),
+                      description: getTranslation(currentLang, 'ScheduleDeletedSuccessfully'),
                     });
                   }}
                 />
@@ -592,6 +594,7 @@ export default function DashboardPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

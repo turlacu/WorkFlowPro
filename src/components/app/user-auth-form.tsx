@@ -24,7 +24,7 @@ const loginSchema = z.object({
 
 type UserAuthFormValues = z.infer<typeof loginSchema>;
 
-interface UserAuthFormProps extends React.HTMLAttributes<HTMLDivElement> {}
+type UserAuthFormProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   const router = useRouter();
@@ -37,9 +37,11 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
     resolver: zodResolver(loginSchema),
   });
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
+  const [authenticationError, setAuthenticationError] = React.useState<string | null>(null);
 
   async function onSubmit(data: UserAuthFormValues) {
     setIsLoading(true);
+    setAuthenticationError(null);
     
     try {
       const result = await signIn('credentials', {
@@ -49,6 +51,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
       });
 
       if (result?.error) {
+        setAuthenticationError(getTranslation(currentLang, 'LoginFailedDescription'));
         toast({
           title: getTranslation(currentLang, 'LoginFailedTitle'),
           description: getTranslation(currentLang, 'LoginFailedDescription'),
@@ -59,10 +62,12 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
           title: getTranslation(currentLang, 'LoginSuccessTitle'),
           description: getTranslation(currentLang, 'LoginSuccessDescription'),
         });
-        router.push('/assignments');
+        router.replace('/assignments');
+        router.refresh();
       }
     } catch (error) {
       console.error('Login error:', error);
+      setAuthenticationError(getTranslation(currentLang, 'LoginFailedDescription'));
       toast({
         title: getTranslation(currentLang, 'LoginFailedTitle'),
         description: getTranslation(currentLang, 'LoginFailedDescription'),
@@ -79,7 +84,12 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   return (
     <div className={cn('grid gap-6', className)} {...props}>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid gap-4 sm:gap-4">
+        <div className="grid gap-4" aria-busy={isLoading}>
+          {authenticationError && (
+            <div role="alert" className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {authenticationError}
+            </div>
+          )}
           <div className="grid gap-2 sm:gap-2">
             <Label htmlFor="email">{getTranslation(currentLang, 'EmailLabel')}</Label>
             <Input
@@ -90,11 +100,13 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               autoComplete="email"
               autoCorrect="off"
               disabled={isLoading}
+              aria-invalid={Boolean(errors.email)}
+              aria-describedby={errors.email ? 'email-error' : undefined}
               className="h-11 sm:h-10 text-base sm:text-sm"
               {...register('email')}
             />
             {errors?.email && (
-              <p className="px-1 text-xs text-destructive">
+              <p id="email-error" className="px-1 text-sm text-destructive">
                 {emailErrorMessage || errors.email.message}
               </p>
             )}
@@ -107,11 +119,13 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               type="password"
               autoComplete="current-password"
               disabled={isLoading}
+              aria-invalid={Boolean(errors.password)}
+              aria-describedby={errors.password ? 'password-error' : undefined}
               className="h-11 sm:h-10 text-base sm:text-sm"
               {...register('password')}
             />
             {errors?.password && (
-              <p className="px-1 text-xs text-destructive">
+              <p id="password-error" className="px-1 text-sm text-destructive">
                 {passwordErrorMessage || errors.password.message}
               </p>
             )}
