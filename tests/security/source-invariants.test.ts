@@ -23,6 +23,12 @@ test('session invalidation counters are issued only at login', () => {
   assert.match(read('src/lib/server-auth.ts'), /session\.user\.sessionVersion !== user\.sessionVersion/);
 });
 
+test('login errors do not advertise credentials', () => {
+  const translations = read('src/lib/translations.ts');
+  assert.doesNotMatch(translations, /admin@example\.com/);
+  assert.doesNotMatch(translations, /LoginFailedDescription:.*(?:Hint|Sugestie)/);
+});
+
 test('container startup migrates without destructive seeding', () => {
   const dockerfile = read('Dockerfile');
   const compose = read('docker-compose.coolify.yml');

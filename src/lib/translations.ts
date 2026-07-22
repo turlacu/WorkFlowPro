@@ -44,7 +44,7 @@ export const translations: AppTranslations = {
     LoginSuccessTitle: "Login Successful",
     LoginSuccessDescription: "Redirecting to your assignments...",
     LoginFailedTitle: "Login Failed",
-    LoginFailedDescription: "Invalid email or password. (Hint: admin@example.com, password)",
+    LoginFailedDescription: "Invalid email or password.",
     ZodEmailInvalid: "Please enter a valid email address.",
     ZodPasswordRequired: "Password is required.",
 
@@ -386,7 +386,7 @@ export const translations: AppTranslations = {
     LoginSuccessTitle: "Autentificare Reușită",
     LoginSuccessDescription: "Se redirecționează către panoul de sarcini...",
     LoginFailedTitle: "Autentificare Eșuată",
-    LoginFailedDescription: "Email sau parolă invalidă. (Sugestie: admin@example.com, password)",
+    LoginFailedDescription: "Email sau parolă invalidă.",
     ZodEmailInvalid: "Te rog introdu o adresă de email validă.",
     ZodPasswordRequired: "Parola este obligatorie.",
 
@@ -703,4 +703,3 @@ export const getTranslation = (lang: string | keyof AppTranslations, key: string
   }
   return text;
 };
-
