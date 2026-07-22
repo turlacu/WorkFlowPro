@@ -43,7 +43,6 @@ test('container startup migrates without destructive seeding', () => {
     'NEXTAUTH_SECRET',
     'MINIO_ROOT_USER',
     'MINIO_ROOT_PASSWORD',
-    'CLOUDFLARE_TUNNEL_TOKEN',
   ]) {
     assert.doesNotMatch(
       compose,
@@ -51,6 +50,7 @@ test('container startup migrates without destructive seeding', () => {
       `${runtimeSecret} must remain runtime-only during Coolify Compose builds`,
     );
   }
+  assert.doesNotMatch(compose, /cloudflared|CLOUDFLARE_TUNNEL_TOKEN/);
 });
 
 test('migration history includes the missing daily schedules table and security fields', () => {

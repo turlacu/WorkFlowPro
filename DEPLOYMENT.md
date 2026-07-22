@@ -1,8 +1,9 @@
 # WorkFlowPro deployment (Coolify + Cloudflare Tunnel)
 
 The production stack is defined in `docker-compose.coolify.yml`. It runs the app, PostgreSQL,
-private MinIO object storage, a one-shot Prisma migration service, and Cloudflare Tunnel. Only
-Cloudflare Tunnel publishes the app; PostgreSQL and MinIO have no host ports.
+private MinIO object storage, and a one-shot Prisma migration service. The server's existing
+Cloudflare connector reaches the app through Coolify's HTTPS proxy; PostgreSQL and MinIO have no
+host ports.
 
 ## 1. Prepare secrets
 
@@ -17,15 +18,14 @@ openssl rand -hex 32       # MINIO_ROOT_PASSWORD
 
 If the PostgreSQL password contains URL-reserved characters, URL-encode it in `DATABASE_URL`.
 
-## 2. Create the Cloudflare tunnel
+## 2. Configure the existing Cloudflare tunnel
 
-1. In Cloudflare, open **Networking > Tunnels** and create a remotely managed tunnel named
-   `workflowpro`.
-2. Copy its Docker connector token; this becomes `CLOUDFLARE_TUNNEL_TOKEN` in Coolify.
-3. Add a published application with hostname `worksmart.turlacu.ro`, service type `HTTP`, and
-   service URL `http://app:3000`.
-4. Keep TLS verification and normal security protections enabled. Do not publish ports 3000,
-   5432, 9000, or 9001 from the server firewall.
+1. Reuse the Cloudflare connector already installed on the Coolify server. Do not run a second
+   `cloudflared` container in this application stack.
+2. Add one published application with hostname `worksmart.turlacu.ro`, service type `HTTPS`, and
+   service URL `https://127.0.0.1:443`.
+3. Enable **No TLS Verify** for this origin, matching the server's other Coolify routes.
+4. Do not publish ports 3000, 5432, 9000, or 9001 from the server firewall.
 
 ## 3. Create the Coolify resource
 
@@ -47,8 +47,6 @@ INITIAL_ADMIN_PASSWORD=<random password of at least 12 characters>
 MINIO_ROOT_USER=<random value>
 MINIO_ROOT_PASSWORD=<random value>
 MINIO_BUCKET_NAME=workflowpro-storage
-
-CLOUDFLARE_TUNNEL_TOKEN=<token copied from Cloudflare>
 ```
 
 Keep secret variables runtime-only. The Coolify Compose file deliberately uses empty build-time
@@ -56,10 +54,12 @@ fallbacks for them because Coolify evaluates Compose with its build-time environ
 loads the runtime environment. The services will not start successfully if the runtime values are
 actually missing.
 
-4. Deploy. The `migrate` and safe one-shot `bootstrap` services must finish successfully before
+4. In Coolify's **Domains for app** field, set `https://worksmart.turlacu.ro:3000` and save. Leave
+   the domain fields for database, MinIO, migrate, and bootstrap empty.
+5. Deploy. The `migrate` and safe one-shot `bootstrap` services must finish successfully before
    `app` starts. Do not add `prisma db push`, database reset, or unconditional seed commands to
    the application startup sequence.
-5. Confirm the Cloudflare tunnel is **Healthy**, then check
+6. Confirm the Cloudflare tunnel is **Healthy**, then check
    `https://worksmart.turlacu.ro/api/health`. It should report both database and object storage
    as healthy.
 
