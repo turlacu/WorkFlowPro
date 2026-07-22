@@ -51,6 +51,11 @@ MINIO_BUCKET_NAME=workflowpro-storage
 CLOUDFLARE_TUNNEL_TOKEN=<token copied from Cloudflare>
 ```
 
+Keep secret variables runtime-only. The Coolify Compose file deliberately uses empty build-time
+fallbacks for them because Coolify evaluates Compose with its build-time environment before it
+loads the runtime environment. The services will not start successfully if the runtime values are
+actually missing.
+
 4. Deploy. The `migrate` and safe one-shot `bootstrap` services must finish successfully before
    `app` starts. Do not add `prisma db push`, database reset, or unconditional seed commands to
    the application startup sequence.

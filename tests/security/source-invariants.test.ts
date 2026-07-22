@@ -31,6 +31,20 @@ test('container startup migrates without destructive seeding', () => {
   assert.doesNotMatch(compose, /:latest|prisma db push|prisma migrate reset|db:seed/);
   assert.match(compose, /target: migrator/);
   assert.match(compose, /service_completed_successfully/);
+  for (const runtimeSecret of [
+    'POSTGRES_PASSWORD',
+    'DATABASE_URL',
+    'NEXTAUTH_SECRET',
+    'MINIO_ACCESS_KEY',
+    'MINIO_SECRET_KEY',
+    'CLOUDFLARE_TUNNEL_TOKEN',
+  ]) {
+    assert.doesNotMatch(
+      compose,
+      new RegExp(`\\$\\{${runtimeSecret}:\\?`),
+      `${runtimeSecret} must remain runtime-only during Coolify Compose builds`,
+    );
+  }
 });
 
 test('migration history includes the missing daily schedules table and security fields', () => {
