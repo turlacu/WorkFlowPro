@@ -1,89 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { Readable } from 'node:stream';
+import { getFile, deleteFile } from '@/lib/minio';
+import { requireUser } from '@/lib/server-auth';
 
-const BACKUPS_DIR = path.join(process.cwd(), 'backups');
+const BACKUP_ID = /^backup-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+async function resolveId(params: Promise<{ id: string }>) {
+  const { id } = await params;
+  return BACKUP_ID.test(id) ? id : null;
+}
+
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
-
-    const { id } = await params;
-    const fileName = `${id}.json`;
-    const filePath = path.join(BACKUPS_DIR, fileName);
-
-    try {
-      // Check if file exists
-      await fs.access(filePath);
-      
-      // Read the file
-      const fileContent = await fs.readFile(filePath);
-      
-      // Return file as download
-      return new NextResponse(fileContent, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Disposition': `attachment; filename="${fileName}"`,
-        },
-      });
-    } catch (fileError) {
-      return NextResponse.json({ error: 'Backup file not found' }, { status: 404 });
-    }
-  } catch (error) {
-    console.error('Error downloading backup:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error occurred while downloading backup' 
-    }, { status: 500 });
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
+    const id = await resolveId(params);
+    if (!id) return NextResponse.json({ error: 'Invalid backup ID' }, { status: 400 });
+    const { stream, stat } = await getFile(`backups/${id}.json`);
+    return new Response(Readable.toWeb(stream) as ReadableStream, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': String(stat.size),
+        'Content-Disposition': `attachment; filename="${id}.json"`,
+        'Cache-Control': 'private, no-store',
+      },
+    });
+  } catch {
+    return NextResponse.json({ error: 'Backup file not found' }, { status: 404 });
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
-
-    const { id } = await params;
-    const fileName = `${id}.json`;
-    const filePath = path.join(BACKUPS_DIR, fileName);
-
-    try {
-      // Check if file exists
-      await fs.access(filePath);
-      
-      // Delete the file
-      await fs.unlink(filePath);
-      
-      return NextResponse.json({ message: 'Backup deleted successfully' });
-    } catch (fileError) {
-      return NextResponse.json({ error: 'Backup file not found' }, { status: 404 });
-    }
-  } catch (error) {
-    console.error('Error deleting backup:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error occurred while deleting backup' 
-    }, { status: 500 });
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
+    const id = await resolveId(params);
+    if (!id) return NextResponse.json({ error: 'Invalid backup ID' }, { status: 400 });
+    await deleteFile(`backups/${id}.json`);
+    return NextResponse.json({ message: 'Backup deleted successfully' });
+  } catch {
+    return NextResponse.json({ error: 'Backup file not found' }, { status: 404 });
   }
 }

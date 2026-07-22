@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUser } from '@/lib/server-auth';
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const { id } = await params;
     const assignment = await prisma.assignment.findUnique({
@@ -25,9 +21,9 @@ export async function DELETE(
     }
 
     // Only the creator, producers, or admins can delete assignments
-    const canDelete = session.user.role === 'ADMIN' || 
-                     session.user.role === 'PRODUCER' || 
-                     assignment.createdById === session.user.id;
+    const canDelete = auth.user.role === 'ADMIN' ||
+                     auth.user.role === 'PRODUCER' ||
+                     assignment.createdById === auth.user.id;
 
     if (!canDelete) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -49,11 +45,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const { id } = await params;
     const assignment = await prisma.assignment.findUnique({

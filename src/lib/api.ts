@@ -21,8 +21,6 @@ export interface UpdateAssignmentData extends CreateAssignmentData {
   id: string;
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
   comment?: string;
-  completedById?: string | null;
-  completedAt?: string | null;
 }
 
 export interface CreateUserData {
@@ -141,24 +139,6 @@ class ApiClient {
     });
   }
 
-  // File Upload API
-  async uploadFile(file: File) {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await fetch('/api/upload', {
-      method: 'POST',
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Upload failed');
-    }
-
-    return data;
-  }
 }
 
 export const api = new ApiClient();

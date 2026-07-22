@@ -35,7 +35,7 @@ const getUserFormSchema = (currentLang: string) => z.object({
   name: z.string().min(1, { message: getTranslation(currentLang, 'ZodUserNameRequired') }),
   email: z.string().email({ message: getTranslation(currentLang, 'ZodEmailInvalid') })
            .min(1, { message: getTranslation(currentLang, 'ZodUserEmailRequired') }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+  password: z.string().min(12, { message: 'Password must be at least 12 characters' }),
   role: z.enum(userRoles, { 
     required_error: getTranslation(currentLang, 'ZodUserRoleRequired'),
   }),
@@ -232,7 +232,7 @@ export function UserManagementDashboard() {
         const data = await response.json();
         toast({
           title: 'Password Reset Successfully',
-          description: `Password for ${userName} has been reset to: ${data.newPassword}`,
+          description: `One-time password for ${userName}: ${data.temporaryPassword}`,
         });
       } else {
         const errorData = await response.json();
@@ -477,4 +477,3 @@ export function UserManagementDashboard() {
   );
 }
 
-    

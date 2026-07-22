@@ -1,8 +1,8 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
+import { checkRateLimit } from './rate-limit';
 
 export const authOptions: NextAuthOptions = {
   // Don't use PrismaAdapter with credentials provider and JWT strategy
@@ -13,29 +13,31 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials) {
-        console.log('NextAuth authorize called with:', credentials?.email);
-        
+      async authorize(credentials, request) {
         if (!credentials?.email || !credentials?.password) {
-          console.log('Missing email or password');
           return null;
         }
 
+        const email = credentials.email.trim().toLowerCase();
+        const forwardedFor = request.headers?.['cf-connecting-ip'] || request.headers?.['x-forwarded-for'];
+        const clientAddress = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor?.split(',')[0]?.trim();
+        const accountLimit = checkRateLimit(`login:account:${email}`, { limit: 10, windowMs: 15 * 60_000 });
+        const addressLimit = checkRateLimit(`login:address:${clientAddress || 'unknown'}`, {
+          limit: 30,
+          windowMs: 15 * 60_000,
+        });
+        if (!accountLimit.allowed || !addressLimit.allowed) return null;
+
         try {
           const user = await prisma.user.findUnique({
-            where: { email: credentials.email }
+            where: { email }
           });
 
-          console.log('User found:', !!user);
-
           if (!user || !user.password) {
-            console.log('User not found or no password');
             return null;
           }
 
           const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
-          console.log('Password valid:', isPasswordValid);
-          
           if (!isPasswordValid) {
             return null;
           }
@@ -45,8 +47,9 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             name: user.name || user.email,
             role: user.role,
+            sessionVersion: user.sessionVersion,
+            passwordResetRequired: user.passwordResetRequired,
           };
-          console.log('Returning user:', result);
           return result;
         } catch (error) {
           console.error('Auth error:', error);
@@ -63,6 +66,8 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.sub = user.id; // Set the user ID in the token
         token.role = user.role;
+        token.sessionVersion = user.sessionVersion;
+        token.passwordResetRequired = user.passwordResetRequired;
       }
       return token;
     },
@@ -70,6 +75,8 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.sub!;
         session.user.role = token.role;
+        session.user.sessionVersion = token.sessionVersion;
+        session.user.passwordResetRequired = token.passwordResetRequired;
       }
       return session;
     },

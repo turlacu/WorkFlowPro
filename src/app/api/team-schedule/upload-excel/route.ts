@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 import Fuse from 'fuse.js';
+import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const UploadMetadataSchema = z.object({
+  month: z.coerce.number().int().min(1).max(12),
+  year: z.coerce.number().int().min(2020).max(2100),
+  role: z.enum(['OPERATOR', 'PRODUCER']),
+});
+
+type ScheduleRole = z.infer<typeof UploadMetadataSchema>['role'];
+
+const MAX_EXCEL_SIZE = 10 * 1024 * 1024;
+const EXCEL_TYPES = new Set([
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+]);
 
 interface ExcelParseResult {
   success: boolean;
@@ -523,7 +538,7 @@ async function parseExcelSchedule(
   buffer: Buffer, 
   targetMonth: number, 
   targetYear: number, 
-  role: string = 'OPERATOR', 
+  role: ScheduleRole = 'OPERATOR',
   filename?: string,
   session?: any
 ): Promise<ExcelParseResult & {configId?: string}> {
@@ -705,46 +720,53 @@ async function parseExcelSchedule(
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can upload schedules' }, { status: 403 });
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
+    const rateLimit = checkRateLimit(`excel:${auth.user.id}`, { limit: 20, windowMs: 60 * 60_000 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfterSeconds) } },
+      );
     }
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const month = parseInt(formData.get('month') as string);
-    const year = parseInt(formData.get('year') as string);
     const preview = formData.get('preview') === 'true';
-    let role = (formData.get('role') as string) || 'OPERATOR';
+    let requestedRole = (formData.get('role') as string) || 'OPERATOR';
     
     // Auto-detect role from filename if not explicitly provided
     if (!formData.get('role') && file?.name) {
       const filename = file.name.toLowerCase();
       if (filename.includes('coordonator') || filename.includes('coordinator') || filename.includes('producer') || filename.includes('coord')) {
-        role = 'PRODUCER';
+        requestedRole = 'PRODUCER';
         console.log('Auto-detected PRODUCER role from filename:', file.name);
       }
     }
-
-    console.log('Excel upload request:', { filename: file?.name, month, year, preview, role });
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    if (!month || !year || month < 1 || month > 12) {
-      return NextResponse.json({ error: 'Invalid month or year' }, { status: 400 });
+    const metadata = UploadMetadataSchema.parse({
+      month: formData.get('month'),
+      year: formData.get('year'),
+      role: requestedRole,
+    });
+    const { month, year } = metadata;
+    const role = metadata.role;
+    if (file.size > MAX_EXCEL_SIZE) {
+      return NextResponse.json({ error: 'File exceeds the 10 MB limit' }, { status: 400 });
+    }
+    if (!EXCEL_TYPES.has(file.type) || !/\.(xlsx|xls)$/i.test(file.name)) {
+      return NextResponse.json({ error: 'Only Excel .xlsx and .xls files are accepted' }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     console.log('File parsed, buffer size:', buffer.length);
     
-    const parseResult = await parseExcelSchedule(buffer, month, year, role, file.name, session);
+    const sessionContext = { user: auth.user };
+    const parseResult = await parseExcelSchedule(buffer, month, year, role, file.name, sessionContext);
     console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
     
     if (parseResult.success && parseResult.data && parseResult.data.length > 0) {
@@ -756,7 +778,7 @@ export async function POST(request: NextRequest) {
       if (parseResult.configId) {
         await logConfigurationUsage(
           parseResult.configId, 
-          session.user.id, 
+          auth.user.id,
           file.name, 
           0, // entriesCount
           0, // successCount
@@ -893,8 +915,8 @@ export async function POST(request: NextRequest) {
     console.log('Clearing existing schedules for month and role:', { year, month, role });
     
     // Create proper date range - be more explicit about timezone
-    const startOfMonth = new Date(year, month - 1, 1); // First day of month
-    const endOfMonth = new Date(year, month, 1); // First day of next month
+    const startOfMonth = new Date(Date.UTC(year, month - 1, 1));
+    const endOfMonth = new Date(Date.UTC(year, month, 1));
     
     console.log('Date range for deletion:', { 
       start: startOfMonth.toISOString(), 
@@ -910,65 +932,31 @@ export async function POST(request: NextRequest) {
     
     console.log(`Found ${roleUserIds.length} users with role ${role} for deletion targeting`);
     
-    let deleteResult;
-    try {
-      deleteResult = await prisma.teamSchedule.deleteMany({
-        where: {
-          date: {
-            gte: startOfMonth,
-            lt: endOfMonth
-          },
-          userId: {
-            in: roleUserIds
-          }
-        }
-      });
-      console.log('Deleted existing schedules:', deleteResult.count);
-    } catch (deleteError) {
-      console.error('Database error deleting schedules:', deleteError);
-      throw new Error(`Delete error: ${deleteError instanceof Error ? deleteError.message : 'Unknown delete error'}`);
-    }
+    const scheduleRows = matchedEntries.map((entry) => ({
+      date: new Date(`${entry.date}T00:00:00.000Z`),
+      userId: entry.matchedUserId!,
+      shiftColor: entry.shiftColor,
+      shiftHours: entry.shiftHours,
+    }));
 
-    // Insert new schedule entries using individual creates to handle duplicates better
-    console.log('Creating schedule entries:', matchedEntries.length);
-    console.log('Sample entry data:', matchedEntries.slice(0, 3));
-    
-    let createdCount = 0;
-    let skippedCount = 0;
-    
-    try {
-      for (const entry of matchedEntries) {
-        try {
-          await prisma.teamSchedule.create({
-            data: {
-              date: new Date(entry.date + 'T00:00:00'),
-              userId: entry.matchedUserId!,
-              shiftColor: entry.shiftColor,
-              shiftHours: entry.shiftHours
-            }
-          });
-          createdCount++;
-        } catch (createError: any) {
-          if (createError.code === 'P2002') {
-            // Unique constraint violation - skip this entry
-            console.log(`Skipping duplicate entry: ${entry.matchedUserName} on ${entry.date}`);
-            skippedCount++;
-          } else {
-            throw createError;
-          }
-        }
-      }
-      console.log(`Created ${createdCount} schedule entries, skipped ${skippedCount} duplicates`);
-    } catch (createError) {
-      console.error('Database error creating schedules:', createError);
-      throw new Error(`Create error: ${createError instanceof Error ? createError.message : 'Unknown create error'}`);
-    }
+    const transactionResult = await prisma.$transaction(async (tx) => {
+      const deleted = await tx.teamSchedule.deleteMany({
+        where: {
+          date: { gte: startOfMonth, lt: endOfMonth },
+          userId: { in: roleUserIds },
+        },
+      });
+      const created = await tx.teamSchedule.createMany({ data: scheduleRows, skipDuplicates: true });
+      return { deleted: deleted.count, created: created.count };
+    });
+    const createdCount = transactionResult.created;
+    const skippedCount = scheduleRows.length - createdCount;
 
     // Log successful configuration usage
     if (parseResult.configId) {
       await logConfigurationUsage(
         parseResult.configId, 
-        session.user.id, 
+        auth.user.id,
         file.name, 
         parseResult.data.length, // entriesCount
         createdCount, // successCount
@@ -986,6 +974,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+    }
     console.error('Error uploading schedule:', error);
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json({ 

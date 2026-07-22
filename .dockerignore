@@ -1,7 +1,3 @@
-# Don't ignore the database file or migrations
-!prisma/data.db
-!prisma/migrations/
-
 # Standard ignores
 node_modules
 .git
@@ -22,3 +18,5 @@ yarn-error.log*
 .vercel
 .DS_Store
 *.log
+prisma/*.db
+prisma/*.db-*

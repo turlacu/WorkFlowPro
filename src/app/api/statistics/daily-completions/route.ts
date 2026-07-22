@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { format, eachDayOfInterval, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { requireUser } from '@/lib/server-auth';
 
 const GetDailyCompletionsSchema = z.object({
-  month: z.string(), // YYYY-MM format
+  month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
 });
 
 export async function POST(request: NextRequest) {
@@ -18,11 +17,8 @@ export async function POST(request: NextRequest) {
     
     console.log('📊 Requested month:', month);
 
-    // Get session
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     // Parse the month (YYYY-MM format)
     const [year, monthNum] = month.split('-').map(Number);

@@ -1,30 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
+
+const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(12, 'New password must be at least 12 characters long'),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { currentPassword, newPassword } = await request.json();
-
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json({ error: 'Current password and new password are required' }, { status: 400 });
-    }
-
-    if (newPassword.length < 6) {
-      return NextResponse.json({ error: 'New password must be at least 6 characters long' }, { status: 400 });
-    }
+    const auth = await requireUser(undefined, true);
+    if (auth.response) return auth.response;
+    const { currentPassword, newPassword } = ChangePasswordSchema.parse(await request.json());
 
     // Get the user with current password
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: auth.user.id },
       select: { id: true, password: true }
     });
 
@@ -43,13 +36,20 @@ export async function POST(request: NextRequest) {
 
     // Update password
     await prisma.user.update({
-      where: { id: session.user.id },
-      data: { password: hashedNewPassword }
+      where: { id: auth.user.id },
+      data: {
+        password: hashedNewPassword,
+        passwordResetRequired: false,
+        sessionVersion: { increment: 1 },
+      }
     });
 
     return NextResponse.json({ success: true, message: 'Password updated successfully' });
 
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+    }
     console.error('Error changing password:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

@@ -66,15 +66,15 @@ WorkFlow Pro supports three distinct user roles:
 3. Enter your password
 4. Click "Sign In"
 
-### Default Admin Account
-- **Email:** `admin@workflowpro.com`
-- **Password:** `admin123`
-- **⚠️ Important:** Change this password immediately after first login
+### Administrator account
+
+The application has no default login. The server owner creates the first administrator during
+deployment, and that administrator must replace the temporary password at first login.
 
 ### Password Management
 - Users can change their password through Settings
 - Current password verification is required
-- Use strong passwords with mixed characters
+- Passwords must contain at least 12 characters
 
 ### Session Management
 - Sessions remain active during browser usage

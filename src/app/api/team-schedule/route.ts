@@ -1,34 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
+import { parseDateOnly, utcDayRange } from '@/lib/date-only';
 
 const CreateTeamScheduleSchema = z.object({
-  date: z.string().datetime('Invalid date format'),
-  userIds: z.array(z.string()).min(1, 'At least one user is required'),
+  date: z.string(),
+  userIds: z.array(z.string().cuid()).min(1, 'At least one user is required').max(500),
 });
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
 
     let whereClause: any = {};
     if (date) {
-      // Parse date as local date without timezone conversion
-      const targetDate = new Date(date + 'T00:00:00');
-      const nextDay = new Date(date + 'T23:59:59.999');
-      
+      const range = utcDayRange(date);
+      if (!range) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
       whereClause.date = {
-        gte: targetDate,
-        lte: nextDay,
+        gte: range.start,
+        lt: range.end,
       };
     }
 
@@ -94,40 +89,32 @@ export async function POST(request: NextRequest) {
   let validatedData: z.infer<typeof CreateTeamScheduleSchema>;
   
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'PRODUCER') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN', 'PRODUCER']);
+    if (auth.response) return auth.response;
 
     requestBody = await request.json();
     validatedData = CreateTeamScheduleSchema.parse(requestBody);
 
-    // Parse date without timezone issues
-    const dateStr = validatedData.date.split('T')[0];
-    const date = new Date(dateStr + 'T00:00:00');
-    const endOfDay = new Date(dateStr + 'T23:59:59.999');
-    
-    // Remove existing schedules for this date
-    await prisma.teamSchedule.deleteMany({
-      where: {
-        date: {
-          gte: date,
-          lte: endOfDay,
-        },
-      },
-    });
+    const date = parseDateOnly(validatedData.date);
+    const range = utcDayRange(validatedData.date);
+    if (!date || !range) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
-    // Create new schedules
-    const schedules = await prisma.teamSchedule.createMany({
-      data: validatedData.userIds.map(userId => ({
-        date,
-        userId,
-      })),
+    const uniqueUserIds = [...new Set(validatedData.userIds)];
+    const users = await prisma.user.findMany({
+      where: { id: { in: uniqueUserIds } },
+      select: { id: true },
+    });
+    if (users.length !== uniqueUserIds.length) {
+      return NextResponse.json({ error: 'One or more user IDs are invalid' }, { status: 400 });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.teamSchedule.deleteMany({
+        where: { date: { gte: range.start, lt: range.end } },
+      });
+      await tx.teamSchedule.createMany({
+        data: uniqueUserIds.map((userId) => ({ date, userId })),
+      });
     });
 
     // Fetch created schedules with user data
@@ -135,7 +122,7 @@ export async function POST(request: NextRequest) {
       where: {
         date: {
           gte: date,
-          lte: endOfDay,
+          lt: range.end,
         },
       },
       include: {

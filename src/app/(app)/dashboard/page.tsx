@@ -194,7 +194,7 @@ export default function DashboardPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          date: selectedDate.toISOString(),
+          date: format(selectedDate, 'yyyy-MM-dd'),
           userIds: allSelectedUsers.map(user => user.id),
         }),
       });
@@ -221,7 +221,7 @@ export default function DashboardPage() {
         variant: 'destructive',
       });
     }
-  }, [selectedDate, selectedProducers, selectedOperators, currentLang, toast]);
+  }, [selectedDate, selectedProducers, selectedOperators, currentLang, toast, fetchExistingSchedule]);
 
   const handleDateSelect = React.useCallback((date: Date | undefined) => {
     setSelectedDate(date);

@@ -84,11 +84,11 @@ A comprehensive work assignment and team scheduling application built with Next.
 6. **Open application**
    Navigate to `http://localhost:3000`
 
-### Default Admin Login
-- **Email**: `admin@workflowpro.com`
-- **Password**: `admin123`
+### First administrator
 
-⚠️ **Important**: Change the default password immediately after first login!
+There are no default credentials. For production, follow `DEPLOYMENT.md`. For a local database,
+run `npm run admin:create -- --email=you@example.com`; the command generates a one-time password
+and forces a password change.
 
 ## 📁 Project Structure
 

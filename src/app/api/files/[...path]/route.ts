@@ -1,66 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import path from 'path';
-import { existsSync } from 'fs';
+import { Readable } from 'node:stream';
+import { prisma } from '@/lib/prisma';
+import { getFile } from '@/lib/minio';
+import { requireUser } from '@/lib/server-auth';
+import { safeDownloadName } from '@/lib/safe-path';
 
 export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ path: string[] }> }
+  _request: NextRequest,
+  context: { params: Promise<{ path: string[] }> },
 ) {
   try {
-    // Await the params (Next.js 15 requirement)
-    const params = await context.params;
-    
-    // Reconstruct the file path
-    const filePath = params.path.join('/');
-    
-    // Security: Only allow access to files in the uploads directory
-    if (!filePath.startsWith('uploads/schedules/')) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
+
+    const { path } = await context.params;
+    if (path.length !== 3 || path[0] !== 'uploads' || path[1] !== 'schedules' || !path[2]) {
+      return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
     }
 
-    // Construct full file path
-    const fullPath = path.join(process.cwd(), 'public', filePath);
-    
-    // Check if file exists
-    if (!existsSync(fullPath)) {
+    const publicPath = `/${path.join('/')}`;
+    const schedule = await prisma.dailySchedule.findFirst({
+      where: { filePath: publicPath },
+      select: { fileName: true, mimeType: true },
+    });
+    if (!schedule?.fileName) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    // Read the file
-    const fileBuffer = await readFile(fullPath);
-    
-    // Determine content type based on file extension
-    const ext = path.extname(fullPath).toLowerCase();
-    let contentType = 'application/octet-stream';
-    
-    switch (ext) {
-      case '.pdf':
-        contentType = 'application/pdf';
-        break;
-      case '.doc':
-        contentType = 'application/msword';
-        break;
-      case '.docx':
-        contentType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-        break;
-      case '.txt':
-        contentType = 'text/plain';
-        break;
-      case '.html':
-        contentType = 'text/html';
-        break;
-      case '.rtf':
-        contentType = 'application/rtf';
-        break;
-    }
-
-    // Return the file with appropriate headers
-    return new Response(fileBuffer, {
+    const objectName = `schedules/${path[2]}`;
+    const { stream, stat } = await getFile(objectName);
+    return new Response(Readable.toWeb(stream) as ReadableStream, {
       headers: {
-        'Content-Type': contentType,
-        'Content-Disposition': `inline; filename="${path.basename(fullPath)}"`,
-        'Cache-Control': 'public, max-age=3600',
+        'Content-Type': schedule.mimeType || 'application/octet-stream',
+        'Content-Length': String(stat.size),
+        'Content-Disposition': `inline; filename="${safeDownloadName(schedule.fileName)}"`,
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (error) {

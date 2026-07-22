@@ -50,11 +50,7 @@ export default function ExcelConfigurationsPage() {
 
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    fetchConfigurations();
-  }, []);
-
-  const fetchConfigurations = async () => {
+  const fetchConfigurations = React.useCallback(async () => {
     try {
       const response = await fetch('/api/excel-configurations');
       if (!response.ok) {
@@ -72,7 +68,11 @@ export default function ExcelConfigurationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  React.useEffect(() => {
+    fetchConfigurations();
+  }, [fetchConfigurations]);
 
   const handleDeleteConfiguration = async (id: string) => {
     try {

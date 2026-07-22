@@ -1,35 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-
-// Helper function to save uploaded file to disk
-async function saveUploadedFile(file: File, fileName: string): Promise<string> {
-  try {
-    // Create uploads directory if it doesn't exist
-    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'schedules');
-    await mkdir(uploadsDir, { recursive: true });
-
-    // Create unique filename with timestamp
-    const timestamp = Date.now();
-    const fileExtension = path.extname(fileName);
-    const baseName = path.basename(fileName, fileExtension);
-    const uniqueFileName = `${timestamp}-${baseName}${fileExtension}`;
-    const filePath = path.join(uploadsDir, uniqueFileName);
-
-    // Save file
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await writeFile(filePath, buffer);
-
-    // Return public URL path
-    return `/uploads/schedules/${uniqueFileName}`;
-  } catch (error) {
-    console.error('Error saving file:', error);
-    throw new Error('Failed to save file');
-  }
-}
+import { uploadFile, deleteFile } from '@/lib/minio';
+import { requireUser } from '@/lib/server-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { parseDateOnly } from '@/lib/date-only';
 
 // Helper function for PDF files
 async function getPDFInfo(file: File): Promise<string> {
@@ -45,26 +20,21 @@ You can view the schedule content in the Document Viewer below.`;
 }
 
 export async function POST(request: NextRequest) {
+  let uploadedObjectName: string | null = null;
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Only ADMIN and PRODUCER can upload daily schedules
-    if (!['ADMIN', 'PRODUCER'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: 'Forbidden - Only admins and producers can upload daily schedules' },
-        { status: 403 }
-      );
+    const auth = await requireUser(['ADMIN', 'PRODUCER']);
+    if (auth.response) return auth.response;
+    const rateLimit = checkRateLimit(`daily-upload:${auth.user.id}`, { limit: 20, windowMs: 60 * 60_000 });
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: 'Too many uploads' }, { status: 429 });
     }
 
     const formData = await request.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get('file');
     const date = formData.get('date') as string;
-    const title = formData.get('title') as string;
+    const titleResult = z.string().trim().min(1).max(200).safeParse(formData.get('title'));
 
-    if (!file) {
+    if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
@@ -72,9 +42,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No date provided' }, { status: 400 });
     }
 
-    if (!title) {
-      return NextResponse.json({ error: 'No title provided' }, { status: 400 });
+    if (!titleResult.success) {
+      return NextResponse.json({ error: 'A title of at most 200 characters is required' }, { status: 400 });
     }
+    const title = titleResult.data;
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
@@ -87,27 +58,23 @@ export async function POST(request: NextRequest) {
     // Validate file type - only PDF files allowed
     const allowedTypes = ['application/pdf'];
 
-    if (!allowedTypes.includes(file.type) && !file.name.match(/\.pdf$/i)) {
+    if (!allowedTypes.includes(file.type) || !file.name.match(/\.pdf$/i)) {
       return NextResponse.json(
         { error: 'Only PDF files are supported for daily schedules.' },
         { status: 400 }
       );
     }
 
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
+    const targetDate = parseDateOnly(date);
+    if (!targetDate) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
-    // Save file to disk
-    let filePath: string;
-    try {
-      filePath = await saveUploadedFile(file, file.name);
-    } catch (error) {
-      console.error('Error saving file:', error);
-      return NextResponse.json(
-        { error: 'Failed to save uploaded file' },
-        { status: 500 }
-      );
+    const buffer = Buffer.from(await file.arrayBuffer());
+    if (buffer.length < 5 || buffer.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      return NextResponse.json({ error: 'The uploaded file is not a valid PDF' }, { status: 400 });
     }
+    const objectName = await uploadFile(file.name, buffer, 'application/pdf');
+    uploadedObjectName = objectName;
+    const filePath = `/uploads/${objectName}`;
 
     // Generate PDF info content
     let content: string;
@@ -136,7 +103,7 @@ export async function POST(request: NextRequest) {
           fileSize: file.size,
           mimeType: file.type,
           filePath,
-          uploadedBy: session.user.id,
+          uploadedBy: auth.user.id,
         },
         include: {
           uploader: {
@@ -159,7 +126,7 @@ export async function POST(request: NextRequest) {
           fileSize: file.size,
           mimeType: file.type,
           filePath,
-          uploadedBy: session.user.id,
+          uploadedBy: auth.user.id,
         },
         include: {
           uploader: {
@@ -173,6 +140,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    if (existingSchedule?.filePath && existingSchedule.filePath !== filePath) {
+      const oldObjectName = existingSchedule.filePath.replace(/^\/uploads\//, '');
+      await deleteFile(oldObjectName).catch((error) => console.error('Failed to delete replaced file:', error));
+    }
+
+    uploadedObjectName = null;
     return NextResponse.json({
       success: true,
       schedule,
@@ -181,6 +154,9 @@ export async function POST(request: NextRequest) {
         : 'Schedule uploaded successfully',
     });
   } catch (error) {
+    if (uploadedObjectName) {
+      await deleteFile(uploadedObjectName).catch(() => undefined);
+    }
     console.error('Error uploading daily schedule:', error);
     return NextResponse.json(
       { error: 'Failed to upload daily schedule' },

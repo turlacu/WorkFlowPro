@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { requireUser } from '@/lib/server-auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can access configurations' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const { id } = await params;
     const configuration = await prisma.excelUploadConfiguration.findUnique({
@@ -53,15 +45,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can delete configurations' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const { id } = await params;
     // Check if configuration exists and get usage count

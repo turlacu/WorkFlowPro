@@ -1,64 +1,48 @@
-# Build stage
-FROM node:20-alpine AS builder
-
-# Install dependencies only when needed
-RUN apk add --no-cache libc6-compat
-
+FROM node:22.23.1-alpine3.24 AS dependencies
 WORKDIR /app
+RUN apk add --no-cache libc6-compat
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
-
-# Install dependencies (including dev dependencies for build)
-RUN npm ci && npm cache clean --force
-
-# Copy source code
+FROM dependencies AS builder
+WORKDIR /app
+ARG NEXTAUTH_URL
+ENV NEXTAUTH_URL=${NEXTAUTH_URL}
 COPY . .
-
-# Generate Prisma Client
 RUN npx prisma generate
-
-# Build application
 RUN npm run build
 
-# Production stage
-FROM node:20-alpine AS runner
-
+FROM node:22.23.1-alpine3.24 AS migrator
 WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=dependencies /app/node_modules ./node_modules
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+ENTRYPOINT ["./node_modules/.bin/prisma"]
+CMD ["migrate", "deploy"]
 
-# Don't run production as root
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+FROM dependencies AS bootstrap
+WORKDIR /app
+ENV NODE_ENV=production
+COPY prisma ./prisma
+ENTRYPOINT ["./node_modules/.bin/tsx"]
+CMD ["prisma/seed.ts"]
 
-# Install runtime dependencies
-RUN apk add --no-cache bash
+FROM node:22.23.1-alpine3.24 AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
 
-# Copy package files for runtime dependencies
-COPY --from=builder /app/package*.json ./
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
 
-# Install production dependencies and prisma CLI
-RUN npm ci --only=production && npm install prisma tsx && npm cache clean --force
-
-# Copy the public folder from the project as this is not included in the build process
 COPY --from=builder /app/public ./public
-
-# Copy the standalone build output
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy prisma directory for migrations and seeding
-COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-
-# Copy startup script
-COPY --from=builder --chown=nextjs:nodejs /app/scripts/startup.sh ./startup.sh
-
 USER nextjs
-
 EXPOSE 3000
-
-ENV PORT 3000
-ENV HOSTNAME "0.0.0.0"
-
-CMD ["./startup.sh"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/api/health >/dev/null || exit 1
+CMD ["node", "server.js"]

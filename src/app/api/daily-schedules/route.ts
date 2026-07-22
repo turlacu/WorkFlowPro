@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
+import { parseDateOnly } from '@/lib/date-only';
+import { deleteFile } from '@/lib/minio';
 
 const CreateDailyScheduleSchema = z.object({
   date: z.string().refine((date) => !isNaN(Date.parse(date))),
@@ -20,10 +21,8 @@ const UpdateDailyScheduleSchema = z.object({
 // GET - Fetch daily schedules
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
@@ -34,16 +33,21 @@ export async function GET(request: NextRequest) {
 
     if (date) {
       // Fetch specific date
-      const targetDate = new Date(date);
-      targetDate.setHours(0, 0, 0, 0);
+      const targetDate = parseDateOnly(date);
+      if (!targetDate) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
       whereClause.date = targetDate;
     } else if (month && year) {
       // Fetch all schedules for a specific month
-      const startDate = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const endDate = new Date(parseInt(year), parseInt(month), 0, 23, 59, 59, 999);
+      const parsedMonth = Number(month);
+      const parsedYear = Number(year);
+      if (!Number.isInteger(parsedMonth) || parsedMonth < 1 || parsedMonth > 12 || !Number.isInteger(parsedYear)) {
+        return NextResponse.json({ error: 'Invalid month or year' }, { status: 400 });
+      }
+      const startDate = new Date(Date.UTC(parsedYear, parsedMonth - 1, 1));
+      const endDate = new Date(Date.UTC(parsedYear, parsedMonth, 1));
       whereClause.date = {
         gte: startDate,
-        lte: endDate,
+        lt: endDate,
       };
     } else {
       // Fetch recent schedules (last 30 days)
@@ -83,24 +87,14 @@ export async function GET(request: NextRequest) {
 // POST - Create new daily schedule
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Only ADMIN and PRODUCER can create daily schedules
-    if (!['ADMIN', 'PRODUCER'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: 'Forbidden - Only admins and producers can upload daily schedules' },
-        { status: 403 }
-      );
-    }
+    const auth = await requireUser(['ADMIN', 'PRODUCER']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     const validatedData = CreateDailyScheduleSchema.parse(body);
 
-    const targetDate = new Date(validatedData.date);
-    targetDate.setHours(0, 0, 0, 0);
+    const targetDate = parseDateOnly(validatedData.date);
+    if (!targetDate) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
     // Check if schedule already exists for this date
     const existingSchedule = await prisma.dailySchedule.findUnique({
@@ -122,7 +116,7 @@ export async function POST(request: NextRequest) {
         fileName: validatedData.fileName,
         fileSize: validatedData.fileSize,
         mimeType: validatedData.mimeType,
-        uploadedBy: session.user.id,
+        uploadedBy: auth.user.id,
       },
       include: {
         uploader: {
@@ -156,18 +150,8 @@ export async function POST(request: NextRequest) {
 // PUT - Update existing daily schedule
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Only ADMIN and PRODUCER can update daily schedules
-    if (!['ADMIN', 'PRODUCER'].includes(session.user.role)) {
-      return NextResponse.json(
-        { error: 'Forbidden - Only admins and producers can update daily schedules' },
-        { status: 403 }
-      );
-    }
+    const auth = await requireUser(['ADMIN', 'PRODUCER']);
+    if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
@@ -179,8 +163,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
+    const targetDate = parseDateOnly(date);
+    if (!targetDate) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
     const body = await request.json();
     const validatedData = UpdateDailyScheduleSchema.parse(body);
@@ -200,7 +184,7 @@ export async function PUT(request: NextRequest) {
       where: { date: targetDate },
       data: {
         ...validatedData,
-        uploadedBy: session.user.id, // Update uploader to current user
+        uploadedBy: auth.user.id,
       },
       include: {
         uploader: {
@@ -234,18 +218,8 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete daily schedule
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Only ADMIN can delete daily schedules
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Forbidden - Only admins can delete daily schedules' },
-        { status: 403 }
-      );
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
@@ -257,8 +231,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
+    const targetDate = parseDateOnly(date);
+    if (!targetDate) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
 
     const existingSchedule = await prisma.dailySchedule.findUnique({
       where: { date: targetDate },
@@ -274,6 +248,11 @@ export async function DELETE(request: NextRequest) {
     await prisma.dailySchedule.delete({
       where: { date: targetDate },
     });
+    if (existingSchedule.filePath) {
+      await deleteFile(existingSchedule.filePath.replace(/^\/uploads\//, '')).catch((error) => {
+        console.error('Failed to delete schedule object:', error);
+      });
+    }
 
     return NextResponse.json({ success: true, message: 'Schedule deleted successfully' });
   } catch (error) {

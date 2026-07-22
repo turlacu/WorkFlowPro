@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { requireUser } from '@/lib/server-auth';
+import { canUpdateUser } from '@/lib/roles';
+import type { Prisma } from '@prisma/client';
 
 const CreateUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string().min(12, 'Password must be at least 12 characters'),
   role: z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']).default('OPERATOR'),
 });
 
@@ -17,24 +18,23 @@ const UpdateUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
   role: z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']),
-  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
 });
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
-    const role = searchParams.get('role');
-
-    let whereClause: any = {};
-    if (role) {
-      whereClause.role = role;
+    const requestedRole = searchParams.get('role');
+    const role = requestedRole
+      ? z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']).safeParse(requestedRole)
+      : null;
+    if (role && !role.success) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
     }
+
+    const whereClause: Prisma.UserWhereInput = role?.success ? { role: role.data } : {};
 
     const users = await prisma.user.findMany({
       where: whereClause,
@@ -60,22 +60,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     const validatedData = CreateUserSchema.parse(body);
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email: validatedData.email },
+      where: { email: validatedData.email.toLowerCase() },
     });
 
     if (existingUser) {
@@ -88,7 +81,7 @@ export async function POST(request: NextRequest) {
     const user = await prisma.user.create({
       data: {
         name: validatedData.name,
-        email: validatedData.email,
+        email: validatedData.email.toLowerCase(),
         password: hashedPassword,
         role: validatedData.role,
       },
@@ -114,35 +107,29 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await requireUser();
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     const validatedData = UpdateUserSchema.parse(body);
 
     // Check if user has permission to update
-    const canUpdate = session.user.role === 'ADMIN' || session.user.id === validatedData.id;
+    const canUpdate = canUpdateUser(auth.user, validatedData.id, validatedData.role);
     
     if (!canUpdate) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const updateData: any = {
-      name: validatedData.name,
-      email: validatedData.email,
-      role: validatedData.role,
-    };
-
-    if (validatedData.password) {
-      updateData.password = await bcrypt.hash(validatedData.password, 12);
-    }
-
     const user = await prisma.user.update({
       where: { id: validatedData.id },
-      data: updateData,
+      data: {
+        name: validatedData.name,
+        email: validatedData.email.toLowerCase(),
+        ...(auth.user.role === 'ADMIN' ? { role: validatedData.role } : {}),
+        ...(auth.user.role === 'ADMIN' && validatedData.id !== auth.user.id
+          ? { sessionVersion: { increment: 1 } }
+          : {}),
+      },
       select: {
         id: true,
         name: true,

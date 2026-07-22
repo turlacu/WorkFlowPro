@@ -1,33 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
 
 const DeleteMonthScheduleSchema = z.object({
   month: z.number().min(1).max(12),
-  year: z.number().min(2020).max(2030),
+  year: z.number().int().min(2020).max(2100),
   userRole: z.enum(['OPERATOR', 'PRODUCER', 'ALL']),
 });
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can delete schedules' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     const { month, year, userRole } = DeleteMonthScheduleSchema.parse(body);
 
     // Create date range for the specific month
-    const startDate = new Date(year, month - 1, 1); // month is 0-indexed in Date constructor
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999); // Last day of the month
+    const startDate = new Date(Date.UTC(year, month - 1, 1));
+    const endDate = new Date(Date.UTC(year, month, 1));
 
     console.log('Delete month schedule request:', {
       month,
@@ -41,7 +33,7 @@ export async function DELETE(request: NextRequest) {
     let whereClause: any = {
       date: {
         gte: startDate,
-        lte: endDate,
+        lt: endDate,
       },
     };
 

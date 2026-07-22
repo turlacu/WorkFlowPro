@@ -1,26 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { isStorageHealthy } from '@/lib/minio';
 
 export async function GET() {
   try {
-    // Check database connection
-    await prisma.$queryRaw`SELECT 1`;
-    
-    // Check if users exist
-    const userCount = await prisma.user.count();
-    const adminUser = await prisma.user.findFirst({
-      where: { email: 'admin@workflowpro.com' }
-    });
+    const [, storageHealthy] = await Promise.all([
+      prisma.$queryRaw`SELECT 1`,
+      isStorageHealthy(),
+    ]);
+    if (!storageHealthy) throw new Error('Object storage unavailable');
     
     return NextResponse.json({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '1.0.0',
-      database: 'connected',
-      environment: process.env.NODE_ENV || 'development',
-      userCount,
-      adminExists: !!adminUser,
-      databaseUrl: process.env.DATABASE_URL ? 'configured' : 'missing'
+      checks: { database: 'healthy', objectStorage: 'healthy' },
     });
   } catch (error) {
     console.error('Health check failed:', error);
@@ -29,8 +22,7 @@ export async function GET() {
       {
         status: 'unhealthy',
         timestamp: new Date().toISOString(),
-        error: error instanceof Error ? error.message : 'Unknown error',
-        databaseUrl: process.env.DATABASE_URL ? 'configured' : 'missing'
+        checks: { database: 'unknown', objectStorage: 'unknown' },
       },
       { status: 503 }
     );

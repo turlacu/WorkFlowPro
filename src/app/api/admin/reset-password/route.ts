@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { randomBytes } from 'node:crypto';
+import { requireUser } from '@/lib/server-auth';
 
 const ResetPasswordSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
@@ -11,15 +11,8 @@ const ResetPasswordSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     const validatedData = ResetPasswordSchema.parse(body);
@@ -35,23 +28,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Prevent admin from resetting their own password through this endpoint
-    if (targetUser.id === session.user.id) {
+    if (targetUser.id === auth.user.id) {
       return NextResponse.json({ 
         error: 'Cannot reset your own password. Use the profile settings instead.' 
       }, { status: 400 });
     }
 
-    // Hash the default password "123456"
-    const defaultPassword = '123456';
-    const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+    const temporaryPassword = randomBytes(18).toString('base64url');
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
 
     // Update user's password
     await prisma.user.update({
       where: { id: validatedData.userId },
-      data: { password: hashedPassword }
+      data: {
+        password: hashedPassword,
+        passwordResetRequired: true,
+        sessionVersion: { increment: 1 },
+      }
     });
-
-    console.log(`Password reset by admin ${session.user.email} for user ${targetUser.email}`);
 
     return NextResponse.json({ 
       message: 'Password reset successfully',
@@ -61,7 +55,7 @@ export async function POST(request: NextRequest) {
         email: targetUser.email,
         role: targetUser.role
       },
-      newPassword: defaultPassword
+      temporaryPassword
     });
 
   } catch (error) {

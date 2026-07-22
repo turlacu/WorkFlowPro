@@ -88,7 +88,7 @@ export default function AssignmentsPage() {
     if (session && !initialDataLoaded) {
       fetchInitialData();
     }
-  }, [session, initialDataLoaded]); // Only run once when session is available
+  }, [session, initialDataLoaded, selectedDate, toast]); // Only run once when session is available
 
   const fetchAssignments = useCallback(async () => {
     try {
@@ -303,7 +303,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [currentLang, toast]);
+  }, [currentLang, toast, fetchAssignments, fetchCalendarAssignments]);
 
   const handleOpenEditModal = useCallback((assignment: AssignmentWithUsers) => {
     setEditingAssignment(assignment);
@@ -378,8 +378,6 @@ export default function AssignmentsPage() {
         author: (assignment as any).author || '',
         sourceLocation: assignment.sourceLocation || '',
         // Track who marked it as completed
-        completedById: completed ? session?.user?.id : null,
-        completedAt: completed ? new Date().toISOString() : null,
       };
 
       console.log('Toggle complete - Update data being sent:', updateData);
@@ -396,7 +394,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.id, session?.user?.role]);
+  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
 
   const handleToggleUploadedToQ = useCallback(async (assignmentId: string, uploaded: boolean) => {
     try {

@@ -1,203 +1,86 @@
-# WorkFlow Pro - Deployment Guide
+# WorkFlowPro deployment (Coolify + Cloudflare Tunnel)
 
-## 🚀 Automated GitHub + Coolify Deployment Workflow
+The production stack is defined in `docker-compose.coolify.yml`. It runs the app, PostgreSQL,
+private MinIO object storage, a one-shot Prisma migration service, and Cloudflare Tunnel. Only
+Cloudflare Tunnel publishes the app; PostgreSQL and MinIO have no host ports.
 
-This guide explains how to set up automatic deployment from GitHub to Coolify, allowing seamless updates whenever code changes are pushed.
+## 1. Prepare secrets
 
-## 📋 Prerequisites
-
-- GitHub account and repository
-- Coolify instance running on your Ubuntu server
-- Domain name (optional, but recommended)
-
-## 🔧 Setup Process
-
-### Step 1: GitHub Repository Setup
-
-1. **Create GitHub Repository**
-   ```bash
-   # Repository should already be initialized
-   git remote add origin https://github.com/YOUR_USERNAME/WorkFlowPro.git
-   git push -u origin main
-   ```
-
-2. **Configure Repository Settings**
-   - Enable Actions in repository settings
-   - Set up branch protection for `main` branch
-   - Add repository topics: `nextjs`, `typescript`, `postgresql`, `docker`, `prisma`
-
-### Step 2: Coolify Configuration
-
-1. **Add New Project in Coolify**
-   - Go to your Coolify dashboard
-   - Click "New Project"
-   - Select "Deploy from Git"
-   - Connect your GitHub repository
-
-2. **Environment Variables**
-   Set these in Coolify's environment section:
-   
-   **Required:**
-   ```env
-   DATABASE_URL=postgresql://workflowpro:workflowpro123@postgres:5432/workflowpro
-   NEXTAUTH_URL=https://your-domain.com
-   NEXTAUTH_SECRET=your-super-secret-key-change-this-in-production
-   NODE_ENV=production
-   ```
-   
-   **Optional:**
-   ```env
-   MINIO_ENDPOINT=minio:9000
-   MINIO_ACCESS_KEY=minioadmin
-   MINIO_SECRET_KEY=minioadmin123
-   MINIO_BUCKET_NAME=workflowpro-storage
-   REDIS_URL=redis://redis:6379
-   ```
-
-3. **Configure Build Settings**
-   - **Build Command**: `npm run build`
-   - **Start Command**: `npm start`
-   - **Port**: `3000`
-   - **Dockerfile**: Use the provided Dockerfile
-
-4. **Set Up Services**
-   Coolify will automatically create services based on `docker-compose.yml`:
-   - PostgreSQL database
-   - Redis cache
-   - MinIO storage
-   - Main application
-
-### Step 3: Database Migration
-
-During first deployment, Coolify will:
-1. Run database migrations: `npx prisma migrate deploy`
-2. Seed the database: `npx prisma db seed`
-
-## 🔄 Automated Deployment Workflow
-
-### For Claude Code (Automated Updates)
-
-When I make changes to your application, I'll use the automated deployment script:
+Generate independent values on your workstation or server:
 
 ```bash
-./scripts/claude-deploy.sh "Description of changes made"
+openssl rand -hex 32       # POSTGRES_PASSWORD
+openssl rand -base64 48    # NEXTAUTH_SECRET
+openssl rand -hex 20       # MINIO_ACCESS_KEY
+openssl rand -hex 32       # MINIO_SECRET_KEY
 ```
 
-This will:
-1. ✅ Commit all changes to git
-2. 🚀 Push to GitHub main branch
-3. 🔄 Trigger Coolify automatic deployment
-4. 📦 Deploy the updated application
+If the PostgreSQL password contains URL-reserved characters, URL-encode it in `DATABASE_URL`.
 
-### For Manual Updates
+## 2. Create the Cloudflare tunnel
 
-You can also deploy manually:
+1. In Cloudflare, open **Networking > Tunnels** and create a remotely managed tunnel named
+   `workflowpro`.
+2. Copy its Docker connector token; this becomes `CLOUDFLARE_TUNNEL_TOKEN` in Coolify.
+3. Add a published application with hostname `worksmart.turlacu.ro`, service type `HTTP`, and
+   service URL `http://app:3000`.
+4. Keep TLS verification and normal security protections enabled. Do not publish ports 3000,
+   5432, 9000, or 9001 from the server firewall.
 
-```bash
-# Make your changes
-git add .
-git commit -m "Your commit message"
-git push origin main
+## 3. Create the Coolify resource
 
-# Or use the deploy script
-./scripts/deploy.sh "Your commit message"
+1. Create a project and add a **Docker Compose** resource from the Git repository.
+2. Select `docker-compose.coolify.yml` as the Compose file.
+3. Add these environment variables. Mark all secrets as secret values:
+
+```env
+POSTGRES_DB=workflowpro
+POSTGRES_USER=workflowpro
+POSTGRES_PASSWORD=<random value>
+DATABASE_URL=postgresql://workflowpro:<URL-encoded password>@database:5432/workflowpro
+
+NEXTAUTH_URL=https://worksmart.turlacu.ro
+NEXTAUTH_SECRET=<random value>
+INITIAL_ADMIN_EMAIL=<your administrator email>
+INITIAL_ADMIN_PASSWORD=<random password of at least 12 characters>
+
+MINIO_ACCESS_KEY=<random value>
+MINIO_SECRET_KEY=<random value>
+MINIO_BUCKET_NAME=workflowpro-storage
+
+CLOUDFLARE_TUNNEL_TOKEN=<token copied from Cloudflare>
 ```
 
-### Deployment Process
+4. Deploy. The `migrate` and safe one-shot `bootstrap` services must finish successfully before
+   `app` starts. Do not add `prisma db push`, database reset, or unconditional seed commands to
+   the application startup sequence.
+5. Confirm the Cloudflare tunnel is **Healthy**, then check
+   `https://worksmart.turlacu.ro/api/health`. It should report both database and object storage
+   as healthy.
 
-1. **GitHub Push** → Code pushed to main branch
-2. **GitHub Actions** → Runs CI/CD pipeline (lint, test, build)
-3. **Coolify Webhook** → Detects changes and pulls latest code
-4. **Build Process** → Creates Docker image
-5. **Database Migration** → Runs Prisma migrations
-6. **Deployment** → Replaces old container with new one
-7. **Health Check** → Verifies deployment success
+## 4. Create the first administrator
 
-## 🔍 Monitoring Deployment
+On the first deployment, the one-shot `bootstrap` service creates the administrator supplied by
+`INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD`. It never updates or deletes an existing user.
+After the first successful login:
 
-### GitHub Actions
-- Check workflow status: `https://github.com/YOUR_USERNAME/WorkFlowPro/actions`
-- View build logs and test results
+1. Change the temporary password on the forced Security settings screen.
+2. Remove `INITIAL_ADMIN_EMAIL` and `INITIAL_ADMIN_PASSWORD` from Coolify.
+3. Redeploy once; the bootstrap step will safely do nothing when those variables are absent.
 
-### Coolify Dashboard
-- Monitor deployment progress
-- View application logs
-- Check service health status
-- Manage environment variables
+For deliberate administrator recovery from a development checkout that can reach the production
+database, use `npm run admin:create -- --email=you@example.com`. That recovery command resets the
+named account, requires a password change, and invalidates its existing sessions.
 
-### Health Check
-- Application health: `https://your-domain.com/api/health`
-- Database status included in response
+## 5. Verify and operate
 
-## 📊 Post-Deployment Verification
-
-After each deployment, verify:
-
-1. **Application Access**
-   - ✅ Login page loads: `https://your-domain.com/login`
-   - ✅ Authentication works with seed users
-   - ✅ Dashboard accessible after login
-
-2. **Database Connection**
-   - ✅ Health check passes: `https://your-domain.com/api/health`
-   - ✅ Assignment creation/editing works
-   - ✅ User management functions
-
-3. **File Storage**
-   - ✅ MinIO accessible (if configured)
-   - ✅ File uploads work
-
-## 🛠️ Troubleshooting
-
-### Common Issues
-
-1. **Build Failure**
-   - Check GitHub Actions logs
-   - Verify all dependencies are installed
-   - Ensure TypeScript compilation passes
-
-2. **Database Connection Error**
-   - Verify DATABASE_URL in Coolify
-   - Check PostgreSQL service status
-   - Ensure migrations ran successfully
-
-3. **Authentication Issues**
-   - Verify NEXTAUTH_SECRET is set
-   - Check NEXTAUTH_URL matches your domain
-   - Ensure database is seeded with users
-
-### Rollback Process
-
-If deployment fails:
-1. Check Coolify logs for error details
-2. Rollback to previous deployment in Coolify
-3. Fix issues and redeploy
-
-## 📈 Scaling Considerations
-
-For production scaling:
-- Enable Redis caching
-- Configure MinIO clustering
-- Set up database connection pooling
-- Implement CDN for static assets
-
-## 🔐 Security Checklist
-
-- [ ] NEXTAUTH_SECRET is secure and unique
-- [ ] Database credentials are strong
-- [ ] MinIO access keys are changed from defaults
-- [ ] HTTPS is enabled via Coolify
-- [ ] Environment variables are properly secured
-
-## 📝 Default Login Credentials
-
-**After deployment, you can login with:**
-- **Admin**: admin@workflowpro.com / admin123
-- **Producer**: adrian.doros@workflowpro.com / producer123
-- **Operator**: alina.doncea@workflowpro.com / operator123
-
-**⚠️ Important:** Change these credentials immediately after first login!
-
-## 🎉 Success!
-
-Your WorkFlow Pro application is now set up with automatic deployment. Any changes pushed to GitHub will automatically trigger a new deployment through Coolify.
+- Login: `https://worksmart.turlacu.ro/login`
+- Dependency health: `https://worksmart.turlacu.ro/api/health`
+- Liveness: `https://worksmart.turlacu.ro/api/healthz`
+- Confirm assignment create/update/complete, schedule PDF upload/view, Excel preview/import, and
+  backup download on a non-production test record.
+- Back up both named volumes (`workflowpro-postgres` and `workflowpro-minio`) at the server level.
+  The in-app JSON backup is useful for logical recovery but is not a substitute for volume or
+  off-server backups.
+- Before upgrades, take backups, deploy the new image, and verify the one-shot migration service
+  completed. Never roll the database schema backward with `prisma migrate reset`.

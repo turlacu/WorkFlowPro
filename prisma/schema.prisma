@@ -7,6 +7,24 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  PRODUCER
+  OPERATOR
+}
+
+enum AssignmentStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum AssignmentPriority {
+  LOW
+  NORMAL
+  URGENT
+}
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -43,7 +61,9 @@ model User {
   emailVerified           DateTime?
   image                   String?
   password                String?
-  role                    String                     @default("OPERATOR")
+  role                    UserRole                   @default(OPERATOR)
+  sessionVersion          Int                        @default(0)
+  passwordResetRequired   Boolean                    @default(false)
   createdAt               DateTime                   @default(now())
   updatedAt               DateTime                   @updatedAt
   accounts                Account[]
@@ -70,27 +90,29 @@ model VerificationToken {
 }
 
 model Assignment {
-  id              String    @id @default(cuid())
+  id              String             @id @default(cuid())
   name            String
   description     String?
   author          String?
   dueDate         DateTime
-  status          String    @default("PENDING")
-  priority        String    @default("NORMAL")
+  status          AssignmentStatus   @default(PENDING)
+  priority        AssignmentPriority @default(NORMAL)
   sourceLocation  String?
   comment         String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
   completedAt     DateTime?
-  completedById   String?   // Who marked the assignment as completed
+  completedById   String? // Who marked the assignment as completed
   assignedToId    String?
   createdById     String
   lastUpdatedById String
-  lastUpdatedBy   User      @relation("UpdatedByUser", fields: [lastUpdatedById], references: [id])
-  createdBy       User      @relation("CreatedByUser", fields: [createdById], references: [id])
-  assignedTo      User?     @relation(fields: [assignedToId], references: [id])
-  completedBy     User?     @relation("CompletedByUser", fields: [completedById], references: [id])
+  lastUpdatedBy   User               @relation("UpdatedByUser", fields: [lastUpdatedById], references: [id])
+  createdBy       User               @relation("CreatedByUser", fields: [createdById], references: [id])
+  assignedTo      User?              @relation(fields: [assignedToId], references: [id])
+  completedBy     User?              @relation("CompletedByUser", fields: [completedById], references: [id])
 
+  @@index([dueDate])
+  @@index([status, completedAt])
   @@map("assignments")
 }
 
@@ -105,6 +127,7 @@ model TeamSchedule {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([date, userId])
+  @@index([date])
   @@map("team_schedules")
 }
 
@@ -116,7 +139,7 @@ model ShiftColorLegend {
   startTime   String
   endTime     String
   description String?
-  role        String   @default("OPERATOR")
+  role        UserRole @default(OPERATOR)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -161,34 +184,35 @@ model ExcelUploadConfiguration {
 }
 
 model UploadConfigurationLog {
-  id               String                   @id @default(cuid())
-  configurationId  String
-  configuration    ExcelUploadConfiguration @relation(fields: [configurationId], references: [id])
-  filename         String
-  uploadedBy       String
-  uploadedByUser   User                     @relation(fields: [uploadedBy], references: [id])
-  entriesCount     Int
-  successCount     Int
-  errorCount       Int
-  createdAt        DateTime                 @default(now())
+  id              String                   @id @default(cuid())
+  configurationId String
+  configuration   ExcelUploadConfiguration @relation(fields: [configurationId], references: [id])
+  filename        String
+  uploadedBy      String
+  uploadedByUser  User                     @relation(fields: [uploadedBy], references: [id])
+  entriesCount    Int
+  successCount    Int
+  errorCount      Int
+  createdAt       DateTime                 @default(now())
 
   @@map("upload_configuration_logs")
 }
 
 model DailySchedule {
-  id          String   @id @default(cuid())
-  date        DateTime @db.Date
-  title       String
-  content     String?  @db.Text
-  fileName    String?
-  fileSize    Int?
-  mimeType    String?
-  filePath    String?  // Path to stored file for viewing
-  uploadedBy  String
-  uploader    User     @relation(fields: [uploadedBy], references: [id])
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  date       DateTime @db.Date
+  title      String
+  content    String?  @db.Text
+  fileName   String?
+  fileSize   Int?
+  mimeType   String?
+  filePath   String? // Path to stored file for viewing
+  uploadedBy String
+  uploader   User     @relation(fields: [uploadedBy], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([date])
+  @@index([uploadedBy])
   @@map("daily_schedules")
 }

@@ -1,163 +1,78 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@/lib/prisma';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { listObjects, putObject } from '@/lib/minio';
+import { requireUser } from '@/lib/server-auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 
-// Create backups directory if it doesn't exist
-const BACKUPS_DIR = path.join(process.cwd(), 'backups');
-
-async function ensureBackupsDir() {
+export async function POST() {
   try {
-    await fs.access(BACKUPS_DIR);
-  } catch {
-    await fs.mkdir(BACKUPS_DIR, { recursive: true });
-  }
-}
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
+    const limit = checkRateLimit(`backup:${auth.user.id}`, { limit: 5, windowMs: 60 * 60_000 });
+    if (!limit.allowed) return NextResponse.json({ error: 'Too many backup requests' }, { status: 429 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
-
-    await ensureBackupsDir();
-
-    // Export all data from database
-    const [users, assignments, teamSchedules, shiftColorLegends] = await Promise.all([
-      prisma.user.findMany({
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-          // Don't include password for security
-        },
-      }),
-      prisma.assignment.findMany({
-        include: {
-          assignedTo: {
-            select: { id: true, name: true, email: true },
+    const [users, assignments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules] =
+      await prisma.$transaction(async (tx) => Promise.all([
+        tx.user.findMany({
+          select: {
+            id: true, name: true, email: true, role: true,
+            createdAt: true, updatedAt: true,
           },
-          createdBy: {
-            select: { id: true, name: true, email: true },
-          },
-          lastUpdatedBy: {
-            select: { id: true, name: true, email: true },
-          },
-        },
-      }),
-      prisma.teamSchedule.findMany({
-        include: {
-          user: {
-            select: { id: true, name: true, email: true, role: true },
-          },
-        },
-      }),
-      prisma.shiftColorLegend.findMany(),
-    ]);
+        }),
+        tx.assignment.findMany(),
+        tx.teamSchedule.findMany(),
+        tx.shiftColorLegend.findMany(),
+        tx.excelUploadConfiguration.findMany(),
+        tx.uploadConfigurationLog.findMany(),
+        tx.dailySchedule.findMany(),
+      ]), { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 120_000 });
 
-    const backupData = {
+    const data = {
       metadata: {
+        schemaVersion: 2,
         exportedAt: new Date().toISOString(),
-        exportedBy: {
-          id: session.user.id,
-          name: session.user.name,
-          email: session.user.email,
-        },
-        version: '1.0',
-        totalRecords: users.length + assignments.length + teamSchedules.length + shiftColorLegends.length,
+        exportedBy: { id: auth.user.id, email: auth.user.email },
       },
-      data: {
-        users,
-        assignments,
-        teamSchedules,
-        shiftColorLegends,
-      },
+      data: { users, assignments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules },
     };
+    const id = `backup-${randomUUID()}`;
+    const fileName = `${id}.json`;
+    const objectName = `backups/${fileName}`;
+    const buffer = Buffer.from(JSON.stringify(data));
+    await putObject(objectName, buffer, 'application/json');
 
-    // Generate filename with timestamp
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const fileName = `backup-${timestamp}.json`;
-    const filePath = path.join(BACKUPS_DIR, fileName);
-
-    // Write backup file
-    await fs.writeFile(filePath, JSON.stringify(backupData, null, 2));
-
-    // Get file size
-    const stats = await fs.stat(filePath);
-    const sizeInMB = (stats.size / (1024 * 1024)).toFixed(2);
-
-    // Create backup record
-    const backupRecord = {
-      id: `backup-${Date.now()}`,
+    return NextResponse.json({
+      id,
       fileName,
-      filePath,
-      createdAt: new Date(),
-      size: `${sizeInMB} MB`,
-      recordCount: backupData.metadata.totalRecords,
-    };
-
-    return NextResponse.json(backupRecord);
+      createdAt: data.metadata.exportedAt,
+      size: `${(buffer.length / (1024 * 1024)).toFixed(2)} MB`,
+      recordCount: Object.values(data.data).reduce((sum, records) => sum + records.length, 0),
+    });
   } catch (error) {
     console.error('Error creating backup:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error occurred while creating backup' 
-    }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create backup' }, { status: 500 });
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
-
-    await ensureBackupsDir();
-
-    // Read all backup files
-    const files = await fs.readdir(BACKUPS_DIR);
-    const backupFiles = files.filter(file => file.startsWith('backup-') && file.endsWith('.json'));
-
-    const backups = await Promise.all(
-      backupFiles.map(async (fileName) => {
-        const filePath = path.join(BACKUPS_DIR, fileName);
-        const stats = await fs.stat(filePath);
-        const sizeInMB = (stats.size / (1024 * 1024)).toFixed(2);
-        
-        return {
-          id: fileName.replace('.json', ''),
-          fileName,
-          filePath,
-          createdAt: stats.birthtime,
-          size: `${sizeInMB} MB`,
-        };
-      })
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
+    const files = await listObjects('backups/');
+    return NextResponse.json(
+      files
+        .filter((file) => /^backups\/backup-[0-9a-f-]{36}\.json$/.test(file.name))
+        .map((file) => ({
+          id: file.name.slice('backups/'.length, -'.json'.length),
+          fileName: file.name.slice('backups/'.length),
+          createdAt: file.lastModified,
+          size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+        }))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     );
-
-    // Sort by creation date, newest first
-    backups.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    return NextResponse.json(backups);
   } catch (error) {
-    console.error('Error fetching backups:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error occurred while fetching backups' 
-    }, { status: 500 });
+    console.error('Error listing backups:', error);
+    return NextResponse.json({ error: 'Failed to list backups' }, { status: 500 });
   }
 }

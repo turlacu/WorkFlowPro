@@ -2,7 +2,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  // Removed 'standalone' output to fix static asset serving and auth issues
+  output: 'standalone',
+  outputFileTracingRoot: process.cwd(),
   images: {
     remotePatterns: [
       {

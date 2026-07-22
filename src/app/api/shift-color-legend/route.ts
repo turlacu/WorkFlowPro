@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
 
 const CreateShiftColorLegendSchema = z.object({
   colorCode: z.string().min(1, 'Color code is required'),
@@ -11,7 +10,7 @@ const CreateShiftColorLegendSchema = z.object({
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
   description: z.string().optional(),
-  role: z.string().min(1, 'Role is required').default('OPERATOR'),
+  role: z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']).default('OPERATOR'),
 });
 
 const UpdateShiftColorLegendSchema = CreateShiftColorLegendSchema.extend({
@@ -20,15 +19,8 @@ const UpdateShiftColorLegendSchema = CreateShiftColorLegendSchema.extend({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can access color legends' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
@@ -55,15 +47,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can create color legends' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     console.log('Received color legend data:', body);
@@ -117,15 +102,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can update color legends' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     const validatedData = UpdateShiftColorLegendSchema.parse(body);

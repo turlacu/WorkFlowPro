@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
+import { parseDateOnly } from '@/lib/date-only';
 
 const GetStatisticsSchema = z.object({
   startDate: z.string(),
@@ -21,36 +21,21 @@ export async function POST(request: NextRequest) {
     const { startDate, endDate } = GetStatisticsSchema.parse(body);
     console.log('✅ Input validation successful:', { startDate, endDate });
 
-    // Get session
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      console.log('❌ No session found');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log('📊 Statistics called by user:', {
-      id: session.user?.id,
-      role: session.user?.role,
-      email: session.user?.email
-    });
-
-    const isAdmin = session.user.role === 'ADMIN';
-    console.log('📊 User is admin:', isAdmin);
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     // Validate dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = parseDateOnly(startDate);
+    const endDay = parseDateOnly(endDate);
+    const end = endDay ? new Date(endDay.getTime() + 24 * 60 * 60 * 1000) : null;
     
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    if (!start || !end) {
       return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
     }
 
-    if (start > end) {
+    if (start >= end) {
       return NextResponse.json({ error: 'Start date cannot be after end date' }, { status: 400 });
     }
-
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
 
     console.log('📊 Processing date range:', {
       startDate: start.toISOString(),
@@ -71,18 +56,14 @@ export async function POST(request: NextRequest) {
     // Get assignments for the date range
     // Note: Always apply date filter when specific dates are requested (Day/Month view)
     // Only ignore date filter for the initial broad overview
-    const isInitialOverview = (end.getTime() - start.getTime()) > (180 * 24 * 60 * 60 * 1000); // > 6 months
-    
-    const whereClause = (isAdmin && isInitialOverview) ? {} : {
+    const whereClause = {
       createdAt: {
         gte: start,
-        lte: end,
+        lt: end,
       },
     };
 
     console.log('📊 Query details:', {
-      isAdmin,
-      isInitialOverview,
       dateRange: `${start.toISOString()} to ${end.toISOString()}`,
       daysDifference: Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)),
       whereClause
@@ -212,8 +193,7 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('📈 Statistics generated successfully:', {
-      userRole: session.user.role,
-      isAdmin,
+      userRole: auth.user.role,
       assignmentsProcessed: assignments.length,
       producerStats: producerStats.length,
       operatorStats: operatorStats.length,

@@ -257,33 +257,7 @@
   - Handles data conflicts gracefully
 - **Access:** Admin only
 
-## File Upload
-
-### Upload File
-**Endpoint:** `POST /api/upload`
-- **Body:** `multipart/form-data`
-- **Supported Types:** Excel (.xls, .xlsx), CSV
-- **Size Limit:** 10MB
-- **Features:**
-  - File type validation
-  - MinIO object storage integration
-  - Security validation
-- **Access:** Authenticated users
-
 ## Administrative
-
-### Clear Database
-**Endpoint:** `POST /api/admin/clear-database`
-- **Body:**
-  ```json
-  {
-    "confirmation": "CLEAR DATABASE"
-  }
-  ```
-- **Purpose:** Complete database reset
-- **Access:** Admin only
-- **Result:** Creates fresh admin user (admin@workflowpro.com / admin123)
-- **Security:** Requires exact confirmation text
 
 ### Reset User Password
 **Endpoint:** `POST /api/admin/reset-password`
@@ -293,7 +267,7 @@
     "userId": "string"
   }
   ```
-- **Purpose:** Reset any user's password to default value (123456)
+- **Purpose:** Generate a cryptographically random temporary password
 - **Access:** Admin only
 - **Returns:**
   ```json
@@ -305,12 +279,13 @@
       "email": "string",
       "role": "string"
     },
-    "newPassword": "123456"
+    "temporaryPassword": "random one-time value"
   }
   ```
 - **Security:** 
   - Cannot reset own password through this endpoint
-  - Logs all password reset actions
+  - Invalidates the user's existing sessions
+  - Forces a password change before other API access
 
 ## Health & Monitoring
 
@@ -320,11 +295,11 @@
   ```json
   {
     "status": "healthy|unhealthy",
-    "database": "connected|disconnected",
-    "userCount": "number",
-    "hasAdmin": "boolean",
-    "environment": "string",
-    "timestamp": "ISO date string"
+    "timestamp": "ISO date string",
+    "checks": {
+      "database": "healthy",
+      "objectStorage": "healthy"
+    }
   }
   ```
 - **Purpose:** Comprehensive system health check
@@ -332,7 +307,7 @@
 
 ### Simple Health Check
 **Endpoint:** `GET /api/healthz`
-- **Returns:** `{ "status": "ok" }`
+- **Returns:** `{ "status": "healthy", "timestamp": "ISO date string" }`
 - **Purpose:** Basic health check for deployment monitoring
 - **Access:** Public
 

@@ -91,12 +91,12 @@ Create a `.env.local` file with the following variables:
 
 ### Required Variables
 ```env
-# Database
-DATABASE_URL="file:./data.db"
+# Database (use a dedicated local PostgreSQL database)
+DATABASE_URL="postgresql://workflowpro:<local-password>@localhost:5432/workflowpro"
 
 # NextAuth.js Configuration
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key-here"
+NEXTAUTH_SECRET="<generated development secret>"
 
 # Application Settings
 NODE_ENV="development"
@@ -105,10 +105,9 @@ NODE_ENV="development"
 ### Optional Variables
 ```env
 # MinIO Configuration (for file uploads)
-MINIO_ENDPOINT="localhost"
-MINIO_PORT="9000"
-MINIO_ACCESS_KEY="minioadmin"
-MINIO_SECRET_KEY="minioadmin"
+MINIO_ENDPOINT="localhost:9000"
+MINIO_ACCESS_KEY="<local access key>"
+MINIO_SECRET_KEY="<local secret key>"
 MINIO_USE_SSL="false"
 MINIO_BUCKET_NAME="workflowpro"
 
@@ -142,12 +141,10 @@ npm run build
 npm start
 ```
 
-### Default Admin Account
-After seeding the database, you can log in with:
-- **Email:** `admin@workflowpro.com`
-- **Password:** `admin123`
+### Development administrator
 
-**⚠️ Important:** Change the default password immediately in production!
+There are no default credentials. Create a local administrator with
+`npm run admin:create -- --email=you@example.com`; the generated password is temporary.
 
 ## Development Commands
 

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,10 +76,10 @@ export default function SettingsPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
+    if (newPassword.length < 12) {
       toast({
         title: 'Error',
-        description: 'Password must be at least 6 characters long',
+        description: 'Password must be at least 12 characters long',
         variant: 'destructive',
       });
       return;
@@ -99,13 +99,10 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Password changed successfully',
-        });
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
+        await signOut({ callbackUrl: '/login?passwordChanged=1' });
       } else {
         const error = await response.json();
         throw new Error(error.error || 'Failed to change password');
@@ -139,7 +136,15 @@ export default function SettingsPage() {
         </h1>
       </div>
 
-      <Tabs defaultValue="profile" className="w-full">
+      {session.user.passwordResetRequired && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            You are using a temporary password. Change it now before continuing to the application.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <Tabs defaultValue={session.user.passwordResetRequired ? 'security' : 'profile'} className="w-full">
         <TabsList className={`grid w-full ${session.user.role === 'ADMIN' ? 'grid-cols-2' : 'grid-cols-3'}`}>
           <TabsTrigger value="profile" className="text-xs sm:text-sm">
             <User className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
@@ -219,7 +224,7 @@ export default function SettingsPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={12}
                   />
                 </div>
                 <div>
@@ -230,7 +235,7 @@ export default function SettingsPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
-                    minLength={6}
+                    minLength={12}
                   />
                 </div>
                 <Button type="submit" disabled={loading}>

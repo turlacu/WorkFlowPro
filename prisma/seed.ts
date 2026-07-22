@@ -4,27 +4,35 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Clear all existing data first
-  console.log('Clearing existing database...');
-  await prisma.assignment.deleteMany({});
-  await prisma.teamSchedule.deleteMany({});
-  await prisma.user.deleteMany({});
+  const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.INITIAL_ADMIN_PASSWORD;
 
-  // Create only admin user
-  console.log('Creating admin user...');
-  const adminPassword = await bcrypt.hash('admin123', 12);
-  const admin = await prisma.user.create({
+  if (!email || !password) {
+    console.log('No bootstrap credentials supplied; seed completed without changing users.');
+    return;
+  }
+
+  if (password.length < 12) {
+    throw new Error('INITIAL_ADMIN_PASSWORD must contain at least 12 characters.');
+  }
+
+  const existingAdmin = await prisma.user.findUnique({ where: { email } });
+  if (existingAdmin) {
+    console.log(`Bootstrap user ${email} already exists; no changes made.`);
+    return;
+  }
+
+  const adminPassword = await bcrypt.hash(password, 12);
+  await prisma.user.create({
     data: {
-      email: 'admin@workflowpro.com',
+      email,
       name: 'Admin User',
       password: adminPassword,
       role: 'ADMIN',
+      passwordResetRequired: true,
     },
   });
-
-  console.log('Database cleared and reseeded successfully!');
-  console.log('Only admin user created:');
-  console.log('- Admin: admin@workflowpro.com / admin123');
+  console.log(`Created bootstrap administrator ${email}.`);
 }
 
 main()

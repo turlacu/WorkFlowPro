@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { requireUser } from '@/lib/server-auth';
 
 const CreateConfigurationSchema = z.object({
   name: z.string().min(1, 'Configuration name is required'),
@@ -33,15 +32,8 @@ const UpdateConfigurationSchema = CreateConfigurationSchema.extend({
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can access configurations' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
@@ -73,15 +65,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can create configurations' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     console.log('Creating configuration:', body);
@@ -108,7 +93,7 @@ export async function POST(request: NextRequest) {
     const configuration = await prisma.excelUploadConfiguration.create({
       data: {
         ...validatedData,
-        createdById: session.user.id,
+        createdById: auth.user.id,
       },
       include: {
         createdBy: {
@@ -132,15 +117,8 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden - Only admins can update configurations' }, { status: 403 });
-    }
+    const auth = await requireUser(['ADMIN']);
+    if (auth.response) return auth.response;
 
     const body = await request.json();
     const validatedData = UpdateConfigurationSchema.parse(body);
