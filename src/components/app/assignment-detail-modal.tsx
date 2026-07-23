@@ -8,20 +8,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { AssignmentWithUsers } from '@/lib/api';
 import { format as formatDate } from 'date-fns'; 
 import {
   Info,
-  ShieldAlert,
   CheckCircle2,
   User,
   CalendarDays,
@@ -32,7 +28,6 @@ import {
   CalendarCheck,
   Tag,
   MapPin,
-  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -65,18 +60,6 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
     onClose();
   };
 
-  const getStatusBadgeVariant = (status: AssignmentWithUsers['status']) => {
-    switch (status) {
-      case 'COMPLETED':
-        return "default";
-      case 'IN_PROGRESS':
-        return "default"; 
-      case 'PENDING':
-      default:
-        return "outline";
-    }
-  };
-
   const getStatusBadgeClassName = (status: AssignmentWithUsers['status']) => {
     switch (status) {
       case 'COMPLETED':
@@ -88,215 +71,163 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
     }
   };
 
-  const getPriorityBadgeVariant = (priority: AssignmentWithUsers['priority']) => {
-    switch (priority) {
-      case 'URGENT':
-        return "destructive";
-      case 'NORMAL':
-        return "secondary"; 
-      case 'LOW':
-      default:
-        return "outline"; 
-    }
-  };
-
-   const getPriorityBadgeClassName = (priority: AssignmentWithUsers['priority']) => {
-    // 'Normal' uses secondary variant, 'Urgent' destructive, 'Low' outline
-    // No specific class overrides needed here currently
-    return "";
-  };
+  const assignmentAuthor = (assignment as AssignmentWithUsers & { author?: string }).author;
 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-2xl p-0 max-h-[90vh] overflow-y-auto">
-        <div className="p-4 sm:p-6 relative">
-          <DialogClose className="absolute right-4 top-4" />
-          <DialogHeader className="mb-4">
-            <DialogTitle className="text-xl sm:text-2xl font-bold text-primary pr-8">{assignment.name}</DialogTitle>
+      <DialogContent className="max-h-[calc(100svh-2rem)] w-full max-w-[calc(100vw-2rem)] gap-0 overflow-y-auto p-0 sm:max-w-3xl">
+        <div className="p-4 sm:p-5">
+          <DialogHeader className="mb-3 pr-8">
+            <DialogTitle className="text-xl font-bold text-primary sm:text-2xl">{assignment.name}</DialogTitle>
             <p className="text-sm text-muted-foreground">
               {getTranslation(currentLang, 'AssignmentDetailModalFullDetails')}
             </p>
           </DialogHeader>
 
-          <div className="space-y-6">
-            {/* Description Section */}
+          <div className="space-y-3">
             {assignment.description && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Info size={18} />
-                  <h3 className="text-md font-semibold text-foreground">
+              <div className="flex items-start gap-3 rounded-md bg-muted/40 px-3 py-2">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="min-w-0">
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                     {getTranslation(currentLang, 'AssignmentDetailDescriptionLabel')}
                   </h3>
+                  <p className="mt-0.5 text-sm leading-5 text-foreground/90">{assignment.description}</p>
                 </div>
-                <p className="text-sm text-foreground/90 ml-7">{assignment.description}</p>
               </div>
             )}
 
-            {/* Author & Source Location Section */}
-            {((assignment as any).author || assignment.sourceLocation) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                {(assignment as any).author && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                      <UserCircle size={16} />
-                      <span>Author</span>
-                    </div>
-                    <p className="text-sm font-medium text-foreground">{(assignment as any).author}</p>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-y py-3 sm:grid-cols-3">
+              {assignmentAuthor && (
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <UserCircle className="h-3.5 w-3.5 shrink-0" />
+                    <span>Author</span>
                   </div>
-                )}
-                {assignment.sourceLocation && (
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                      <MapPin size={16} />
-                      <span>Source Location</span>
-                    </div>
-                    <p className="text-sm font-medium text-foreground">{assignment.sourceLocation}</p>
+                  <p className="mt-1 truncate text-sm font-medium" title={assignmentAuthor}>{assignmentAuthor}</p>
+                </div>
+              )}
+              {assignment.sourceLocation && (
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                    <span>Source Location</span>
                   </div>
-                )}
-              </div>
-            )}
-
-            <Separator />
-
-            {/* Priority & Status Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                  <Tag size={16} />
+                  <p className="mt-1 truncate text-sm font-medium" title={assignment.sourceLocation}>{assignment.sourceLocation}</p>
+                </div>
+              )}
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Tag className="h-3.5 w-3.5 shrink-0" />
                   <span>{getTranslation(currentLang, 'AssignmentDetailPriorityLabel')}</span>
                 </div>
-                <Badge
-                  className={cn("text-xs capitalize", getPriorityBadgeClassName(assignment.priority))}
-                >
+                <Badge className="mt-1 text-xs capitalize">
                   {getTranslation(currentLang, `Priority${assignment.priority}`)}
                 </Badge>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                  <CheckCircle2 size={16} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
                   <span>{getTranslation(currentLang, 'AssignmentDetailStatusLabel')}</span>
                 </div>
-                <Badge
-                  className={cn("text-xs capitalize", getStatusBadgeClassName(assignment.status))}
-                >
+                <Badge className={cn("mt-1 text-xs capitalize", getStatusBadgeClassName(assignment.status))}>
                   {getTranslation(currentLang, `AssignmentStatus${assignment.status.replace(' ', '')}`)}
                 </Badge>
               </div>
-            </div>
-
-            <Separator />
-
-            {/* Assignee & Date Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                  <User size={16} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <User className="h-3.5 w-3.5 shrink-0" />
                   <span>{getTranslation(currentLang, 'AssignmentDetailAssigneeLabel')}</span>
                 </div>
-                <p className="text-sm font-medium text-foreground">{assignment.assignedTo?.name || 'Unassigned'}</p>
+                <p className="mt-1 truncate text-sm font-medium" title={assignment.assignedTo?.name || 'Unassigned'}>
+                  {assignment.assignedTo?.name || 'Unassigned'}
+                </p>
               </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                  <CalendarDays size={16} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <CalendarDays className="h-3.5 w-3.5 shrink-0" />
                   <span>{getTranslation(currentLang, 'AssignmentDetailDateLabel')}</span>
                 </div>
-                <p className="text-sm font-medium text-foreground">{formatDate(new Date(assignment.dueDate), 'MMM do, yyyy')}</p>
+                <p className="mt-1 text-sm font-medium">{formatDate(new Date(assignment.dueDate), 'MMM do, yyyy')}</p>
               </div>
             </div>
 
-            {/* Add Comment Section */}
             {currentUserRole === 'Operator' && (
-              <>
-                <Separator />
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <MessageSquare size={18} />
-                    <h3 className="text-md font-semibold text-foreground">
-                      {getTranslation(currentLang, 'AssignmentDetailAddCommentLabel')}
-                    </h3>
-                  </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">
+                    {getTranslation(currentLang, 'AssignmentDetailAddCommentLabel')}
+                  </h3>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                   <Textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     placeholder={getTranslation(currentLang, 'AssignmentDetailCommentPlaceholder')}
-                    className="min-h-[100px] sm:min-h-[80px]"
+                    className="min-h-16 flex-1 resize-y"
                   />
-                  <div className="flex justify-start pt-2">
-                    <Button onClick={handlePostComment}>
-                      {getTranslation(currentLang, 'AssignmentDetailPostCommentButton')}
-                    </Button>
-                  </div>
+                  <Button onClick={handlePostComment} className="w-full shrink-0 sm:w-auto">
+                    {getTranslation(currentLang, 'AssignmentDetailPostCommentButton')}
+                  </Button>
                 </div>
-              </>
+              </div>
             )}
 
-            <Separator />
-
-            {/* Audit Trail Section - Professional Layout */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 sm:gap-x-8 gap-y-4 text-sm">
-              
-              {/* Left Column - All "BY" Labels */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">People</h4>
-                
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <UserCircle size={16} />
-                      <span>{getTranslation(currentLang, 'AssignmentDetailCreatedByLabel')}</span>
-                    </div>
-                    <p className="text-foreground/90 ml-6">{assignment.createdBy?.name || 'Unknown'}</p>
+            <div className="grid gap-4 border-t pt-3 text-sm sm:grid-cols-2 sm:gap-6">
+              <div>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">People</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <UserCircle className="h-3.5 w-3.5" />
+                      {getTranslation(currentLang, 'AssignmentDetailCreatedByLabel')}
+                    </span>
+                    <span className="truncate font-medium">{assignment.createdBy?.name || 'Unknown'}</span>
                   </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Edit3 size={16} />
-                      <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedByLabel')}</span>
-                    </div>
-                    <p className="text-foreground/90 ml-6">{assignment.lastUpdatedBy?.name || 'Unknown'}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Edit3 className="h-3.5 w-3.5" />
+                      {getTranslation(currentLang, 'AssignmentDetailLastUpdatedByLabel')}
+                    </span>
+                    <span className="truncate font-medium">{assignment.lastUpdatedBy?.name || 'Unknown'}</span>
                   </div>
-
                   {assignment.status === 'COMPLETED' && assignment.completedBy && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <UserCircle size={16} />
-                        <span>Completed by</span>
-                      </div>
-                      <p className="text-foreground/90 ml-6">{assignment.completedBy.name || assignment.completedBy.email}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <UserCircle className="h-3.5 w-3.5" />
+                        Completed by
+                      </span>
+                      <span className="truncate font-medium">{assignment.completedBy.name || assignment.completedBy.email}</span>
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Right Column - All "AT" Labels */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide border-b pb-2">Timeline</h4>
-                
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock size={16} />
-                      <span>{getTranslation(currentLang, 'AssignmentDetailCreatedAtLabel')}</span>
-                    </div>
-                    <p className="text-foreground/90 ml-6">{formatDate(assignment.createdAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
+              <div>
+                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Timeline</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      {getTranslation(currentLang, 'AssignmentDetailCreatedAtLabel')}
+                    </span>
+                    <span className="whitespace-nowrap font-medium">{formatDate(assignment.createdAt, 'MMM d, yyyy · HH:mm')}</span>
                   </div>
-
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Clock size={16} />
-                      <span>{getTranslation(currentLang, 'AssignmentDetailLastUpdatedAtLabel')}</span>
-                    </div>
-                    <p className="text-foreground/90 ml-6">{formatDate(assignment.updatedAt, 'MMM do, yyyy \'at\' h:mm a')}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Clock className="h-3.5 w-3.5" />
+                      {getTranslation(currentLang, 'AssignmentDetailLastUpdatedAtLabel')}
+                    </span>
+                    <span className="whitespace-nowrap font-medium">{formatDate(assignment.updatedAt, 'MMM d, yyyy · HH:mm')}</span>
                   </div>
-
                   {assignment.status === 'COMPLETED' && assignment.completedAt && (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <CalendarCheck size={16} />
-                        <span>{getTranslation(currentLang, 'AssignmentDetailCompletedAtLabel')}</span>
-                      </div>
-                      <p className="text-foreground/90 ml-6">{formatDate(assignment.completedAt!, 'MMM do, yyyy \'at\' h:mm a')}</p>
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <CalendarCheck className="h-3.5 w-3.5" />
+                        {getTranslation(currentLang, 'AssignmentDetailCompletedAtLabel')}
+                      </span>
+                      <span className="whitespace-nowrap font-medium">{formatDate(assignment.completedAt, 'MMM d, yyyy · HH:mm')}</span>
                     </div>
                   )}
                 </div>
@@ -304,10 +235,10 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
             </div>
           </div>
         </div>
-        <DialogFooter className="p-4 sm:p-6 pt-3 sm:pt-4 border-t">
+        <DialogFooter className="border-t px-4 py-3 sm:px-5">
           <Button 
             onClick={onClose}
-            className="w-full sm:w-auto h-11 sm:h-10"
+            className="h-10 w-full sm:w-auto"
           >
             {getTranslation(currentLang, 'Close')}
           </Button>
@@ -316,4 +247,3 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
     </Dialog>
   );
 }
-
