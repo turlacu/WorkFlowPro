@@ -376,8 +376,10 @@ export default function DashboardPage() {
                   <div className="grid items-start gap-6 xl:grid-cols-[20rem_minmax(0,1fr)]">
                     <div className="lg:col-span-1 space-y-4">
                       <Card>
-                        <CardHeader className="pb-4"><CardTitle className="text-lg">{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle></CardHeader>
-                        <CardContent className="p-0 flex justify-center">
+                        <CardHeader className="px-4 pb-0 pt-4 sm:p-4 sm:pb-0">
+                          <CardTitle className="text-lg">{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex justify-center p-0">
                           <InteractiveCalendar onDateSelect={handleDateSelect} initialDate={selectedDate} />
                         </CardContent>
                       </Card>

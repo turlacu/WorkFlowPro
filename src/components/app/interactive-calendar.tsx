@@ -3,10 +3,7 @@
 
 import * as React from 'react';
 import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
 import { isSameDay } from 'date-fns';
-import { enGB, ro } from 'date-fns/locale';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface InteractiveCalendarProps {
   onDateSelect?: (date: Date | undefined) => void;
@@ -21,8 +18,6 @@ export function InteractiveCalendar({
   completedDays = [],
   incompleteDays = []
 }: InteractiveCalendarProps) {
-  const { currentLang } = useLanguage();
-  const calendarLocale = currentLang === 'ro' ? ro : enGB;
   const [date, setDate] = React.useState<Date | undefined>(initialDate);
   const [month, setMonth] = React.useState<Date>(initialDate || new Date());
   const todayDate = React.useMemo(() => new Date(), []);
@@ -104,8 +99,6 @@ export function InteractiveCalendar({
   return (
     <Calendar
       mode="single"
-      locale={calendarLocale}
-      weekStartsOn={1}
       selected={date}
       onSelect={(newDate) => {
         setDate(newDate);
@@ -113,20 +106,13 @@ export function InteractiveCalendar({
           onDateSelect(newDate);
         }
       }}
-      className="rounded-md p-2 pt-0"
       modifiers={modifiers}
       modifiersStyles={modifiersStyles}
       month={month} 
       onMonthChange={setMonth} 
       classNames={{
-        month: "space-y-2",
-        caption: "relative flex items-center justify-center py-1",
-        head_row: "flex [&>*:nth-child(6)]:font-medium [&>*:nth-child(6)]:text-amber-600 [&>*:nth-child(7)]:font-medium [&>*:nth-child(7)]:text-rose-600 dark:[&>*:nth-child(6)]:text-amber-300 dark:[&>*:nth-child(7)]:text-rose-300",
-        row: "mt-1 flex w-full",
-        day_selected: cn(
-          // Disable default selected styling - we handle it with custom modifiers
-          "bg-transparent text-inherit"
-        ),
+        // Assignment status modifiers own the selected-day colors.
+        day_selected: "bg-transparent text-inherit",
         // day_today styling is primarily handled by isTodayNotSelected and alwaysToday via modifiersStyles
       }}
     />

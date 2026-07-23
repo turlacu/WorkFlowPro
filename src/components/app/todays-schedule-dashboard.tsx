@@ -286,8 +286,8 @@ export function TodaysScheduleDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Calendar */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+          <CardHeader className="px-4 pb-2 pt-4 sm:p-4 sm:pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <CalendarDays className="h-5 w-5" />
               {t('SelectDate')}
             </CardTitle>
@@ -295,7 +295,7 @@ export function TodaysScheduleDashboard() {
               {t('ScheduledDaysHighlighted')}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
+          <CardContent className="flex justify-center px-2 pb-3 pt-0 sm:px-2 sm:pb-3">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -310,7 +310,6 @@ export function TodaysScheduleDashboard() {
                   fontWeight: 'bold',
                 },
               }}
-              className="rounded-md border"
             />
           </CardContent>
         </Card>
