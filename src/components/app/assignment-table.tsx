@@ -54,6 +54,8 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
   const openedAssignmentId = React.useRef<string | null>(null);
 
   const currentUserRole = session?.user?.role;
+  const canManageAssignments = currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN';
+  const canCompleteAssignments = currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN';
 
   const handleViewDetails = (assignment: AssignmentWithUsers) => {
     setSelectedAssignmentForDetail(assignment);
@@ -159,7 +161,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
     <Card 
       className={cn(
         'cursor-pointer hover:shadow-md transition-shadow duration-200',
-        {'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800': assignment.status === 'COMPLETED'},
+        {'border-emerald-500/20 bg-emerald-500/[0.06] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
       )}
       onClick={() => handleViewDetails(assignment)}
       role="button"
@@ -219,50 +221,69 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-3 border-t border-border/50">
-            <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-              {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
-                <>
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => handleEditClick(assignment, e)}
-                    className="flex min-h-11 items-center gap-1.5 px-3"
+          <div
+            className="space-y-3 border-t border-border/60 pt-3"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div>
+              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {getTranslation(currentLang, 'AssignmentTableWorkflow')}
+              </p>
+              <div className={cn('grid gap-2', canCompleteAssignments && 'grid-cols-2')}>
+                <label
+                  htmlFor={`mobile-uploaded-${assignment.id}`}
+                  className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium"
+                >
+                  <Checkbox
+                    id={`mobile-uploaded-${assignment.id}`}
+                    checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
+                    onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
+                    aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
+                    className="touch-manipulation"
+                  />
+                  <span>{getTranslation(currentLang, 'UploadedToQ')}</span>
+                </label>
+                {canCompleteAssignments && (
+                  <label
+                    htmlFor={`mobile-done-${assignment.id}`}
+                    className="flex min-h-11 cursor-pointer items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium"
                   >
-                    <Edit className="h-3 w-3" />
-                    <span className="text-xs">{getTranslation(currentLang, 'Edit')}</span>
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)}
-                    className="flex min-h-11 items-center gap-1.5 px-3 text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                    <span className="text-xs">{getTranslation(currentLang, 'Delete')}</span>
-                  </Button>
-                </>
-              )}
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">{getTranslation(currentLang, 'UploadedToQ')}:</span>
-                <Checkbox
-                  checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
-                  onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
-                  aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
-                  className="touch-manipulation"
-                />
+                    <Checkbox
+                      id={`mobile-done-${assignment.id}`}
+                      checked={assignment.status === 'COMPLETED'}
+                      onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
+                      aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
+                      className="touch-manipulation"
+                    />
+                    <span>{getTranslation(currentLang, 'AssignmentTableDone')}</span>
+                  </label>
+                )}
               </div>
             </div>
-            {(currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN') && (
-              <div onClick={(e) => e.stopPropagation()} className="flex items-center">
-                <div className="flex items-center justify-center min-h-[44px] min-w-[44px] pl-2">
-                  <Checkbox
-                    checked={assignment.status === 'COMPLETED'}
-                    onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
-                    aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
-                    className="touch-manipulation h-5 w-5"
-                  />
+            {canManageAssignments && (
+              <div className="flex items-center justify-between border-t border-border/60 pt-3">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {getTranslation(currentLang, 'AssignmentTableActions')}
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(event) => handleEditClick(assignment, event)}
+                    className="min-h-11 gap-1.5 px-3"
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                    <span>{getTranslation(currentLang, 'Edit')}</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(event) => handleOpenDeleteConfirm(assignment.id, assignment.name, event)}
+                    className="min-h-11 gap-1.5 px-3 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span>{getTranslation(currentLang, 'Delete')}</span>
+                  </Button>
                 </div>
               </div>
             )}
@@ -281,16 +302,21 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
     <>
       {/* Desktop Table - Hidden on mobile, visible md and up */}
       <div className="hidden overflow-x-auto md:block">
-        <Table>
+        <Table className="min-w-[800px] table-fixed">
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
-              <TableHead>{getTranslation(currentLang, 'AssignmentTableTaskName')}</TableHead>
-              <TableHead>{getTranslation(currentLang, 'AssignmentTableDueDate')}</TableHead>
-              <TableHead>{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
-              <TableHead>{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
-              <TableHead>{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
-              <TableHead className="text-right">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
-              {(currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN') && <TableHead className="w-[50px] text-right">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>}
+              <TableHead className="w-40">{getTranslation(currentLang, 'AssignmentTableTaskName')}</TableHead>
+              <TableHead className="w-28 whitespace-nowrap">{getTranslation(currentLang, 'AssignmentTableDueDate')}</TableHead>
+              <TableHead className="w-32">{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
+              <TableHead className="w-24">{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
+              <TableHead className="w-20">{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
+              <TableHead className="w-32 text-center">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
+              {canCompleteAssignments && (
+                <TableHead className="w-20 text-center">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>
+              )}
+              {canManageAssignments && (
+                <TableHead className="w-24 border-l text-center">{getTranslation(currentLang, 'AssignmentTableActions')}</TableHead>
+              )}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -299,7 +325,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                 key={assignment.id}
                 className={cn(
                   'cursor-pointer hover:bg-muted/50',
-                  {'bg-green-500/10 dark:bg-green-500/20': assignment.status === 'COMPLETED'},
+                  {'bg-emerald-500/[0.07] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
                 )}
                 onClick={() => handleViewDetails(assignment)}
                 role="button"
@@ -311,58 +337,60 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                   }
                 }}
               >
-                <TableCell className="font-medium">{assignment.name}</TableCell>
-                <TableCell>{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
-                <TableCell>{getStatusBadge(assignment.status)}</TableCell>
-                <TableCell>{getPriorityBadge(assignment.priority)}</TableCell>
+                <TableCell className="font-medium leading-5">{assignment.name}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
                 <TableCell>
                   {!assignment.assignedTo
                     ? getTranslation(currentLang, 'AssignmentUnassigned')
                     : assignment.assignedTo.name}
                 </TableCell>
-                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                  <div className="flex items-center justify-end gap-1">
-                    <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">
-                      <Checkbox
-                        checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
-                        onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
-                        aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
-                        className="touch-manipulation"
-                      />
-                    </div>
-                    {(currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN') && (
-                      <>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => handleEditClick(assignment, e)} 
-                          aria-label={getTranslation(currentLang, 'Edit')}
-                          className="h-11 w-11 p-0 touch-manipulation"
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => handleOpenDeleteConfirm(assignment.id, assignment.name, e)} 
-                          aria-label={getTranslation(currentLang, 'Delete')}
-                          className="h-11 w-11 p-0 touch-manipulation text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </>
-                    )}
+                <TableCell>{getStatusBadge(assignment.status)}</TableCell>
+                <TableCell>{getPriorityBadge(assignment.priority)}</TableCell>
+                <TableCell className="text-center [&:has([role=checkbox])]:pr-4" onClick={(event) => event.stopPropagation()}>
+                  <div className="flex min-h-10 items-center justify-center">
+                    <Checkbox
+                      checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
+                      onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
+                      aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
+                      className="touch-manipulation"
+                    />
                   </div>
                 </TableCell>
-                {(currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN') && (
-                  <TableCell onClick={(e) => e.stopPropagation()} className="text-right">
-                    <div className="flex items-center justify-center min-h-[44px] min-w-[44px]">
+                {canCompleteAssignments && (
+                  <TableCell onClick={(event) => event.stopPropagation()} className="text-center [&:has([role=checkbox])]:pr-4">
+                    <div className="flex min-h-10 items-center justify-center">
                       <Checkbox
                         checked={assignment.status === 'COMPLETED'}
                         onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
                         aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
                         className="touch-manipulation"
                       />
+                    </div>
+                  </TableCell>
+                )}
+                {canManageAssignments && (
+                  <TableCell onClick={(event) => event.stopPropagation()} className="border-l p-2">
+                    <div className="flex min-h-10 items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(event) => handleEditClick(assignment, event)}
+                        aria-label={getTranslation(currentLang, 'Edit')}
+                        title={getTranslation(currentLang, 'Edit')}
+                        className="h-9 w-9"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(event) => handleOpenDeleteConfirm(assignment.id, assignment.name, event)}
+                        aria-label={getTranslation(currentLang, 'Delete')}
+                        title={getTranslation(currentLang, 'Delete')}
+                        className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 )}
