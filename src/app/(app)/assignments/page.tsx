@@ -626,8 +626,8 @@ export default function AssignmentsPage() {
 
         <div className="xl:col-span-1 space-y-4 sm:space-y-6">
           <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-lg sm:text-xl">
+            <CardHeader className="px-4 pb-0 pt-4 sm:p-4 sm:pb-0">
+              <CardTitle className="text-lg">
                 {getTranslation(currentLang, 'CalendarTitle')}
               </CardTitle>
             </CardHeader>
@@ -639,7 +639,7 @@ export default function AssignmentsPage() {
                 incompleteDays={incompleteTaskDays}
               />
             </CardContent>
-            <CardFooter className="flex-col items-start space-y-1 pt-4 text-xs">
+            <CardFooter className="flex-col items-start space-y-1 px-4 pb-4 pt-2 text-xs sm:px-4 sm:pb-4 sm:pt-2">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-[hsl(var(--calendar-selected-day-bg))] mr-2 shrink-0"></div>
                 <span>{getTranslation(currentLang, 'CalendarSelectedDayLegend')}</span>
