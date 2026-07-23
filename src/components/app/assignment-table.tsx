@@ -301,21 +301,21 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
   return (
     <>
       {/* Desktop Table - Hidden on mobile, visible md and up */}
-      <div className="hidden overflow-x-auto md:block">
-        <Table className="min-w-[800px] table-fixed">
+      <div className="hidden overflow-x-hidden md:block">
+        <Table className="table-fixed [&_td]:px-2 [&_td]:py-3 [&_th]:px-2">
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
-              <TableHead className="w-40">{getTranslation(currentLang, 'AssignmentTableTaskName')}</TableHead>
-              <TableHead className="w-28 whitespace-nowrap">{getTranslation(currentLang, 'AssignmentTableDueDate')}</TableHead>
-              <TableHead className="w-32">{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
-              <TableHead className="w-24">{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
-              <TableHead className="w-20">{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
-              <TableHead className="w-32 text-center">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
+              <TableHead className="w-[16%]">{getTranslation(currentLang, 'AssignmentTableTaskName')}</TableHead>
+              <TableHead className="w-[14%]">{getTranslation(currentLang, 'AssignmentTableDueDate')}</TableHead>
+              <TableHead className="w-[14%]">{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
+              <TableHead className="w-[13%]">{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
+              <TableHead className="w-[10%]">{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
+              <TableHead className="w-[13%] text-center leading-4">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
               {canCompleteAssignments && (
-                <TableHead className="w-20 text-center">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>
+                <TableHead className="w-[8%] text-center">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>
               )}
               {canManageAssignments && (
-                <TableHead className="w-24 border-l text-center">{getTranslation(currentLang, 'AssignmentTableActions')}</TableHead>
+                <TableHead className="w-[12%] border-l text-center">{getTranslation(currentLang, 'AssignmentTableActions')}</TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -337,12 +337,14 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                   }
                 }}
               >
-                <TableCell className="font-medium leading-5">{assignment.name}</TableCell>
+                <TableCell className="break-words font-medium leading-5">{assignment.name}</TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
-                <TableCell>
-                  {!assignment.assignedTo
-                    ? getTranslation(currentLang, 'AssignmentUnassigned')
-                    : assignment.assignedTo.name}
+                <TableCell className="truncate">
+                  <span title={assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}>
+                    {!assignment.assignedTo
+                      ? getTranslation(currentLang, 'AssignmentUnassigned')
+                      : assignment.assignedTo.name}
+                  </span>
                 </TableCell>
                 <TableCell>{getStatusBadge(assignment.status)}</TableCell>
                 <TableCell>{getPriorityBadge(assignment.priority)}</TableCell>
@@ -369,8 +371,8 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                   </TableCell>
                 )}
                 {canManageAssignments && (
-                  <TableCell onClick={(event) => event.stopPropagation()} className="border-l p-2">
-                    <div className="flex min-h-10 items-center justify-center gap-1">
+                  <TableCell onClick={(event) => event.stopPropagation()} className="border-l p-1">
+                    <div className="flex min-h-10 items-center justify-center">
                       <Button
                         variant="ghost"
                         size="icon"
