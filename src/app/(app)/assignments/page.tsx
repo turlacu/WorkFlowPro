@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { AssignmentTable } from '@/components/app/assignment-table';
+import { AssignmentWorkloadSummary } from '@/components/app/assignment-workload-summary';
 import { InteractiveCalendar } from '@/components/app/interactive-calendar';
 import { NewAssignmentModal, type NewAssignmentFormValues } from '@/components/app/new-assignment-modal';
 import { PlusCircle, Users, CalendarDays, Search } from 'lucide-react';
@@ -17,6 +18,11 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useToast } from "@/hooks/use-toast";
 import { api, type AssignmentWithUsers } from '@/lib/api';
+import {
+  filterAssignmentsBySummary,
+  summarizeAssignments,
+  type AssignmentSummaryFilter,
+} from '@/lib/assignment-summary';
 import { User } from '@prisma/client';
 
 type ScheduledUser = User & {
@@ -39,6 +45,9 @@ export default function AssignmentsPage() {
   const [loadError, setLoadError] = useState(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [requestedAssignmentId, setRequestedAssignmentId] = useState<string | null>(null);
+  const [summaryFilter, setSummaryFilter] = useState<AssignmentSummaryFilter | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState(false);
 
   const [teamForSelectedDay, setTeamForSelectedDay] = useState<{ producers: ScheduledUser[], operators: ScheduledUser[] }>({ producers: [], operators: [] });
   const [formattedSelectedDateString, setFormattedSelectedDateString] = useState<string>('');
@@ -55,6 +64,7 @@ export default function AssignmentsPage() {
       }
       setRequestedAssignmentId(assignmentId);
       setSearchTerm('');
+      setSummaryFilter(null);
     };
 
     const params = new URLSearchParams(window.location.search);
@@ -137,11 +147,16 @@ export default function AssignmentsPage() {
 
   // Fetch all assignments for calendar colors (no date filter)
   const fetchCalendarAssignments = useCallback(async () => {
+    setSummaryLoading(true);
+    setSummaryError(false);
     try {
       const assignments = await api.getAssignments(); // No filters - get all assignments
       setCalendarAssignments(assignments);
     } catch (error) {
       console.error('Error fetching calendar assignments:', error);
+      setSummaryError(true);
+    } finally {
+      setSummaryLoading(false);
     }
   }, []);
 
@@ -190,15 +205,13 @@ export default function AssignmentsPage() {
     }
   }, [searchTerm, selectedDate, session, initialDataLoaded, fetchAssignments]);
 
-  // Initial fetch of assignments and calendar assignments
+  // Fetch the full assignment dataset used by the calendar and workload summary.
+  // The selected-date/search dataset is handled by the effect above.
   useEffect(() => {
     if (session && initialDataLoaded) {
-      Promise.all([
-        fetchAssignments(),
-        fetchCalendarAssignments()
-      ]);
+      void fetchCalendarAssignments();
     }
-  }, [session, initialDataLoaded, fetchAssignments, fetchCalendarAssignments]);
+  }, [session, initialDataLoaded, fetchCalendarAssignments]);
 
   // Fetch team schedule when selected date changes
   useEffect(() => {
@@ -210,15 +223,27 @@ export default function AssignmentsPage() {
 
   const handleDateSelect = useCallback((date: Date | undefined) => {
     setSelectedDate(date);
+    setSummaryFilter(null);
     // Only clear search if it's not already empty to avoid triggering search useEffect
     if (searchTerm.trim() !== '') {
       setSearchTerm('');
     }
   }, [searchTerm]);
 
+  const assignmentSummary = useMemo(
+    () => summarizeAssignments(calendarAssignments, session?.user.id || ''),
+    [calendarAssignments, session?.user.id],
+  );
+
   const assignmentsToDisplay = useMemo(() => {
-    return allAssignments;
-  }, [allAssignments]);
+    if (!summaryFilter || !session?.user.id) return allAssignments;
+    return filterAssignmentsBySummary(calendarAssignments, summaryFilter, session.user.id);
+  }, [allAssignments, calendarAssignments, session?.user.id, summaryFilter]);
+
+  const handleSummarySelect = useCallback((filter: AssignmentSummaryFilter) => {
+    setSummaryFilter(filter);
+    setSearchTerm('');
+  }, []);
 
   const completedTaskDays = useMemo(() => {
     // Group assignments by date
@@ -351,7 +376,8 @@ export default function AssignmentsPage() {
 
   const handleToggleComplete = useCallback(async (assignmentId: string, completed: boolean) => {
     try {
-      const assignment = allAssignments.find(a => a.id === assignmentId);
+      const assignment = allAssignments.find(a => a.id === assignmentId)
+        ?? calendarAssignments.find(a => a.id === assignmentId);
       if (!assignment) {
         console.error('Assignment not found for ID:', assignmentId);
         return;
@@ -411,11 +437,12 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
+  }, [allAssignments, calendarAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
 
   const handleToggleUploadedToQ = useCallback(async (assignmentId: string, uploaded: boolean) => {
     try {
-      const assignment = allAssignments.find(a => a.id === assignmentId);
+      const assignment = allAssignments.find(a => a.id === assignmentId)
+        ?? calendarAssignments.find(a => a.id === assignmentId);
       if (!assignment) {
         console.error('Assignment not found for ID:', assignmentId);
         return;
@@ -467,7 +494,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
+  }, [allAssignments, calendarAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
 
   const displaySelectedDateString = selectedDate ? format(selectedDate, 'PPP', { locale: dateLocale }) : getTranslation(currentLang, 'None');
 
@@ -479,6 +506,22 @@ export default function AssignmentsPage() {
     workAssignmentsCardTitleKey = 'WorkAssignmentsSearch_title';
     workAssignmentsCardTitleParams = { searchTerm: searchTerm };
     workAssignmentsCardDescriptionKey = 'WorkAssignmentsSearch_description';
+  }
+
+  if (summaryFilter) {
+    const summaryTitleKeys: Record<AssignmentSummaryFilter, string> = {
+      'mine-today': 'AssignmentSummaryMyToday',
+      'mine-upcoming': 'AssignmentSummaryMyNextSeven',
+      'mine-overdue': 'AssignmentSummaryMyOverdue',
+      'others-today': 'AssignmentSummaryOthersToday',
+      'team-today': 'AssignmentSummaryTeamToday',
+      'team-upcoming': 'AssignmentSummaryTeamNextSeven',
+      'team-overdue': 'AssignmentSummaryTeamOverdue',
+      unassigned: 'AssignmentSummaryUnassigned',
+    };
+    workAssignmentsCardTitleKey = summaryTitleKeys[summaryFilter];
+    workAssignmentsCardTitleParams = {};
+    workAssignmentsCardDescriptionKey = 'AssignmentSummaryFilteredDescription';
   }
   
   const workAssignmentsTitle = getTranslation(currentLang, workAssignmentsCardTitleKey, workAssignmentsCardTitleParams);
@@ -497,9 +540,19 @@ export default function AssignmentsPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 px-1 sm:px-0">
-       <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{getTranslation(currentLang, 'AssignmentsDashboardTitle')}</h1>
       </div>
+      <AssignmentWorkloadSummary
+        activeFilter={summaryFilter}
+        error={summaryError}
+        loading={summaryLoading}
+        metrics={assignmentSummary}
+        onRetry={() => void fetchCalendarAssignments()}
+        onSelect={handleSummarySelect}
+        role={session.user.role}
+        userName={session.user.name?.trim() || session.user.email.split('@')[0]}
+      />
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
         <div className="xl:col-span-3">
           <Card className="h-full">
@@ -528,7 +581,10 @@ export default function AssignmentsPage() {
                   placeholder={getTranslation(currentLang, 'SearchAssignmentsPlaceholder')}
                   className="h-11 w-full pl-9"
                   value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
+                  onChange={(event) => {
+                    setSearchTerm(event.target.value);
+                    setSummaryFilter(null);
+                  }}
                 />
               </div>
             </CardHeader>
