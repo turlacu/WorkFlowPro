@@ -25,6 +25,10 @@ enum AssignmentPriority {
   URGENT
 }
 
+enum NotificationType {
+  ASSIGNMENT_ASSIGNED
+}
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -76,6 +80,8 @@ model User {
   createdConfigurations   ExcelUploadConfiguration[]
   uploadConfigurationLogs UploadConfigurationLog[]
   dailySchedules          DailySchedule[]
+  receivedNotifications   Notification[]             @relation("NotificationRecipient")
+  sentNotifications       Notification[]             @relation("NotificationActor")
 
   @@map("users")
 }
@@ -110,10 +116,31 @@ model Assignment {
   createdBy       User               @relation("CreatedByUser", fields: [createdById], references: [id])
   assignedTo      User?              @relation(fields: [assignedToId], references: [id])
   completedBy     User?              @relation("CompletedByUser", fields: [completedById], references: [id])
+  notifications   Notification[]
 
   @@index([dueDate])
   @@index([status, completedAt])
   @@map("assignments")
+}
+
+model Notification {
+  id             String           @id @default(cuid())
+  type           NotificationType @default(ASSIGNMENT_ASSIGNED)
+  recipientId    String
+  actorId        String?
+  assignmentId   String?
+  assignmentName String
+  actorName      String
+  dueDate        DateTime
+  readAt         DateTime?
+  createdAt      DateTime         @default(now())
+  recipient      User             @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor          User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  assignment     Assignment?      @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+
+  @@index([recipientId, readAt, createdAt])
+  @@index([assignmentId])
+  @@map("notifications")
 }
 
 model TeamSchedule {

@@ -37,19 +37,21 @@ import {
 
 interface AssignmentTableProps {
   assignments: AssignmentWithUsers[];
+  openAssignmentId?: string | null;
   onEditAssignment: (assignment: AssignmentWithUsers) => void;
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
 }
 
-export function AssignmentTable({ assignments, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = React.useState<{id: string, name: string} | null>(null);
   const { currentLang } = useLanguage();
   const locale = currentLang === 'ro' ? ro : enUS;
+  const openedAssignmentId = React.useRef<string | null>(null);
 
   const currentUserRole = session?.user?.role;
 
@@ -57,6 +59,15 @@ export function AssignmentTable({ assignments, onEditAssignment, onDeleteAssignm
     setSelectedAssignmentForDetail(assignment);
     setIsDetailModalOpen(true);
   };
+
+  React.useEffect(() => {
+    if (!openAssignmentId || openedAssignmentId.current === openAssignmentId) return;
+    const assignment = assignments.find((item) => item.id === openAssignmentId);
+    if (!assignment) return;
+    openedAssignmentId.current = openAssignmentId;
+    setSelectedAssignmentForDetail(assignment);
+    setIsDetailModalOpen(true);
+  }, [assignments, openAssignmentId]);
 
   const handleOpenDeleteConfirm = (assignmentId: string, assignmentName: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent row click when clicking delete button

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { canManageAssignmentDetails, canTransitionAssignment } from '@/lib/roles';
 import { utcDayRange } from '@/lib/date-only';
+import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
 
 const CreateAssignmentSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -63,18 +64,46 @@ export async function POST(request: NextRequest) {
     const data = CreateAssignmentSchema.parse(await request.json());
 
     if (data.assignedToId) {
-      const assignedUser = await prisma.user.findUnique({ where: { id: data.assignedToId }, select: { id: true } });
-      if (!assignedUser) return NextResponse.json({ error: 'Assigned user not found' }, { status: 400 });
+      const assignedUser = await prisma.user.findUnique({
+        where: { id: data.assignedToId },
+        select: { id: true, role: true },
+      });
+      if (!assignedUser || assignedUser.role !== 'OPERATOR') {
+        return NextResponse.json({ error: 'Assigned user must be an operator' }, { status: 400 });
+      }
     }
 
-    const assignment = await prisma.assignment.create({
-      data: {
-        ...data,
-        dueDate: new Date(data.dueDate),
-        createdById: auth.user.id,
-        lastUpdatedById: auth.user.id,
-      },
-      include: assignmentInclude,
+    const assignment = await prisma.$transaction(async (transaction) => {
+      const createdAssignment = await transaction.assignment.create({
+        data: {
+          ...data,
+          dueDate: new Date(data.dueDate),
+          createdById: auth.user.id,
+          lastUpdatedById: auth.user.id,
+        },
+        include: assignmentInclude,
+      });
+
+      if (data.assignedToId) {
+        const notification = await transaction.notification.create({
+          data: {
+            recipientId: data.assignedToId,
+            actorId: auth.user.id,
+            assignmentId: createdAssignment.id,
+            assignmentName: createdAssignment.name,
+            actorName: auth.user.name,
+            dueDate: createdAssignment.dueDate,
+          },
+        });
+        await transaction.$executeRaw`
+          SELECT pg_notify(
+            ${NOTIFICATION_CHANNEL},
+            ${JSON.stringify({ notificationId: notification.id, recipientId: data.assignedToId })}
+          )
+        `;
+      }
+
+      return createdAssignment;
     });
     return NextResponse.json(assignment, { status: 201 });
   } catch (error) {
@@ -113,31 +142,60 @@ export async function PUT(request: NextRequest) {
     }
 
     if (data.assignedToId && data.assignedToId !== existing.assignedToId) {
-      const assignedUser = await prisma.user.findUnique({ where: { id: data.assignedToId }, select: { id: true } });
-      if (!assignedUser) return NextResponse.json({ error: 'Assigned user not found' }, { status: 400 });
+      const assignedUser = await prisma.user.findUnique({
+        where: { id: data.assignedToId },
+        select: { id: true, role: true },
+      });
+      if (!assignedUser || assignedUser.role !== 'OPERATOR') {
+        return NextResponse.json({ error: 'Assigned user must be an operator' }, { status: 400 });
+      }
     }
 
     const nextStatus = data.status ?? existing.status;
     const enteringCompleted = nextStatus === 'COMPLETED' && existing.status !== 'COMPLETED';
     const leavingCompleted = nextStatus !== 'COMPLETED' && existing.status === 'COMPLETED';
 
-    const assignment = await prisma.assignment.update({
-      where: { id: data.id },
-      data: {
-        name: data.name,
-        description: data.description,
-        author: data.author,
-        dueDate,
-        priority: data.priority,
-        assignedToId: data.assignedToId,
-        sourceLocation: data.sourceLocation,
-        comment: data.comment,
-        status: nextStatus,
-        lastUpdatedById: auth.user.id,
-        ...(enteringCompleted ? { completedAt: new Date(), completedById: auth.user.id } : {}),
-        ...(leavingCompleted ? { completedAt: null, completedById: null } : {}),
-      },
-      include: assignmentInclude,
+    const recipientId = notificationRecipient(existing.assignedToId, data.assignedToId);
+    const assignment = await prisma.$transaction(async (transaction) => {
+      const updatedAssignment = await transaction.assignment.update({
+        where: { id: data.id },
+        data: {
+          name: data.name,
+          description: data.description,
+          author: data.author,
+          dueDate,
+          priority: data.priority,
+          assignedToId: data.assignedToId,
+          sourceLocation: data.sourceLocation,
+          comment: data.comment,
+          status: nextStatus,
+          lastUpdatedById: auth.user.id,
+          ...(enteringCompleted ? { completedAt: new Date(), completedById: auth.user.id } : {}),
+          ...(leavingCompleted ? { completedAt: null, completedById: null } : {}),
+        },
+        include: assignmentInclude,
+      });
+
+      if (recipientId) {
+        const notification = await transaction.notification.create({
+          data: {
+            recipientId,
+            actorId: auth.user.id,
+            assignmentId: updatedAssignment.id,
+            assignmentName: updatedAssignment.name,
+            actorName: auth.user.name,
+            dueDate: updatedAssignment.dueDate,
+          },
+        });
+        await transaction.$executeRaw`
+          SELECT pg_notify(
+            ${NOTIFICATION_CHANNEL},
+            ${JSON.stringify({ notificationId: notification.id, recipientId })}
+          )
+        `;
+      }
+
+      return updatedAssignment;
     });
     return NextResponse.json(assignment);
   } catch (error) {

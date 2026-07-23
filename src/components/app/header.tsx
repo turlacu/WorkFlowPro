@@ -21,6 +21,7 @@ import { ThemeToggle } from '@/components/app/theme-toggle';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
 import { cn } from '@/lib/utils';
+import { NotificationInbox } from '@/components/app/notification-inbox';
 
 export default function AppHeader() {
   const pathname = usePathname();
@@ -66,6 +67,7 @@ export default function AppHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 md:ml-0">
+          <NotificationInbox />
           <LanguageToggle />
           <ThemeToggle />
           <div className="hidden md:block">

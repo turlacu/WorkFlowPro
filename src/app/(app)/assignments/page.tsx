@@ -11,7 +11,7 @@ import { AssignmentTable } from '@/components/app/assignment-table';
 import { InteractiveCalendar } from '@/components/app/interactive-calendar';
 import { NewAssignmentModal, type NewAssignmentFormValues } from '@/components/app/new-assignment-modal';
 import { PlusCircle, Users, CalendarDays, Search } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid, parseISO } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -38,6 +38,7 @@ export default function AssignmentsPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
+  const [requestedAssignmentId, setRequestedAssignmentId] = useState<string | null>(null);
 
   const [teamForSelectedDay, setTeamForSelectedDay] = useState<{ producers: ScheduledUser[], operators: ScheduledUser[] }>({ producers: [], operators: [] });
   const [formattedSelectedDateString, setFormattedSelectedDateString] = useState<string>('');
@@ -45,6 +46,27 @@ export default function AssignmentsPage() {
   const { currentLang } = useLanguage();
   const dateLocale = currentLang === 'ro' ? ro : enUS;
   const { toast } = useToast();
+
+  useEffect(() => {
+    const openRequestedAssignment = (assignmentId: string | null, date: string | null) => {
+      if (date) {
+        const parsedDate = parseISO(date);
+        if (isValid(parsedDate)) setSelectedDate(parsedDate);
+      }
+      setRequestedAssignmentId(assignmentId);
+      setSearchTerm('');
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    openRequestedAssignment(params.get('assignment'), params.get('date'));
+
+    const handleOpenAssignment = (event: Event) => {
+      const detail = (event as CustomEvent<{ assignmentId: string; date: string }>).detail;
+      if (detail?.assignmentId) openRequestedAssignment(detail.assignmentId, detail.date);
+    };
+    window.addEventListener('workflowpro:open-assignment', handleOpenAssignment);
+    return () => window.removeEventListener('workflowpro:open-assignment', handleOpenAssignment);
+  }, []);
 
   // Fetch initial data (only once on session load)
   useEffect(() => {
@@ -521,6 +543,7 @@ export default function AssignmentsPage() {
               ) : assignmentsToDisplay.length > 0 ? (
                 <AssignmentTable
                   assignments={assignmentsToDisplay}
+                  openAssignmentId={requestedAssignmentId}
                   onEditAssignment={handleOpenEditModal}
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}

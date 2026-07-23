@@ -81,3 +81,23 @@ test('migration history includes the missing daily schedules table and security 
   assert.match(migration, /"sessionVersion"/);
   assert.match(migration, /"passwordResetRequired"/);
 });
+
+test('assignment notifications are persistent, recipient-scoped, and commit-aware', () => {
+  const assignmentsRoute = read('src/app/api/assignments/route.ts');
+  const notificationRoute = read('src/app/api/notifications/route.ts');
+  const streamRoute = read('src/app/api/notifications/stream/route.ts');
+  const migration = read(
+    'prisma/migrations/20260723000000_add_assignment_notifications/migration.sql',
+  );
+
+  assert.match(assignmentsRoute, /prisma\.\$transaction/);
+  assert.match(assignmentsRoute, /assignedUser\.role !== 'OPERATOR'/);
+  assert.match(assignmentsRoute, /pg_notify/);
+  assert.match(notificationRoute, /recipientId: auth\.user\.id/);
+  assert.match(notificationRoute, /requireUser\(\['OPERATOR'\]\)/);
+  assert.match(streamRoute, /text\/event-stream/);
+  assert.match(streamRoute, /notificationBroker\.subscribe\(recipientId/);
+  assert.match(streamRoute, /Cache-Control.*no-cache, no-transform/);
+  assert.match(migration, /CREATE TABLE "notifications"/);
+  assert.match(migration, /notifications_recipientId_readAt_createdAt_idx/);
+});
