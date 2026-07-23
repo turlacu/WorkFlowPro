@@ -6,10 +6,10 @@ import { useSession } from 'next-auth/react';
 import { InteractiveCalendar } from '@/components/app/interactive-calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { Users, CalendarDays, BarChart3, DatabaseBackup, Save, Shield } from 'lucide-react';
+import { Save, Shield } from 'lucide-react';
 import { format } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
 import Link from 'next/link';
@@ -308,77 +308,72 @@ export default function DashboardPage() {
   const formattedSelectedDate = selectedDate ? format(selectedDate, 'PPP', { locale: dateLocale }) : getTranslation(currentLang, 'None');
   const producersOnDutyText = selectedProducers.length > 0 ? selectedProducers.map(p => p.name).join(', ') : getTranslation(currentLang, 'None');
   const operatorsOnDutyText = selectedOperators.length > 0 ? selectedOperators.map(o => o.name).join(', ') : getTranslation(currentLang, 'None');
+  const sectionHeader = primarySection === 'user-management'
+    ? {
+        title: getTranslation(currentLang, 'UserManagementTab'),
+        description: getTranslation(currentLang, 'UserManagementDescription'),
+      }
+    : primarySection === 'statistics'
+      ? {
+          title: getTranslation(currentLang, 'StatisticsPageTitle'),
+          description: getTranslation(currentLang, 'StatisticsPageDescription'),
+        }
+      : primarySection === 'data-backup'
+        ? {
+            title: getTranslation(currentLang, 'DataBackupRestoreTabTitle'),
+            description: getTranslation(currentLang, 'DataBackupRestoreTabDescription'),
+          }
+        : schedulingSection === 'excel-upload'
+          ? {
+              title: getTranslation(currentLang, 'ScheduleNavImport'),
+              description: getTranslation(currentLang, 'ScheduleImportDescription'),
+            }
+          : schedulingSection === 'delete-schedule'
+            ? {
+                title: getTranslation(currentLang, 'ScheduleNavDelete'),
+                description: getTranslation(currentLang, 'ScheduleDeleteDescription'),
+              }
+            : schedulingSection === 'excel-configurations'
+              ? {
+                  title: getTranslation(currentLang, 'ScheduleNavExcelConfigurations'),
+                  description: getTranslation(currentLang, 'ScheduleExcelConfigurationsDescription'),
+                }
+              : schedulingSection === 'color-legend'
+                ? {
+                    title: getTranslation(currentLang, 'ScheduleNavColorLegend'),
+                    description: getTranslation(currentLang, 'ScheduleColorLegendDescription'),
+                  }
+                : {
+                    title: getTranslation(currentLang, 'ManageTeamScheduleTitle'),
+                    description: getTranslation(currentLang, 'ManageTeamScheduleDescription'),
+                  };
 
   return (
     <div className="space-y-6 px-1 sm:px-0">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight">{getTranslation(currentLang, 'DashboardTitle')}</h1>
-      </div>
+      <header className="border-b pb-5">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{getTranslation(currentLang, 'DashboardTitle')}</h1>
+        <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+          {getTranslation(currentLang, 'AdminPanelDescription')}
+        </p>
+      </header>
 
-      <div className="grid gap-6 lg:grid-cols-[15rem_minmax(0,1fr)]">
-      <AdminNavigation />
-      <Tabs value={primarySection} className="min-w-0 w-full">
-        <TabsList className="hidden">
-          <TabsTrigger value="user-management" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
-            <Users className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
-            <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'UserManagementTab')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="team-scheduling" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
-            <CalendarDays className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
-            <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'TeamSchedulingTab')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="statistics" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
-            <BarChart3 className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
-            <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'StatisticsTab')}</span>
-          </TabsTrigger>
-          <TabsTrigger value="data-backup" className="text-xs sm:text-sm p-2 sm:p-3 flex-col sm:flex-row gap-1 sm:gap-2 h-auto min-h-[44px]">
-            <DatabaseBackup className="h-4 w-4 sm:h-4 sm:w-4 shrink-0" />
-            <span className="text-center sm:text-left leading-tight">{getTranslation(currentLang, 'DataBackupRestoreTab')}</span>
-          </TabsTrigger>
-        </TabsList>
+      <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+        <AdminNavigation />
+        <Tabs value={primarySection} className="min-w-0 w-full">
+          <header className="min-h-[5.25rem] border-b pb-5">
+            <h2 className="text-2xl font-semibold tracking-tight">{sectionHeader.title}</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">{sectionHeader.description}</p>
+          </header>
 
-        <TabsContent value="user-management">
-          <Card>
-            <CardHeader className="pb-4 sm:pb-6">
-              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">
-                {getTranslation(currentLang, 'UserManagementTab')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <UserManagementDashboard />
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="user-management" className="mt-6">
+            <UserManagementDashboard />
+          </TabsContent>
 
-        <TabsContent value="team-scheduling">
-          <div className="space-y-4 sm:space-y-6">
-            <div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'ManageTeamScheduleTitle')}</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">{getTranslation(currentLang, 'ManageTeamScheduleDescription')}</p>
-            </div>
-            
+        <TabsContent value="team-scheduling" className="mt-6">
+          <div>
             <Tabs value={schedulingSection} className="w-full">
-              <TabsList className="hidden">
-                <TabsTrigger value="manual-scheduling" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
-                  Manual Scheduling
-                </TabsTrigger>
-                <TabsTrigger value="excel-upload" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
-                  Excel Upload
-                </TabsTrigger>
-                <TabsTrigger value="delete-schedule" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
-                  Delete Schedule
-                </TabsTrigger>
-                <TabsTrigger value="excel-configurations" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
-                  Excel Configs
-                </TabsTrigger>
-                <TabsTrigger value="color-legend" className="text-xs sm:text-sm px-2 py-2 sm:py-1.5 h-auto min-h-[40px] sm:min-h-0">
-                  Color Legend
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="manual-scheduling" className="mt-4 sm:mt-6">
-                <Card>
-                  <CardContent className="grid lg:grid-cols-3 gap-4 sm:gap-6 p-4 sm:p-6">
+              <TabsContent value="manual-scheduling" className="mt-0">
+                  <div className="grid items-start gap-6 xl:grid-cols-[20rem_minmax(0,1fr)]">
                     <div className="lg:col-span-1 space-y-4">
                       <Card>
                         <CardHeader className="pb-4"><CardTitle className="text-lg">{getTranslation(currentLang, 'SelectDateTitle')}</CardTitle></CardHeader>
@@ -400,7 +395,7 @@ export default function DashboardPage() {
                       </Card>
                     </div>
 
-                    <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+                    <div className="space-y-6">
                       <Card>
                         <CardHeader className="pb-4"><CardTitle className="text-lg">{getTranslation(currentLang, 'AssignRolesForDateTitle', { date: formattedSelectedDate })}</CardTitle></CardHeader>
                         <CardContent className="grid md:grid-cols-2 gap-6">
@@ -521,11 +516,10 @@ export default function DashboardPage() {
                         </Button>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
               </TabsContent>
 
-              <TabsContent value="excel-upload" className="mt-6">
+              <TabsContent value="excel-upload" className="mt-0">
                 <ExcelScheduleUploader 
                   selectedDate={selectedDate}
                   onUploadComplete={() => {
@@ -541,7 +535,7 @@ export default function DashboardPage() {
                 />
               </TabsContent>
 
-              <TabsContent value="delete-schedule" className="mt-6">
+              <TabsContent value="delete-schedule" className="mt-0">
                 <MonthScheduleDeleter 
                   selectedDate={selectedDate}
                   onDeleteComplete={() => {
@@ -557,43 +551,27 @@ export default function DashboardPage() {
                 />
               </TabsContent>
 
-              <TabsContent value="excel-configurations" className="mt-6">
+              <TabsContent value="excel-configurations" className="mt-0">
                 <ExcelConfigurationsPage />
               </TabsContent>
 
-              <TabsContent value="color-legend" className="mt-6">
+              <TabsContent value="color-legend" className="mt-0">
                 <ShiftColorLegendManager />
               </TabsContent>
             </Tabs>
           </div>
         </TabsContent>
 
-        <TabsContent value="statistics">
-          <Card>
-            <CardHeader className="pb-4 sm:pb-6">
-                <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'StatisticsPageTitle')}</CardTitle>
-                <CardDescription className="text-sm sm:text-base">{getTranslation(currentLang, 'StatisticsPageDescription')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ErrorBoundary>
-                <StatisticsDashboard />
-              </ErrorBoundary>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <TabsContent value="statistics" className="mt-6">
+            <ErrorBoundary>
+              <StatisticsDashboard />
+            </ErrorBoundary>
+          </TabsContent>
 
-        <TabsContent value="data-backup">
-           <Card>
-            <CardHeader className="pb-4 sm:pb-6">
-              <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold">{getTranslation(currentLang, 'DataBackupRestoreTabTitle')}</CardTitle>
-              <CardDescription className="text-sm sm:text-base">{getTranslation(currentLang, 'DataBackupRestoreTabDescription')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <DataBackupRestoreDashboard />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="data-backup" className="mt-6">
+            <DataBackupRestoreDashboard />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

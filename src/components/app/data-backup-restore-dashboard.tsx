@@ -189,7 +189,7 @@ export function DataBackupRestoreDashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -199,7 +199,7 @@ export function DataBackupRestoreDashboard() {
           <CardDescription>{getTranslation(currentLang, 'CreateBackupCardDescription')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleCreateBackup} disabled={isCreatingBackup}>
+          <Button onClick={handleCreateBackup} disabled={isCreatingBackup} className="w-full sm:w-auto">
             {isCreatingBackup && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {getTranslation(currentLang, 'CreateBackupButton')}
           </Button>
@@ -228,7 +228,7 @@ export function DataBackupRestoreDashboard() {
             />
           </div>
           {selectedFile && <p className="text-sm text-muted-foreground">Selected file: {selectedFile.name}</p>}
-          <Button onClick={handleRestoreFromFile} disabled={!selectedFile || isRestoring}>
+          <Button onClick={handleRestoreFromFile} disabled={!selectedFile || isRestoring} className="w-full sm:w-auto">
             {isRestoring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {getTranslation(currentLang, 'RestoreButton')}
           </Button>
@@ -379,4 +379,3 @@ export function DataBackupRestoreDashboard() {
     </div>
   );
 }
-

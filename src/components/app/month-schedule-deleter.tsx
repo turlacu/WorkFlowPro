@@ -109,21 +109,21 @@ export function MonthScheduleDeleter({ selectedDate, onDeleteComplete }: MonthSc
 
   return (
     <div className="space-y-6">
-      <Card className="border-red-200">
+      <Card className="border-destructive/30">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-700">
+          <CardTitle className="flex items-center gap-2 text-destructive">
             <Trash2 className="h-5 w-5" />
             Delete Month Schedule
           </CardTitle>
-          <CardDescription className="text-red-600">
+          <CardDescription>
             Delete all schedules for {getMonthName(currentMonth)} {currentYear} for specific user types.
             This action cannot be undone.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-            <Calendar className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">
+          <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">
               Target: {getMonthName(currentMonth)} {currentYear}
             </span>
           </div>

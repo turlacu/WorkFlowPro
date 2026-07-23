@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Plus, Settings, Trash2, Edit, TestTube, Eye, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfigurationWizard } from '@/components/app/configuration-wizard';
+import { usePathname } from 'next/navigation';
 
 interface ExcelConfiguration {
   id: string;
@@ -42,6 +43,8 @@ interface ExcelConfiguration {
 }
 
 export default function ExcelConfigurationsPage() {
+  const pathname = usePathname();
+  const embedded = pathname.startsWith('/dashboard/');
   const [configurations, setConfigurations] = React.useState<ExcelConfiguration[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedConfig, setSelectedConfig] = React.useState<ExcelConfiguration | null>(null);
@@ -138,9 +141,11 @@ export default function ExcelConfigurationsPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Excel Upload Configurations</h1>
-        </div>
+        {!embedded && (
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold">Excel Upload Configurations</h1>
+          </div>
+        )}
         <div className="text-center py-8">Loading configurations...</div>
       </div>
     );
@@ -148,16 +153,18 @@ export default function ExcelConfigurationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Excel Upload Configurations</h1>
-          <p className="text-muted-foreground">
-            Manage Excel file parsing configurations for different schedule formats
-          </p>
-        </div>
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        {!embedded && (
+          <div>
+            <h1 className="text-3xl font-bold">Excel Upload Configurations</h1>
+            <p className="text-muted-foreground">
+              Manage Excel file parsing configurations for different schedule formats
+            </p>
+          </div>
+        )}
         <Dialog open={showWizard} onOpenChange={setShowWizard}>
           <DialogTrigger asChild>
-            <Button onClick={() => setEditingConfig(null)}>
+            <Button onClick={() => setEditingConfig(null)} className={embedded ? 'sm:ml-auto' : undefined}>
               <Plus className="h-4 w-4 mr-2" />
               New Configuration
             </Button>

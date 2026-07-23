@@ -189,8 +189,8 @@ export function ShiftColorLegendManager() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
+        <CardHeader className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="space-y-1">
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
               Shift Color Legend Management
@@ -200,9 +200,9 @@ export function ShiftColorLegendManager() {
               Each role can have its own color meanings.
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-full sm:w-36">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -212,7 +212,7 @@ export function ShiftColorLegendManager() {
                 <SelectItem value="ADMIN">ADMIN</SelectItem>
               </SelectContent>
             </Select>
-            <Button onClick={() => handleOpenModal()}>
+            <Button onClick={() => handleOpenModal()} className="w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Add Color Legend
             </Button>
