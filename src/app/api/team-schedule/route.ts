@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
         shiftName: true,
         startTime: true,
         endTime: true,
+        role: true,
       },
     });
 
@@ -61,6 +62,7 @@ export async function GET(request: NextRequest) {
       
       if (schedule.shiftColor) {
         const matchingLegend = colorLegends.find(legend => 
+          legend.role === schedule.user.role &&
           legend.colorCode.toLowerCase() === schedule.shiftColor?.toLowerCase()
         );
         
@@ -144,6 +146,7 @@ export async function POST(request: NextRequest) {
         shiftName: true,
         startTime: true,
         endTime: true,
+        role: true,
       },
     });
 
@@ -154,6 +157,7 @@ export async function POST(request: NextRequest) {
       
       if (schedule.shiftColor) {
         const matchingLegend = colorLegends.find(legend => 
+          legend.role === schedule.user.role &&
           legend.colorCode.toLowerCase() === schedule.shiftColor?.toLowerCase()
         );
         

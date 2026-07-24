@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, Palette, Clock } from 'lucide-react';
@@ -25,6 +24,7 @@ interface ShiftMapping {
   startTime: string;
   endTime: string;
   description?: string;
+  role: 'OPERATOR' | 'PRODUCER';
 }
 
 interface ColorMappingDialogProps {
@@ -32,6 +32,7 @@ interface ColorMappingDialogProps {
   onOpenChange: (open: boolean) => void;
   detectedColors: DetectedColor[];
   existingMappings: ShiftMapping[];
+  targetRole: 'OPERATOR' | 'PRODUCER';
   onSaveMappings: (mappings: ShiftMapping[]) => Promise<void>;
 }
 
@@ -49,6 +50,7 @@ export function ColorMappingDialog({
   onOpenChange,
   detectedColors,
   existingMappings,
+  targetRole,
   onSaveMappings,
 }: ColorMappingDialogProps) {
   const [mappings, setMappings] = React.useState<ShiftMapping[]>([]);
@@ -60,7 +62,11 @@ export function ColorMappingDialog({
     if (open) {
       const initialMappings = detectedColors.map(({ color }) => {
         // Check if we already have a mapping for this color
-        const existing = existingMappings.find(m => m.colorCode.toLowerCase() === color.toLowerCase());
+        const existing = existingMappings.find(
+          (mapping) =>
+            mapping.role === targetRole &&
+            mapping.colorCode.toLowerCase() === color.toLowerCase(),
+        );
         if (existing) {
           return existing;
         }
@@ -73,11 +79,12 @@ export function ColorMappingDialog({
           startTime: '00:00',
           endTime: '00:00',
           description: 'Auto-detected from Excel import',
+          role: targetRole,
         };
       });
       setMappings(initialMappings);
     }
-  }, [open, detectedColors, existingMappings]);
+  }, [open, detectedColors, existingMappings, targetRole]);
 
   const handleMappingChange = (index: number, field: keyof ShiftMapping, value: string) => {
     setMappings(prev => prev.map((mapping, i) => 

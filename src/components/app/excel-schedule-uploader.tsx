@@ -10,10 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Users, Calendar, Palette, Settings } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Palette, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getTranslation } from '@/lib/translations';
-import { useLanguage } from '@/contexts/LanguageContext';
 import { ColorMappingDialog } from './color-mapping-dialog';
 
 interface ScheduleEntry {
@@ -39,7 +37,7 @@ interface MatchingReport {
 interface ExcelConfiguration {
   id: string;
   name: string;
-  role: string;
+  role: 'OPERATOR' | 'PRODUCER';
   description?: string;
   active: boolean;
 }
@@ -66,7 +64,6 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
   const [selectedConfig, setSelectedConfig] = React.useState<string>('');
   const [loadingConfigs, setLoadingConfigs] = React.useState(true);
 
-  const { currentLang } = useLanguage();
   const { toast } = useToast();
 
   const currentMonth = selectedDate ? selectedDate.getMonth() + 1 : new Date().getMonth() + 1;
@@ -144,6 +141,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
       formData.append('year', currentYear.toString());
       formData.append('preview', 'true');
       formData.append('role', selectedConfiguration.role);
+      formData.append('configId', selectedConfiguration.id);
 
       const response = await fetch('/api/team-schedule/upload-excel', {
         method: 'POST',
@@ -206,6 +204,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
       formData.append('year', currentYear.toString());
       formData.append('preview', 'false');
       formData.append('role', selectedConfiguration.role);
+      formData.append('configId', selectedConfiguration.id);
 
       const response = await fetch('/api/team-schedule/upload-excel', {
         method: 'POST',
@@ -282,7 +281,9 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
         try {
           // Check if mapping already exists
           const existingMapping = existingColorMappings.find(
-            existing => existing.colorCode.toLowerCase() === mapping.colorCode.toLowerCase()
+            existing =>
+              existing.role === mapping.role &&
+              existing.colorCode.toLowerCase() === mapping.colorCode.toLowerCase()
           );
           
           const method = existingMapping ? 'PUT' : 'POST';
@@ -727,6 +728,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
           entries: previewData.filter(entry => entry.shiftColor === color).map(entry => `${entry.name} - ${entry.date}`)
         }))}
         existingMappings={existingColorMappings}
+        targetRole={selectedConfiguration?.role ?? 'OPERATOR'}
         onSaveMappings={handleColorMappingSave}
       />
     </div>

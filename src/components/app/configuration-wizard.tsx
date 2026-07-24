@@ -48,7 +48,8 @@ interface TestResult {
   validation: {
     dateRowData: Array<{ column: number; value: any; type: string }>;
     nameColumnData: Array<{ row: number; value: any; type: string }>;
-    sampleScheduleData: Array<{ row: number; col: string; value: any; hasStyle: boolean }>;
+    sampleScheduleData: Array<{ row: number; col: string; value: any; hasStyle: boolean; color?: string }>;
+    detectedColors: string[];
     errors: string[];
     warnings: string[];
   };
@@ -584,6 +585,9 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                           <div>
                             <strong>Sample data:</strong> {testResult.validation.sampleScheduleData.length} cells
                           </div>
+                          <div>
+                            <strong>Fill colors found:</strong> {testResult.validation.detectedColors.length}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
@@ -600,6 +604,7 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                             <TableRow>
                               <TableHead>Cell</TableHead>
                               <TableHead>Value</TableHead>
+                              <TableHead>Fill Color</TableHead>
                               <TableHead>Has Style</TableHead>
                             </TableRow>
                           </TableHeader>
@@ -607,7 +612,20 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                             {testResult.validation.sampleScheduleData.slice(0, 10).map((cell, index) => (
                               <TableRow key={index}>
                                 <TableCell>{cell.col}{cell.row}</TableCell>
-                                <TableCell>{cell.value}</TableCell>
+                                <TableCell>{cell.value || <span className="text-muted-foreground">Color only</span>}</TableCell>
+                                <TableCell>
+                                  {cell.color ? (
+                                    <span className="inline-flex items-center gap-2">
+                                      <span
+                                        className="h-4 w-4 rounded-sm border"
+                                        style={{ backgroundColor: cell.color }}
+                                      />
+                                      {cell.color}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">None</span>
+                                  )}
+                                </TableCell>
                                 <TableCell>{cell.hasStyle ? '✓' : '✗'}</TableCell>
                               </TableRow>
                             ))}

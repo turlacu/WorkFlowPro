@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server-auth';
 import * as XLSX from 'xlsx';
+import { extractExcelFillColor } from '@/lib/excel-colors';
 
 // Test configuration against uploaded file
 export async function POST(request: NextRequest) {
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
       validation: {
         dateRowData: [] as Array<{ column: number; value: any; type: string }>,
         nameColumnData: [] as Array<{ row: number; value: any; type: string }>,
-        sampleScheduleData: [] as Array<{ row: number; col: string; value: any; hasStyle: boolean }>,
+        sampleScheduleData: [] as Array<{ row: number; col: string; value: any; hasStyle: boolean; color?: string }>,
+        detectedColors: [] as string[],
         errors: [] as string[],
         warnings: [] as string[]
       }
@@ -78,26 +80,44 @@ export async function POST(request: NextRequest) {
 
     // Sample schedule data (first few intersections)
     try {
-      const sampleData: Array<{ row: number; col: string; value: any; hasStyle: boolean }> = [];
+      const sampleData: Array<{ row: number; col: string; value: any; hasStyle: boolean; color?: string }> = [];
+      const detectedColors = new Set<string>();
       const sampleRows = Math.min(3, configData.lastNameRow - configData.firstNameRow + 1);
       const sampleCols = Math.min(7, configData.lastDateColumn - configData.firstDateColumn + 1);
+
+      if (configData.colorDetection !== false) {
+        for (let row = configData.firstNameRow; row <= configData.lastNameRow; row++) {
+          for (let col = configData.firstDateColumn; col <= configData.lastDateColumn; col++) {
+            const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
+            const color = extractExcelFillColor(cell);
+            if (color) detectedColors.add(color);
+          }
+        }
+      }
       
       for (let r = 0; r < sampleRows; r++) {
         const row = configData.firstNameRow + r;
         for (let c = 0; c < sampleCols; c++) {
           const col = configData.firstDateColumn + c;
           const cell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
-          if (cell && cell.v !== undefined) {
+          const color = configData.colorDetection === false ? undefined : extractExcelFillColor(cell);
+          if (cell && (cell.v !== undefined || color)) {
             sampleData.push({
               row: row + 1,
-              col: String.fromCharCode(65 + col),
-              value: cell.v,
-              hasStyle: !!cell.s
+              col: XLSX.utils.encode_col(col),
+              value: cell.v ?? '',
+              hasStyle: !!cell.s,
+              color,
             });
           }
         }
       }
       testResult.validation.sampleScheduleData = sampleData;
+      testResult.validation.detectedColors = [...detectedColors];
+
+      if (configData.colorDetection !== false && detectedColors.size === 0) {
+        testResult.validation.warnings.push('Color detection is enabled, but no non-white fill colors were found in the configured schedule range.');
+      }
     } catch (error) {
       testResult.validation.errors.push(`Error reading schedule data: ${error}`);
     }

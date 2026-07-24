@@ -5,11 +5,14 @@ import Fuse from 'fuse.js';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { extractExcelFillColor } from '@/lib/excel-colors';
+import { parseScheduleCell } from '@/lib/excel-schedule-cell';
 
 const UploadMetadataSchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
   year: z.coerce.number().int().min(2020).max(2100),
   role: z.enum(['OPERATOR', 'PRODUCER']),
+  configId: z.string().min(1).optional(),
 });
 
 type ScheduleRole = z.infer<typeof UploadMetadataSchema>['role'];
@@ -53,7 +56,7 @@ function rgbToHex(r: number, g: number, b: number): string {
 }
 
 // Helper function to parse Excel color with enhanced detection
-function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
+function parseExcelColorLegacy(cell: unknown, workbook: unknown): string | undefined {
   if (!(cell as {s?: unknown})?.s) {
     console.log('No style object found in cell');
     return undefined;
@@ -265,6 +268,25 @@ function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
   return undefined;
 }
 
+function parseExcelColor(cell: unknown, workbook: unknown): string | undefined {
+  const fillColor = extractExcelFillColor(cell);
+  if (fillColor) return fillColor;
+
+  const style = (cell as { s?: Record<string, unknown> } | null | undefined)?.s;
+  if (!style) return undefined;
+  if (
+    'patternType' in style ||
+    'fill' in style ||
+    'fgColor' in style ||
+    'bgColor' in style
+  ) {
+    return undefined;
+  }
+
+  const legacyColor = parseExcelColorLegacy(cell, workbook)?.toUpperCase();
+  return legacyColor === '#FFFFFF' || legacyColor === '#INDEX64' ? undefined : legacyColor;
+}
+
 // Fuzzy match user names
 function findMatchingUser(searchName: string, users: {id: string, name: string | null, email: string}[]): {id: string, name: string | null, email: string} | null {
   // Filter out users without names before searching
@@ -345,27 +367,6 @@ function hexToRgb(hex: string): {r: number, g: number, b: number} | null {
 }
 
 
-// Database configuration interface
-interface DatabaseParsingConfig {
-  id: string;
-  name: string;
-  role: string;
-  description?: string;
-  active: boolean;
-  dateRow: number;
-  dayLabelRow?: number;
-  nameColumn: number;
-  firstNameRow: number;
-  lastNameRow: number;
-  firstDateColumn: number;
-  lastDateColumn: number;
-  dynamicColumns: boolean;
-  skipValues: string[];
-  validPatterns: string[];
-  colorDetection: boolean;
-  defaultShift?: string;
-}
-
 // Legacy interface for backward compatibility
 interface ParsingConfig {
   dateRow: number;
@@ -376,6 +377,8 @@ interface ParsingConfig {
   lastDateColumn: number;
   role: string;
   skipValues: string[];
+  colorDetection: boolean;
+  defaultShift?: string;
 }
 
 // Helper function to create default configuration in database
@@ -437,7 +440,9 @@ async function createDefaultConfiguration(role: string, session: any): Promise<{
         firstDateColumn: createdConfig.firstDateColumn,
         lastDateColumn: createdConfig.lastDateColumn,
         role: createdConfig.role,
-        skipValues: Array.isArray(createdConfig.skipValues) ? createdConfig.skipValues as string[] : []
+        skipValues: Array.isArray(createdConfig.skipValues) ? createdConfig.skipValues as string[] : [],
+        colorDetection: createdConfig.colorDetection,
+        defaultShift: createdConfig.defaultShift ?? undefined,
       },
       configId: createdConfig.id
     };
@@ -448,16 +453,20 @@ async function createDefaultConfiguration(role: string, session: any): Promise<{
 }
 
 // Helper function to fetch configuration from database
-async function getParsingConfiguration(role: string, filename?: string, session?: any): Promise<{config: ParsingConfig, configId?: string} | null> {
+async function getParsingConfiguration(role: string, configId?: string, session?: any): Promise<{config: ParsingConfig, configId?: string} | null> {
   try {
-    // First try to find an active configuration for the role
-    const config = await prisma.excelUploadConfiguration.findFirst({
-      where: { 
-        role: role,
-        active: true
-      },
-      orderBy: { createdAt: 'desc' } // Get most recent if multiple
-    });
+    const config = configId
+      ? await prisma.excelUploadConfiguration.findFirst({
+          where: { id: configId, role, active: true },
+        })
+      : await prisma.excelUploadConfiguration.findFirst({
+          where: { role, active: true },
+          orderBy: { createdAt: 'desc' },
+        });
+
+    if (configId && !config) {
+      throw new Error('The selected Excel configuration is unavailable, inactive, or belongs to another role.');
+    }
     
     if (config) {
       console.log(`Found database configuration: ${config.name} for role ${role}`);
@@ -470,7 +479,9 @@ async function getParsingConfiguration(role: string, filename?: string, session?
           firstDateColumn: config.firstDateColumn,
           lastDateColumn: config.lastDateColumn,
           role: config.role,
-          skipValues: Array.isArray(config.skipValues) ? config.skipValues as string[] : []
+          skipValues: Array.isArray(config.skipValues) ? config.skipValues as string[] : [],
+          colorDetection: config.colorDetection,
+          defaultShift: config.defaultShift ?? undefined,
         },
         configId: config.id
       };
@@ -486,6 +497,7 @@ async function getParsingConfiguration(role: string, filename?: string, session?
     return null;
   } catch (error) {
     console.error('Error fetching parsing configuration from database:', error);
+    if (configId) throw error;
     return null;
   }
 }
@@ -519,7 +531,9 @@ const FALLBACK_PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
     firstDateColumn: 2, // Column C in Excel (0-based = 2)
     lastDateColumn: 32, // Column AG in Excel (0-based = 32)
     role: 'OPERATOR',
-    skipValues: []
+    skipValues: [],
+    colorDetection: true,
+    defaultShift: '',
   },
   PRODUCER: {
     dateRow: 8,         // Row 9 in Excel (0-based = 8) - where dates 1,2,3...30 are
@@ -529,7 +543,9 @@ const FALLBACK_PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
     firstDateColumn: 2, // Column C in Excel (0-based = 2)
     lastDateColumn: 31, // Column AF in Excel (0-based = 31) - September has 30 days (C=2, so C+29=AF=31)
     role: 'PRODUCER',
-    skipValues: ['co']  // Skip "co" (concediu de odihnă - holiday)
+    skipValues: ['co'],  // Skip "co" (concediu de odihnă - holiday)
+    colorDetection: true,
+    defaultShift: '',
   }
 };
 
@@ -539,7 +555,7 @@ async function parseExcelSchedule(
   targetMonth: number, 
   targetYear: number, 
   role: ScheduleRole = 'OPERATOR',
-  filename?: string,
+  selectedConfigId?: string,
   session?: any
 ): Promise<ExcelParseResult & {configId?: string}> {
   try {
@@ -548,7 +564,7 @@ async function parseExcelSchedule(
     const worksheet = workbook.Sheets[sheetName];
     
     // Get role-specific configuration from database or fallback
-    let configResult = await getParsingConfiguration(role, filename, session);
+    const configResult = await getParsingConfiguration(role, selectedConfigId, session);
     let config: ParsingConfig;
     let configId: string | undefined;
     
@@ -639,71 +655,64 @@ async function parseExcelSchedule(
         const col = parseInt(colStr);
         
         const scheduleCell = worksheet[XLSX.utils.encode_cell({ r: row, c: col })];
-        
-        // Check if there's any content in this cell (shift data)
-        if (scheduleCell && scheduleCell.v !== undefined && scheduleCell.v !== null && scheduleCell.v !== '') {
-          const shiftHours = String(scheduleCell.v).trim();
+        const shiftColor = config.colorDetection ? parseExcelColor(scheduleCell, workbook) : undefined;
+        const parsedCell = parseScheduleCell(scheduleCell?.v, shiftColor, {
+          skipValues: config.skipValues,
+          defaultShift: config.defaultShift,
+        });
+
+        // Some schedules encode shifts only as cell fill colors, with no text value.
+        if (parsedCell) {
+          const { shiftHours } = parsedCell;
           console.log(`Processing cell ${XLSX.utils.encode_cell({ r: row, c: col })} for ${operatorName}: "${shiftHours}"`);
-          const shiftColor = parseExcelColor(scheduleCell, workbook);
-          
-          // Skip empty cells, day abbreviations, and role-specific skip values
-          const dayAbbreviations = ['l', 'm', 'j', 'v', 's', 'd', 'L', 'M', 'J', 'V', 'S', 'D'];
-          const shouldSkip = shiftHours.length === 0 || 
-                           dayAbbreviations.includes(shiftHours) || 
-                           config.skipValues.some(skip => skip.toLowerCase() === shiftHours.toLowerCase());
-          
-          console.log(`  Skip check: "${shiftHours}" - skipValues: [${config.skipValues.join(', ')}], shouldSkip: ${shouldSkip}`);
-          
-          if (!shouldSkip) {
-            
-            // Try to match color with legend
-            let colorLegendMatch = null;
-            let shiftName = undefined;
-            let timeRange = undefined;
-            
-            if (shiftColor) {
-              colorLegendMatch = findMatchingColorLegend(shiftColor, colorLegends);
-              if (colorLegendMatch) {
-                const legend = colorLegendMatch as {shiftName: string, startTime: string, endTime: string};
-                shiftName = legend.shiftName;
-                timeRange = `${legend.startTime} - ${legend.endTime}`;
-                console.log(`🎯 Color ${shiftColor} matched to shift: ${shiftName} (${timeRange})`);
-              }
+
+          // Try to match color with legend
+          let colorLegendMatch = null;
+          let shiftName = undefined;
+          let timeRange = undefined;
+
+          if (shiftColor) {
+            colorLegendMatch = findMatchingColorLegend(shiftColor, colorLegends);
+            if (colorLegendMatch) {
+              const legend = colorLegendMatch as {shiftName: string, startTime: string, endTime: string};
+              shiftName = legend.shiftName;
+              timeRange = `${legend.startTime} - ${legend.endTime}`;
+              console.log(`🎯 Color ${shiftColor} matched to shift: ${shiftName} (${timeRange})`);
             }
-            
-            // Create date string for the target month/year
-            try {
-              const dateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const testDate = new Date(dateStr + 'T00:00:00');
-              
-              // Validate the date is valid
-              if (isNaN(testDate.getTime()) || testDate.getMonth() !== targetMonth - 1) {
-                console.warn(`Invalid date created: ${dateStr} for day ${day}, month ${targetMonth}, year ${targetYear}`);
-                continue;
-              }
-              
-              scheduleEntries.push({
-                name: operatorName,
-                date: dateStr,
-                shiftHours,
-                shiftColor,
-                shiftName,
-                timeRange,
-                colorLegendMatch
-              });
-              
-              if (shiftColor && shiftName) {
-                console.log(`✓ Entry with matched shift: ${operatorName} on ${dateStr} - ${shiftHours} (${shiftName}, Color: ${shiftColor})`);
-              } else if (shiftColor) {
-                console.log(`⚠ Entry with unmatched color: ${operatorName} on ${dateStr} - ${shiftHours} (Color: ${shiftColor})`);
-              } else {
-                console.log(`❌ Entry without color: ${operatorName} on ${dateStr} - ${shiftHours}`);
-              }
-              
-            } catch (dateError) {
-              console.error(`Error creating date for ${operatorName} on day ${day}:`, dateError);
+          }
+
+          // Create date string for the target month/year
+          try {
+            const dateStr = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const testDate = new Date(dateStr + 'T00:00:00');
+
+            // Validate the date is valid
+            if (isNaN(testDate.getTime()) || testDate.getMonth() !== targetMonth - 1) {
+              console.warn(`Invalid date created: ${dateStr} for day ${day}, month ${targetMonth}, year ${targetYear}`);
               continue;
             }
+
+            scheduleEntries.push({
+              name: operatorName,
+              date: dateStr,
+              shiftHours,
+              shiftColor,
+              shiftName,
+              timeRange,
+              colorLegendMatch
+            });
+
+            if (shiftColor && shiftName) {
+              console.log(`✓ Entry with matched shift: ${operatorName} on ${dateStr} - ${shiftHours} (${shiftName}, Color: ${shiftColor})`);
+            } else if (shiftColor) {
+              console.log(`⚠ Entry with unmatched color: ${operatorName} on ${dateStr} - ${shiftHours} (Color: ${shiftColor})`);
+            } else {
+              console.log(`❌ Entry without color: ${operatorName} on ${dateStr} - ${shiftHours}`);
+            }
+
+          } catch (dateError) {
+            console.error(`Error creating date for ${operatorName} on day ${day}:`, dateError);
+            continue;
           }
         }
       }
@@ -752,8 +761,9 @@ export async function POST(request: NextRequest) {
       month: formData.get('month'),
       year: formData.get('year'),
       role: requestedRole,
+      configId: formData.get('configId') || undefined,
     });
-    const { month, year } = metadata;
+    const { month, year, configId } = metadata;
     const role = metadata.role;
     if (file.size > MAX_EXCEL_SIZE) {
       return NextResponse.json({ error: 'File exceeds the 10 MB limit' }, { status: 400 });
@@ -766,7 +776,7 @@ export async function POST(request: NextRequest) {
     console.log('File parsed, buffer size:', buffer.length);
     
     const sessionContext = { user: auth.user };
-    const parseResult = await parseExcelSchedule(buffer, month, year, role, file.name, sessionContext);
+    const parseResult = await parseExcelSchedule(buffer, month, year, role, configId, sessionContext);
     console.log('Parse result:', { success: parseResult.success, dataLength: parseResult.data?.length, errors: parseResult.errors });
     
     if (parseResult.success && parseResult.data && parseResult.data.length > 0) {
