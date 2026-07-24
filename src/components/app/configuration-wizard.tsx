@@ -9,10 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Upload, TestTube, Save, X, Grid, Settings, FileSpreadsheet } from 'lucide-react';
+import { TestTube, Save, X, Grid, Settings, FileSpreadsheet } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  excelColumnIndexToLabel,
+  excelColumnLabelToIndex,
+} from '@/lib/excel-columns';
 
 interface ConfigurationData {
   name: string;
@@ -48,6 +52,67 @@ interface TestResult {
     errors: string[];
     warnings: string[];
   };
+}
+
+interface ExcelColumnInputProps {
+  id: string;
+  value: number;
+  onChange: (value: number) => void;
+  placeholder: string;
+}
+
+function ExcelColumnInput({
+  id,
+  value,
+  onChange,
+  placeholder,
+}: ExcelColumnInputProps) {
+  const [draftValue, setDraftValue] = React.useState(() => excelColumnIndexToLabel(value));
+
+  React.useEffect(() => {
+    setDraftValue(excelColumnIndexToLabel(value));
+  }, [value]);
+
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value
+      .toUpperCase()
+      .replace(/[^A-Z]/g, '')
+      .slice(0, 3);
+
+    setDraftValue(nextValue);
+
+    const columnIndex = excelColumnLabelToIndex(nextValue);
+    if (columnIndex !== null) {
+      onChange(columnIndex);
+    }
+  };
+
+  const handleBlur = () => {
+    const columnIndex = excelColumnLabelToIndex(draftValue);
+
+    if (columnIndex === null) {
+      setDraftValue(excelColumnIndexToLabel(value));
+      return;
+    }
+
+    const normalizedValue = excelColumnIndexToLabel(columnIndex);
+    setDraftValue(normalizedValue);
+    onChange(columnIndex);
+  };
+
+  return (
+    <Input
+      id={id}
+      value={draftValue}
+      onChange={handleChange}
+      onBlur={handleBlur}
+      placeholder={placeholder}
+      maxLength={3}
+      autoCapitalize="characters"
+      autoComplete="off"
+      spellCheck={false}
+    />
+  );
 }
 
 export function ConfigurationWizard({ existingConfig, onSave, onCancel }: ConfigurationWizardProps) {
@@ -176,23 +241,6 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
     }
   };
 
-  const columnToLetter = (col: number) => {
-    let result = '';
-    while (col >= 0) {
-      result = String.fromCharCode(65 + (col % 26)) + result;
-      col = Math.floor(col / 26) - 1;
-    }
-    return result;
-  };
-  
-  const letterToColumn = (letters: string) => {
-    let result = 0;
-    for (let i = 0; i < letters.length; i++) {
-      result = result * 26 + (letters.charCodeAt(i) - 64);
-    }
-    return result - 1;
-  };
-
   const steps = [
     'Basic Information',
     'Coordinates Setup',
@@ -318,33 +366,21 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>First Date Column</Label>
-                    <Input
-                      value={columnToLetter(formData.firstDateColumn)}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                        if (value.length > 0) {
-                          const col = letterToColumn(value);
-                          if (!isNaN(col) && col >= 0) handleInputChange('firstDateColumn', col);
-                        }
-                      }}
+                    <Label htmlFor="first-date-column">First Date Column</Label>
+                    <ExcelColumnInput
+                      id="first-date-column"
+                      value={formData.firstDateColumn}
+                      onChange={(value) => handleInputChange('firstDateColumn', value)}
                       placeholder="C"
-                      maxLength={3}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Last Date Column</Label>
-                    <Input
-                      value={columnToLetter(formData.lastDateColumn)}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                        if (value.length > 0) {
-                          const col = letterToColumn(value);
-                          if (!isNaN(col) && col >= 0) handleInputChange('lastDateColumn', col);
-                        }
-                      }}
+                    <Label htmlFor="last-date-column">Last Date Column</Label>
+                    <ExcelColumnInput
+                      id="last-date-column"
+                      value={formData.lastDateColumn}
+                      onChange={(value) => handleInputChange('lastDateColumn', value)}
                       placeholder="AG"
-                      maxLength={3}
                     />
                   </div>
                 </div>
@@ -354,18 +390,12 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                 <h4 className="font-semibold mb-3">Name Location</h4>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label>Name Column</Label>
-                    <Input
-                      value={columnToLetter(formData.nameColumn)}
-                      onChange={(e) => {
-                        const value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-                        if (value.length > 0) {
-                          const col = letterToColumn(value);
-                          if (!isNaN(col) && col >= 0) handleInputChange('nameColumn', col);
-                        }
-                      }}
+                    <Label htmlFor="name-column">Name Column</Label>
+                    <ExcelColumnInput
+                      id="name-column"
+                      value={formData.nameColumn}
+                      onChange={(value) => handleInputChange('nameColumn', value)}
                       placeholder="B"
-                      maxLength={3}
                     />
                   </div>
                   <div className="space-y-2">
@@ -399,12 +429,12 @@ export function ConfigurationWizard({ existingConfig, onSave, onCancel }: Config
                 <h5 className="font-medium mb-2">Configuration Summary</h5>
                 <div className="text-sm space-y-1">
                   <div>
-                    <strong>Names:</strong> Column {columnToLetter(formData.nameColumn)}, 
+                    <strong>Names:</strong> Column {excelColumnIndexToLabel(formData.nameColumn)},
                     Rows {formData.firstNameRow + 1}-{formData.lastNameRow + 1}
                   </div>
                   <div>
-                    <strong>Dates:</strong> Row {formData.dateRow + 1}, 
-                    Columns {columnToLetter(formData.firstDateColumn)}-{columnToLetter(formData.lastDateColumn)}
+                    <strong>Dates:</strong> Row {formData.dateRow + 1},
+                    Columns {excelColumnIndexToLabel(formData.firstDateColumn)}-{excelColumnIndexToLabel(formData.lastDateColumn)}
                   </div>
                   <div>
                     <strong>Schedule Data:</strong> Intersection of name rows and date columns

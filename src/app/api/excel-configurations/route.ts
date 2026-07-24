@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
+import { MAX_EXCEL_COLUMN_INDEX } from '@/lib/excel-columns';
+
+const ExcelColumnSchema = z.number().int().min(0).max(
+  MAX_EXCEL_COLUMN_INDEX,
+  'Excel column must be between A and XFD',
+);
 
 const CreateConfigurationSchema = z.object({
   name: z.string().min(1, 'Configuration name is required'),
@@ -12,11 +18,11 @@ const CreateConfigurationSchema = z.object({
   // Coordinates
   dateRow: z.number().min(0, 'Date row must be >= 0'),
   dayLabelRow: z.number().min(0).nullable().optional(),
-  nameColumn: z.number().min(0, 'Name column must be >= 0'),
+  nameColumn: ExcelColumnSchema,
   firstNameRow: z.number().min(0, 'First name row must be >= 0'),
   lastNameRow: z.number().min(0, 'Last name row must be >= 0'),
-  firstDateColumn: z.number().min(0, 'First date column must be >= 0'),
-  lastDateColumn: z.number().min(0, 'Last date column must be >= 0'),
+  firstDateColumn: ExcelColumnSchema,
+  lastDateColumn: ExcelColumnSchema,
   dynamicColumns: z.boolean().default(true),
   
   // Processing rules
