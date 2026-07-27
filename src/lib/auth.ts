@@ -1,8 +1,8 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
-import bcrypt from 'bcryptjs';
-import { checkRateLimit } from './rate-limit';
+import { checkRateLimit, resetRateLimit } from './rate-limit';
+import { verifyPassword } from './password';
 
 export const authOptions: NextAuthOptions = {
   // Don't use PrismaAdapter with credentials provider and JWT strategy
@@ -37,10 +37,12 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          const isPasswordValid = await verifyPassword(credentials.password, user.password);
           if (!isPasswordValid) {
             return null;
           }
+
+          resetRateLimit(`login:account:${email}`);
 
           const result = {
             id: user.id,

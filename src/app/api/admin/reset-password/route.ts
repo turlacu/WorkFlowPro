@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { randomBytes } from 'node:crypto';
 import { requireUser } from '@/lib/server-auth';
+import { generateTemporaryPassword, hashPassword } from '@/lib/password';
 
 const ResetPasswordSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
@@ -34,8 +33,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const temporaryPassword = randomBytes(18).toString('base64url');
-    const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
+    const temporaryPassword = generateTemporaryPassword();
+    const hashedPassword = await hashPassword(temporaryPassword);
 
     // Update user's password
     await prisma.user.update({
@@ -47,7 +46,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ 
+    const response = NextResponse.json({
       message: 'Password reset successfully',
       user: {
         id: targetUser.id,
@@ -57,6 +56,9 @@ export async function POST(request: NextRequest) {
       },
       temporaryPassword
     });
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Pragma', 'no-cache');
+    return response;
 
   } catch (error) {
     if (error instanceof z.ZodError) {

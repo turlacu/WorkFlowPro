@@ -29,6 +29,21 @@ test('login errors do not advertise credentials', () => {
   assert.doesNotMatch(translations, /LoginFailedDescription:.*(?:Hint|Sugestie)/);
 });
 
+test('user credentials are generated once, copyable, and never cached', () => {
+  const usersRoute = read('src/app/api/users/route.ts');
+  const resetRoute = read('src/app/api/admin/reset-password/route.ts');
+  const userManagement = read('src/components/app/user-management-dashboard.tsx');
+
+  assert.match(usersRoute, /generateTemporaryPassword\(\)/);
+  assert.match(usersRoute, /passwordResetRequired: true/);
+  assert.match(resetRoute, /generateTemporaryPassword\(\)/);
+  assert.match(usersRoute, /Cache-Control', 'no-store/);
+  assert.match(resetRoute, /Cache-Control', 'no-store/);
+  assert.doesNotMatch(userManagement, /name="password"/);
+  assert.match(userManagement, /navigator\.clipboard/);
+  assert.match(userManagement, /readOnly/);
+});
+
 test('UI accessibility foundations remain enabled', () => {
   const globals = read('src/app/globals.css');
   const mobileMenu = read('src/components/app/mobile-menu.tsx');

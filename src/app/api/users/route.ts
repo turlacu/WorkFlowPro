@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import bcrypt from 'bcryptjs';
 import { requireUser } from '@/lib/server-auth';
 import { canUpdateUser } from '@/lib/roles';
 import type { Prisma } from '@prisma/client';
+import { generateTemporaryPassword, hashPassword } from '@/lib/password';
 
 const CreateUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
-  password: z.string().min(12, 'Password must be at least 12 characters'),
   role: z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']).default('OPERATOR'),
 });
 
@@ -75,8 +74,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already exists' }, { status: 400 });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(validatedData.password, 12);
+    const temporaryPassword = generateTemporaryPassword();
+    const hashedPassword = await hashPassword(temporaryPassword);
 
     const user = await prisma.user.create({
       data: {
@@ -84,6 +83,7 @@ export async function POST(request: NextRequest) {
         email: validatedData.email.toLowerCase(),
         password: hashedPassword,
         role: validatedData.role,
+        passwordResetRequired: true,
       },
       select: {
         id: true,
@@ -95,7 +95,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(user);
+    const response = NextResponse.json({ ...user, temporaryPassword }, { status: 201 });
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Pragma', 'no-cache');
+    return response;
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });

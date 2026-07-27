@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
+import { hashPassword, verifyPassword } from '@/lib/password';
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),
@@ -26,13 +26,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isCurrentPasswordValid = await verifyPassword(currentPassword, user.password);
     if (!isCurrentPasswordValid) {
       return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
     }
 
     // Hash new password
-    const hashedNewPassword = await bcrypt.hash(newPassword, 12);
+    const hashedNewPassword = await hashPassword(newPassword);
 
     // Update password
     await prisma.user.update({
