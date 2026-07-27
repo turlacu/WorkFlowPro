@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Palette, Settings } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, CalendarRange, Palette, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ColorMappingDialog } from './color-mapping-dialog';
 
@@ -48,7 +48,15 @@ interface ExcelScheduleUploaderProps {
   targetRole?: 'OPERATOR' | 'PRODUCER'; // Keep for backward compatibility
 }
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+] as const;
+
+const IMPORT_YEARS = Array.from({ length: 81 }, (_, index) => 2020 + index);
+
 export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRole }: ExcelScheduleUploaderProps) {
+  const initialPeriod = selectedDate ?? new Date();
   const [file, setFile] = React.useState<File | null>(null);
   const [uploading, setUploading] = React.useState(false);
   const [previewData, setPreviewData] = React.useState<ScheduleEntry[]>([]);
@@ -63,11 +71,26 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
   const [configurations, setConfigurations] = React.useState<ExcelConfiguration[]>([]);
   const [selectedConfig, setSelectedConfig] = React.useState<string>('');
   const [loadingConfigs, setLoadingConfigs] = React.useState(true);
+  const [targetMonth, setTargetMonth] = React.useState(initialPeriod.getMonth() + 1);
+  const [targetYear, setTargetYear] = React.useState(initialPeriod.getFullYear());
 
   const { toast } = useToast();
 
-  const currentMonth = selectedDate ? selectedDate.getMonth() + 1 : new Date().getMonth() + 1;
-  const currentYear = selectedDate ? selectedDate.getFullYear() : new Date().getFullYear();
+  const clearPreview = React.useCallback(() => {
+    setPreviewData([]);
+    setMatchingReport(null);
+    setDetectedColors([]);
+    setShowPreview(false);
+    setShowConfirmDialog(false);
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedDate) return;
+
+    setTargetMonth(selectedDate.getMonth() + 1);
+    setTargetYear(selectedDate.getFullYear());
+    clearPreview();
+  }, [clearPreview, selectedDate]);
 
   // Fetch available configurations on component mount
   React.useEffect(() => {
@@ -114,10 +137,23 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
         return;
       }
       setFile(selectedFile);
-      setPreviewData([]);
-      setMatchingReport(null);
-      setShowPreview(false);
+      clearPreview();
     }
+  };
+
+  const handleTargetMonthChange = (value: string) => {
+    setTargetMonth(Number(value));
+    clearPreview();
+  };
+
+  const handleTargetYearChange = (value: string) => {
+    setTargetYear(Number(value));
+    clearPreview();
+  };
+
+  const handleConfigurationChange = (value: string) => {
+    setSelectedConfig(value);
+    clearPreview();
   };
 
   const handlePreview = async () => {
@@ -137,8 +173,8 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('month', currentMonth.toString());
-      formData.append('year', currentYear.toString());
+      formData.append('month', targetMonth.toString());
+      formData.append('year', targetYear.toString());
       formData.append('preview', 'true');
       formData.append('role', selectedConfiguration.role);
       formData.append('configId', selectedConfiguration.id);
@@ -200,8 +236,8 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
       setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('month', currentMonth.toString());
-      formData.append('year', currentYear.toString());
+      formData.append('month', targetMonth.toString());
+      formData.append('year', targetYear.toString());
       formData.append('preview', 'false');
       formData.append('role', selectedConfiguration.role);
       formData.append('configId', selectedConfiguration.id);
@@ -218,7 +254,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
 
       const result = await response.json();
       
-      let description = `Successfully imported ${result.imported} schedule entries for ${getMonthName(currentMonth)} ${currentYear}.`;
+      let description = `Successfully imported ${result.imported} schedule entries for ${getMonthName(targetMonth)} ${targetYear}.`;
       
       if (result.newColorsDetected && result.newColorsDetected > 0) {
         description += ` ${result.newColorsDetected} new colors were detected and added to the color legend. Please configure them in the Color Legend tab.`;
@@ -346,11 +382,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
   };
 
   const getMonthName = (month: number): string => {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1];
+    return MONTHS[month - 1];
   };
 
   const formatDate = (dateString: string): string => {
@@ -370,13 +402,53 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
             {selectedConfiguration && ` (${selectedConfiguration.role})`}
           </CardTitle>
           <CardDescription>
-            Upload an Excel file to automatically populate the schedule for {getMonthName(currentMonth)} {currentYear}.
+            Upload an Excel file to populate one selected schedule month.
             {selectedConfiguration && (
               <>Only {selectedConfiguration.role.toLowerCase()}s from the Excel file that match existing users will be imported.</>
             )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <fieldset className="grid gap-3 rounded-lg border border-border/70 bg-muted/20 p-4">
+            <legend className="px-1 text-sm font-semibold">Schedule period</legend>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="schedule-month">Month</Label>
+                <Select value={String(targetMonth)} onValueChange={handleTargetMonthChange}>
+                  <SelectTrigger id="schedule-month">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((month, index) => (
+                      <SelectItem key={month} value={String(index + 1)}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="schedule-year">Year</Label>
+                <Select value={String(targetYear)} onValueChange={handleTargetYearChange}>
+                  <SelectTrigger id="schedule-year">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {IMPORT_YEARS.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+              <CalendarRange className="mt-0.5 h-4 w-4 shrink-0" />
+              Import target: {getMonthName(targetMonth)} {targetYear}. Existing schedules are replaced only for this month and selected role.
+            </p>
+          </fieldset>
+
           {/* Configuration Selector */}
           <div className="space-y-2">
             <Label htmlFor="config-select">Configuration</Label>
@@ -392,7 +464,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
                 </div>
               </div>
             ) : (
-              <Select value={selectedConfig} onValueChange={setSelectedConfig}>
+              <Select value={selectedConfig} onValueChange={handleConfigurationChange}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select configuration...">
                     {selectedConfiguration ? (
@@ -469,9 +541,9 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
       <Dialog open={showPreview} onOpenChange={setShowPreview}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Import Preview</DialogTitle>
+            <DialogTitle>Import Preview — {getMonthName(targetMonth)} {targetYear}</DialogTitle>
             <DialogDescription>
-              Review the schedule data before importing. Only entries with matched users will be imported.
+              Review the schedule data for the selected period. Only entries with matched users will be imported.
             </DialogDescription>
           </DialogHeader>
 
@@ -705,7 +777,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Schedule Import</AlertDialogTitle>
             <AlertDialogDescription>
-              This will replace all existing {selectedConfiguration?.role.toLowerCase() || ''} schedules for {getMonthName(currentMonth)} {currentYear} with the data from the Excel file.
+              This will replace all existing {selectedConfiguration?.role.toLowerCase() || ''} schedules for {getMonthName(targetMonth)} {targetYear} with the data from the Excel file.
               Are you sure you want to continue?
             </AlertDialogDescription>
           </AlertDialogHeader>
