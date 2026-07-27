@@ -9,6 +9,7 @@ const CreateShiftColorLegendSchema = z.object({
   shiftName: z.string().min(1, 'Shift name is required'),
   startTime: z.string().min(1, 'Start time is required'),
   endTime: z.string().min(1, 'End time is required'),
+  isVacation: z.boolean().default(false),
   description: z.string().optional(),
   role: z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']).default('OPERATOR'),
 });
@@ -74,8 +75,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    const normalizedData = {
+      ...validatedData,
+      startTime: validatedData.isVacation ? '00:00' : validatedData.startTime,
+      endTime: validatedData.isVacation ? '00:00' : validatedData.endTime,
+    };
     const colorLegend = await prisma.shiftColorLegend.create({
-      data: validatedData
+      data: normalizedData as unknown as Parameters<typeof prisma.shiftColorLegend.create>[0]['data'],
     });
 
     console.log('Created color legend:', colorLegend);
@@ -108,17 +114,19 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validatedData = UpdateShiftColorLegendSchema.parse(body);
 
+    const normalizedData = {
+      colorCode: validatedData.colorCode,
+      colorName: validatedData.colorName,
+      shiftName: validatedData.shiftName,
+      startTime: validatedData.isVacation ? '00:00' : validatedData.startTime,
+      endTime: validatedData.isVacation ? '00:00' : validatedData.endTime,
+      isVacation: validatedData.isVacation,
+      description: validatedData.description,
+      role: validatedData.role,
+    };
     const colorLegend = await prisma.shiftColorLegend.update({
       where: { id: validatedData.id },
-      data: {
-        colorCode: validatedData.colorCode,
-        colorName: validatedData.colorName,
-        shiftName: validatedData.shiftName,
-        startTime: validatedData.startTime,
-        endTime: validatedData.endTime,
-        description: validatedData.description,
-        role: validatedData.role,
-      }
+      data: normalizedData as unknown as Parameters<typeof prisma.shiftColorLegend.update>[0]['data'],
     });
 
     return NextResponse.json(colorLegend);

@@ -7,6 +7,7 @@ import { requireUser } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { extractExcelFillColor } from '@/lib/excel-colors';
 import { parseScheduleCell } from '@/lib/excel-schedule-cell';
+import { isVacationLegend } from '@/lib/shift-color-legend';
 
 const UploadMetadataSchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
@@ -674,7 +675,16 @@ async function parseExcelSchedule(
           if (shiftColor) {
             colorLegendMatch = findMatchingColorLegend(shiftColor, colorLegends);
             if (colorLegendMatch) {
-              const legend = colorLegendMatch as {shiftName: string, startTime: string, endTime: string};
+              const legend = colorLegendMatch as {
+                shiftName: string;
+                startTime: string;
+                endTime: string;
+                isVacation: boolean;
+              };
+              if (isVacationLegend(legend)) {
+                console.log(`🏖️ Skipping vacation for ${operatorName} on day ${day}`);
+                continue;
+              }
               shiftName = legend.shiftName;
               timeRange = `${legend.startTime} - ${legend.endTime}`;
               console.log(`🎯 Color ${shiftColor} matched to shift: ${shiftName} (${timeRange})`);

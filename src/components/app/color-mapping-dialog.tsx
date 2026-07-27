@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, Palette, Clock } from 'lucide-react';
+import { Save, Palette, Clock, Palmtree } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface DetectedColor {
@@ -23,6 +23,7 @@ interface ShiftMapping {
   shiftName: string;
   startTime: string;
   endTime: string;
+  isVacation: boolean;
   description?: string;
   role: 'OPERATOR' | 'PRODUCER';
 }
@@ -78,6 +79,7 @@ export function ColorMappingDialog({
           shiftName: 'Unnamed Shift',
           startTime: '00:00',
           endTime: '00:00',
+          isVacation: false,
           description: 'Auto-detected from Excel import',
           role: targetRole,
         };
@@ -97,6 +99,25 @@ export function ColorMappingDialog({
     handleMappingChange(index, 'startTime', template.startTime);
     handleMappingChange(index, 'endTime', template.endTime);
     handleMappingChange(index, 'colorName', `${template.name} Color`);
+    setMappings(prev => prev.map((mapping, i) =>
+      i === index ? { ...mapping, isVacation: false } : mapping
+    ));
+  };
+
+  const handleScheduleTypeChange = (index: number, value: 'SHIFT' | 'VACATION') => {
+    setMappings(prev => prev.map((mapping, i) => {
+      if (i !== index) return mapping;
+      if (value === 'VACATION') {
+        return {
+          ...mapping,
+          isVacation: true,
+          shiftName: mapping.shiftName === 'Unnamed Shift' ? 'Vacation' : mapping.shiftName,
+          startTime: '00:00',
+          endTime: '00:00',
+        };
+      }
+      return { ...mapping, isVacation: false };
+    }));
   };
 
   const handleSave = async () => {
@@ -214,6 +235,27 @@ export function ColorMappingDialog({
 
                     <div className="space-y-4">
                       <div className="space-y-2">
+                        <Label>Schedule Type</Label>
+                        <Select
+                          value={mapping.isVacation ? 'VACATION' : 'SHIFT'}
+                          onValueChange={(value: 'SHIFT' | 'VACATION') => handleScheduleTypeChange(index, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="SHIFT">Working shift</SelectItem>
+                            <SelectItem value="VACATION">Vacation (concediu de odihnă)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        {mapping.isVacation && (
+                          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Palmtree className="h-3.5 w-3.5" />
+                            Excluded from the working schedule.
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
                         <Label>Quick Templates</Label>
                         <Select onValueChange={(value) => {
                           const template = DEFAULT_SHIFT_TEMPLATES.find(t => t.name === value);
@@ -243,6 +285,7 @@ export function ColorMappingDialog({
                             type="time"
                             value={mapping.startTime}
                             onChange={(e) => handleMappingChange(index, 'startTime', e.target.value)}
+                            disabled={mapping.isVacation}
                           />
                         </div>
                         <div className="space-y-2">
@@ -252,6 +295,7 @@ export function ColorMappingDialog({
                             type="time"
                             value={mapping.endTime}
                             onChange={(e) => handleMappingChange(index, 'endTime', e.target.value)}
+                            disabled={mapping.isVacation}
                           />
                         </div>
                       </div>

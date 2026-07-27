@@ -165,6 +165,7 @@ model ShiftColorLegend {
   shiftName   String
   startTime   String
   endTime     String
+  isVacation  Boolean  @default(false)
   description String?
   role        UserRole @default(OPERATOR)
   createdAt   DateTime @default(now())

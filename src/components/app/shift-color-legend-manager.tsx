@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Edit, Trash2, Palette } from 'lucide-react';
+import { Plus, Edit, Trash2, Palette, Palmtree } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -24,6 +24,7 @@ interface ShiftColorLegend {
   shiftName: string;
   startTime: string;
   endTime: string;
+  isVacation: boolean;
   description?: string;
   role: string;
   createdAt: string;
@@ -36,6 +37,7 @@ interface ShiftColorLegendFormData {
   shiftName: string;
   startTime: string;
   endTime: string;
+  isVacation: boolean;
   description: string;
   role: string;
 }
@@ -53,6 +55,7 @@ export function ShiftColorLegendManager() {
     shiftName: '',
     startTime: '08:00',
     endTime: '16:00',
+    isVacation: false,
     description: '',
     role: 'OPERATOR'
   });
@@ -93,6 +96,7 @@ export function ShiftColorLegendManager() {
         shiftName: legend.shiftName,
         startTime: legend.startTime,
         endTime: legend.endTime,
+        isVacation: legend.isVacation,
         description: legend.description || '',
         role: legend.role
       });
@@ -104,6 +108,7 @@ export function ShiftColorLegendManager() {
         shiftName: '',
         startTime: '08:00',
         endTime: '16:00',
+        isVacation: false,
         description: '',
         role: selectedRole !== 'ALL' ? selectedRole : 'OPERATOR'
       });
@@ -196,7 +201,7 @@ export function ShiftColorLegendManager() {
               Shift Color Legend Management
             </CardTitle>
             <CardDescription>
-              Define color codes for different shift types to be used when importing Excel schedules.
+              Define colors as working shifts or vacation days for Excel schedule imports.
               Each role can have its own color meanings.
             </CardDescription>
           </div>
@@ -232,6 +237,7 @@ export function ShiftColorLegendManager() {
                   <TableHead>Color</TableHead>
                   <TableHead>Color Name</TableHead>
                   <TableHead>Shift Name</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Time</TableHead>
                   <TableHead>Description</TableHead>
@@ -255,11 +261,16 @@ export function ShiftColorLegendManager() {
                       <Badge>{legend.shiftName}</Badge>
                     </TableCell>
                     <TableCell>
+                      <Badge variant={legend.isVacation ? 'secondary' : 'outline'}>
+                        {legend.isVacation ? 'Vacation' : 'Shift'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
                       <Badge variant={legend.role === 'ADMIN' ? 'destructive' : legend.role === 'PRODUCER' ? 'default' : 'secondary'}>
                         {legend.role}
                       </Badge>
                     </TableCell>
-                    <TableCell>{legend.startTime} - {legend.endTime}</TableCell>
+                    <TableCell>{legend.isVacation ? 'Not scheduled' : `${legend.startTime} - ${legend.endTime}`}</TableCell>
                     <TableCell className="max-w-xs truncate">{legend.description}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
@@ -293,7 +304,7 @@ export function ShiftColorLegendManager() {
               {editingLegend ? 'Edit Color Legend' : 'Create Color Legend'}
             </DialogTitle>
             <DialogDescription>
-              Define a color code and its associated shift information.
+              Define whether this color represents working time or vacation.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -316,6 +327,33 @@ export function ShiftColorLegendManager() {
                   placeholder="e.g., Red, Blue"
                 />
               </div>
+            </div>
+            <div>
+              <Label htmlFor="scheduleType">Schedule Type</Label>
+              <Select
+                value={formData.isVacation ? 'VACATION' : 'SHIFT'}
+                onValueChange={(value) => setFormData({
+                  ...formData,
+                  isVacation: value === 'VACATION',
+                  startTime: value === 'VACATION' ? '00:00' : formData.startTime,
+                  endTime: value === 'VACATION' ? '00:00' : formData.endTime,
+                  shiftName: value === 'VACATION' && !formData.shiftName ? 'Vacation' : formData.shiftName,
+                })}
+              >
+                <SelectTrigger id="scheduleType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SHIFT">Working shift</SelectItem>
+                  <SelectItem value="VACATION">Vacation (concediu de odihnă)</SelectItem>
+                </SelectContent>
+              </Select>
+              {formData.isVacation && (
+                <p className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Palmtree className="h-3.5 w-3.5" />
+                  Vacation cells will not appear as working schedules.
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -352,6 +390,7 @@ export function ShiftColorLegendManager() {
                   type="time"
                   value={formData.startTime}
                   onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                  disabled={formData.isVacation}
                 />
               </div>
               <div>
@@ -361,6 +400,7 @@ export function ShiftColorLegendManager() {
                   type="time"
                   value={formData.endTime}
                   onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                  disabled={formData.isVacation}
                 />
               </div>
             </div>

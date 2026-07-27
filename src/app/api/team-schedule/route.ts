@@ -3,11 +3,30 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { parseDateOnly, utcDayRange } from '@/lib/date-only';
+import { isVacationLegend } from '@/lib/shift-color-legend';
 
 const CreateTeamScheduleSchema = z.object({
   date: z.string(),
   userIds: z.array(z.string().cuid()).min(1, 'At least one user is required').max(500),
 });
+
+interface ScheduleColorLegend {
+  colorCode: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  isVacation: boolean;
+  role: string;
+}
+
+const scheduleColorLegendSelect = {
+  colorCode: true,
+  shiftName: true,
+  startTime: true,
+  endTime: true,
+  isVacation: true,
+  role: true,
+} as unknown as NonNullable<Parameters<typeof prisma.shiftColorLegend.findMany>[0]>['select'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -46,17 +65,11 @@ export async function GET(request: NextRequest) {
 
     // Fetch color legends for time range mapping
     const colorLegends = await prisma.shiftColorLegend.findMany({
-      select: {
-        colorCode: true,
-        shiftName: true,
-        startTime: true,
-        endTime: true,
-        role: true,
-      },
-    });
+      select: scheduleColorLegendSelect,
+    }) as unknown as ScheduleColorLegend[];
 
     // Map schedules with color legend data
-    const schedulesWithTimeRanges = schedules.map(schedule => {
+    const schedulesWithTimeRanges = schedules.flatMap(schedule => {
       let timeRange = null;
       let shiftName = null;
       
@@ -67,16 +80,17 @@ export async function GET(request: NextRequest) {
         );
         
         if (matchingLegend) {
+          if (isVacationLegend(matchingLegend)) return [];
           timeRange = `${matchingLegend.startTime} - ${matchingLegend.endTime}`;
           shiftName = matchingLegend.shiftName;
         }
       }
       
-      return {
+      return [{
         ...schedule,
         timeRange,
         shiftName,
-      };
+      }];
     });
 
     return NextResponse.json(schedulesWithTimeRanges);
@@ -141,17 +155,11 @@ export async function POST(request: NextRequest) {
 
     // Fetch color legends for time range mapping
     const colorLegends = await prisma.shiftColorLegend.findMany({
-      select: {
-        colorCode: true,
-        shiftName: true,
-        startTime: true,
-        endTime: true,
-        role: true,
-      },
-    });
+      select: scheduleColorLegendSelect,
+    }) as unknown as ScheduleColorLegend[];
 
     // Map created schedules with color legend data
-    const createdSchedulesWithTimeRanges = createdSchedules.map(schedule => {
+    const createdSchedulesWithTimeRanges = createdSchedules.flatMap(schedule => {
       let timeRange = null;
       let shiftName = null;
       
@@ -162,16 +170,17 @@ export async function POST(request: NextRequest) {
         );
         
         if (matchingLegend) {
+          if (isVacationLegend(matchingLegend)) return [];
           timeRange = `${matchingLegend.startTime} - ${matchingLegend.endTime}`;
           shiftName = matchingLegend.shiftName;
         }
       }
       
-      return {
+      return [{
         ...schedule,
         timeRange,
         shiftName,
-      };
+      }];
     });
 
     return NextResponse.json(createdSchedulesWithTimeRanges);

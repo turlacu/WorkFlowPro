@@ -35,7 +35,8 @@ const BackupSchema = z.object({
     })).max(500_000),
     shiftColorLegends: z.array(z.object({
       id: z.string(), colorCode: z.string(), colorName: z.string(), shiftName: z.string(),
-      startTime: z.string(), endTime: z.string(), description: z.string().nullable(), role,
+      startTime: z.string(), endTime: z.string(), isVacation: z.boolean().default(false),
+      description: z.string().nullable(), role,
       createdAt: date, updatedAt: date,
     })).max(10_000),
     configurations: z.array(z.object({
