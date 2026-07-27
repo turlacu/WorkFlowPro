@@ -231,58 +231,86 @@ export function ShiftColorLegendManager() {
               No color legends defined yet. Create one to get started.
             </div>
           ) : (
-            <Table>
+            <Table className="table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Color</TableHead>
-                  <TableHead>Color Name</TableHead>
-                  <TableHead>Shift Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="h-10 w-[42%] px-2 sm:h-10 sm:px-3 lg:w-[30%]">Legend</TableHead>
+                  <TableHead className="h-10 w-[38%] px-2 sm:h-10 sm:px-3 lg:w-[25%]">Schedule</TableHead>
+                  <TableHead className="hidden h-10 px-3 sm:h-10 lg:table-cell">Notes</TableHead>
+                  <TableHead className="h-10 w-[20%] px-2 text-right sm:h-10 sm:w-20 sm:px-2">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {legends.map((legend) => (
                   <TableRow key={legend.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    <TableCell className="p-2 sm:p-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <div
-                          className="w-6 h-6 rounded border-2 border-gray-300"
+                          className="h-8 w-8 shrink-0 rounded-md border border-border/70 shadow-sm"
                           style={{ backgroundColor: legend.colorCode }}
+                          title={legend.colorCode}
                         />
-                        <code className="text-sm">{legend.colorCode}</code>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium leading-5" title={legend.shiftName}>
+                            {legend.shiftName}
+                          </p>
+                          <p
+                            className="truncate text-xs leading-4 text-muted-foreground"
+                            title={`${legend.colorName} · ${legend.colorCode}`}
+                          >
+                            {legend.colorName} <span aria-hidden="true">·</span>{' '}
+                            <code className="font-mono text-[11px]">{legend.colorCode}</code>
+                          </p>
+                        </div>
                       </div>
                     </TableCell>
-                    <TableCell>{legend.colorName}</TableCell>
-                    <TableCell>
-                      <Badge>{legend.shiftName}</Badge>
+                    <TableCell className="p-2 sm:p-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1">
+                        <Badge
+                          variant={legend.isVacation ? 'secondary' : 'outline'}
+                          className="h-5 px-1.5 text-[10px] font-medium"
+                        >
+                          {legend.isVacation ? 'Vacation' : 'Shift'}
+                        </Badge>
+                        <Badge
+                          variant={legend.role === 'ADMIN' ? 'destructive' : legend.role === 'PRODUCER' ? 'default' : 'secondary'}
+                          className="h-5 max-w-full truncate px-1.5 text-[10px] font-medium"
+                        >
+                          {legend.role}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 truncate text-xs text-muted-foreground">
+                        {legend.isVacation ? 'Not scheduled' : `${legend.startTime} – ${legend.endTime}`}
+                      </p>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={legend.isVacation ? 'secondary' : 'outline'}>
-                        {legend.isVacation ? 'Vacation' : 'Shift'}
-                      </Badge>
+                    <TableCell className="hidden p-3 lg:table-cell">
+                      <p className="line-clamp-2 text-xs leading-4 text-muted-foreground" title={legend.description}>
+                        {legend.description || '—'}
+                      </p>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant={legend.role === 'ADMIN' ? 'destructive' : legend.role === 'PRODUCER' ? 'default' : 'secondary'}>
-                        {legend.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{legend.isVacation ? 'Not scheduled' : `${legend.startTime} - ${legend.endTime}`}</TableCell>
-                    <TableCell className="max-w-xs truncate">{legend.description}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
+                    <TableCell className="p-2 sm:p-2">
+                      <div className="flex justify-end gap-0.5">
                         <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => handleOpenModal(legend)}
-                          className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground"
+                          className="h-8 w-8"
+                          aria-label={`Edit ${legend.shiftName}`}
+                          title="Edit legend"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => setLegendToDelete(legend)}
-                          className="h-8 w-8 p-0 hover:bg-accent hover:text-accent-foreground text-destructive hover:text-destructive"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          aria-label={`Delete ${legend.shiftName}`}
+                          title="Delete legend"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>

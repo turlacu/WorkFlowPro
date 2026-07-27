@@ -10,3 +10,18 @@ export function isVacationLegend(legend: unknown): boolean {
     && legend.isVacation === true,
   );
 }
+
+export function hasUnconfiguredShiftTime(legend: unknown): boolean {
+  return Boolean(
+    legend
+    && typeof legend === 'object'
+    && 'startTime' in legend
+    && 'endTime' in legend
+    && legend.startTime === '00:00'
+    && legend.endTime === '00:00',
+  );
+}
+
+export function shouldHideFromMainSchedule(legend: unknown): boolean {
+  return isVacationLegend(legend) || hasUnconfiguredShiftTime(legend);
+}

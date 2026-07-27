@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { parseDateOnly, utcDayRange } from '@/lib/date-only';
-import { isVacationLegend } from '@/lib/shift-color-legend';
+import { shouldHideFromMainSchedule } from '@/lib/shift-color-legend';
 
 const CreateTeamScheduleSchema = z.object({
   date: z.string(),
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
         );
         
         if (matchingLegend) {
-          if (isVacationLegend(matchingLegend)) return [];
+          if (shouldHideFromMainSchedule(matchingLegend)) return [];
           timeRange = `${matchingLegend.startTime} - ${matchingLegend.endTime}`;
           shiftName = matchingLegend.shiftName;
         }
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
         );
         
         if (matchingLegend) {
-          if (isVacationLegend(matchingLegend)) return [];
+          if (shouldHideFromMainSchedule(matchingLegend)) return [];
           timeRange = `${matchingLegend.startTime} - ${matchingLegend.endTime}`;
           shiftName = matchingLegend.shiftName;
         }
