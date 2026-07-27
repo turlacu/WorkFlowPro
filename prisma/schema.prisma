@@ -82,8 +82,18 @@ model User {
   dailySchedules          DailySchedule[]
   receivedNotifications   Notification[]             @relation("NotificationRecipient")
   sentNotifications       Notification[]             @relation("NotificationActor")
+  presence                UserPresence?
 
   @@map("users")
+}
+
+model UserPresence {
+  userId     String   @id
+  lastSeenAt DateTime
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lastSeenAt])
+  @@map("user_presence")
 }
 
 model VerificationToken {

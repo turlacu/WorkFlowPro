@@ -116,3 +116,31 @@ test('assignment notifications are persistent, recipient-scoped, and commit-awar
   assert.match(migration, /CREATE TABLE "notifications"/);
   assert.match(migration, /notifications_recipientId_readAt_createdAt_idx/);
 });
+
+test('presence is authenticated, persistent, role-inclusive, and non-buffered', () => {
+  const schema = read('prisma/schema.prisma');
+  const migration = read(
+    'prisma/migrations/20260727020000_add_user_presence/migration.sql',
+  );
+  const streamRoute = read('src/app/api/presence/stream/route.ts');
+  const provider = read('src/contexts/PresenceContext.tsx');
+  const assignments = read('src/app/(app)/assignments/page.tsx');
+
+  assert.match(schema, /model UserPresence/);
+  assert.match(migration, /CREATE TABLE "user_presence"/);
+  assert.match(migration, /ON DELETE CASCADE/);
+  assert.match(streamRoute, /requireUser\(undefined, true\)/);
+  assert.match(streamRoute, /INSERT INTO "user_presence"/);
+  assert.match(streamRoute, /ON CONFLICT \("userId"\)/);
+  assert.match(streamRoute, /sessionVersion !== auth\.user\.sessionVersion/);
+  assert.match(streamRoute, /text\/event-stream/);
+  assert.match(streamRoute, /X-Accel-Buffering.*no/);
+  assert.doesNotMatch(streamRoute, /requireUser\(\['OPERATOR'\]\)/);
+  assert.match(provider, /new EventSource\('\/api\/presence\/stream'\)/);
+  assert.match(provider, /PRESENCE_CLIENT_STALE_MS/);
+  assert.match(assignments, /OnlineNow/);
+  assert.match(assignments, /onlineUsers\.map/);
+  assert.match(assignments, /isUserOnline\(p\.id\)/);
+  assert.match(assignments, /isUserOnline\(o\.id\)/);
+  assert.doesNotMatch(assignments, /animate-pulse/);
+});

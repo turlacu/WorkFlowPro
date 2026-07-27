@@ -16,6 +16,7 @@ import { format, isValid, parseISO } from 'date-fns';
 import { enUS, ro } from 'date-fns/locale';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { usePresence } from '@/contexts/PresenceContext';
 import { useToast } from "@/hooks/use-toast";
 import { api, type AssignmentWithUsers } from '@/lib/api';
 import {
@@ -55,6 +56,8 @@ export default function AssignmentsPage() {
   const { currentLang } = useLanguage();
   const dateLocale = currentLang === 'ro' ? ro : enUS;
   const { toast } = useToast();
+  const { onlineUsers, available: presenceAvailable, connecting: presenceConnecting, isUserOnline } =
+    usePresence();
 
   useEffect(() => {
     const openRequestedAssignment = (assignmentId: string | null, date: string | null) => {
@@ -665,6 +668,49 @@ export default function AssignmentsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <section aria-labelledby="online-now-heading">
+                <h4 id="online-now-heading" className="text-sm font-medium text-foreground">
+                  {getTranslation(currentLang, 'OnlineNow')}
+                </h4>
+                {presenceConnecting ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {getTranslation(currentLang, 'LoadingLiveStatus')}
+                  </p>
+                ) : !presenceAvailable ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {getTranslation(currentLang, 'LiveStatusUnavailable')}
+                  </p>
+                ) : onlineUsers.length > 0 ? (
+                  <ul className="mt-2 max-h-40 space-y-1.5 overflow-y-auto pr-1 text-sm">
+                    {onlineUsers.map((user) => (
+                      <li
+                        key={user.id}
+                        className="flex flex-wrap items-baseline justify-between gap-x-2"
+                      >
+                        <span
+                          className="font-medium text-emerald-700 transition-colors dark:text-emerald-400 motion-reduce:transition-none"
+                          title={getTranslation(currentLang, 'Online')}
+                        >
+                          {user.name}
+                          <span className="sr-only">
+                            {' '}
+                            ({getTranslation(currentLang, 'Online')})
+                          </span>
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {getTranslation(currentLang, user.role)} ·{' '}
+                          {getTranslation(currentLang, 'Online')}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {getTranslation(currentLang, 'NoUsersOnline')}
+                  </p>
+                )}
+              </section>
+              <hr className="border-border" />
               <div>
                 <h4 className="text-sm font-medium text-primary flex items-center">
                   <Users className="mr-2 h-4 w-4" /> {getTranslation(currentLang, 'ProducersOnDuty')}
@@ -680,7 +726,26 @@ export default function AssignmentsPage() {
                             title={p.shiftColor}
                           />
                         )}
-                        <span>{p.name}</span>
+                        <span
+                          className={
+                            isUserOnline(p.id)
+                              ? 'font-medium text-emerald-700 transition-colors dark:text-emerald-400 motion-reduce:transition-none'
+                              : 'transition-colors motion-reduce:transition-none'
+                          }
+                          title={
+                            isUserOnline(p.id)
+                              ? getTranslation(currentLang, 'Online')
+                              : undefined
+                          }
+                        >
+                          {p.name}
+                          {isUserOnline(p.id) && (
+                            <span className="sr-only">
+                              {' '}
+                              ({getTranslation(currentLang, 'Online')})
+                            </span>
+                          )}
+                        </span>
                         {p.timeRange ? (
                           <span className="text-xs text-muted-foreground">({p.timeRange})</span>
                         ) : p.shiftHours && (
@@ -709,7 +774,26 @@ export default function AssignmentsPage() {
                             title={o.shiftColor}
                           />
                         )}
-                        <span>{o.name}</span>
+                        <span
+                          className={
+                            isUserOnline(o.id)
+                              ? 'font-medium text-emerald-700 transition-colors dark:text-emerald-400 motion-reduce:transition-none'
+                              : 'transition-colors motion-reduce:transition-none'
+                          }
+                          title={
+                            isUserOnline(o.id)
+                              ? getTranslation(currentLang, 'Online')
+                              : undefined
+                          }
+                        >
+                          {o.name}
+                          {isUserOnline(o.id) && (
+                            <span className="sr-only">
+                              {' '}
+                              ({getTranslation(currentLang, 'Online')})
+                            </span>
+                          )}
+                        </span>
                         {o.timeRange ? (
                           <span className="text-xs text-muted-foreground">({o.timeRange})</span>
                         ) : o.shiftHours && (
