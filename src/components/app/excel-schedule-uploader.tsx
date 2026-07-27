@@ -186,7 +186,10 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to process file');
+        const details = Array.isArray(error.details)
+          ? error.details.filter((detail: unknown): detail is string => typeof detail === 'string').join(' ')
+          : typeof error.details === 'string' ? error.details : '';
+        throw new Error(details || error.error || 'Failed to process file');
       }
 
       const result = await response.json();
@@ -249,7 +252,10 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to import schedule');
+        const details = Array.isArray(error.details)
+          ? error.details.filter((detail: unknown): detail is string => typeof detail === 'string').join(' ')
+          : typeof error.details === 'string' ? error.details : '';
+        throw new Error(details || error.error || 'Failed to import schedule');
       }
 
       const result = await response.json();

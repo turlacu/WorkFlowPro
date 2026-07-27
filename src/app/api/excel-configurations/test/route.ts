@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/server-auth';
 import * as XLSX from 'xlsx';
 import { extractExcelFillColor } from '@/lib/excel-colors';
+import { parseExcelScheduleDay } from '@/lib/excel-schedule-day';
 
 // Test configuration against uploaded file
 export async function POST(request: NextRequest) {
@@ -51,7 +52,10 @@ export async function POST(request: NextRequest) {
       if (dateRowData.length === 0) {
         testResult.validation.errors.push(`No data found in date row ${configData.dateRow + 1}`);
       } else {
-        const validDates = dateRowData.filter(d => typeof d.value === 'number' && d.value >= 1 && d.value <= 31);
+        const validDates = dateRowData.filter(({ column }) => {
+          const cell = worksheet[XLSX.utils.encode_cell({ r: configData.dateRow, c: column })];
+          return parseExcelScheduleDay(cell) !== null;
+        });
         if (validDates.length === 0) {
           testResult.validation.warnings.push(`Date row contains data but no valid dates (1-31) found`);
         }

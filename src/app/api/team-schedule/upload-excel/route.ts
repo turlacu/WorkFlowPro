@@ -8,6 +8,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { extractExcelFillColor } from '@/lib/excel-colors';
 import { parseScheduleCell } from '@/lib/excel-schedule-cell';
 import { isVacationLegend } from '@/lib/shift-color-legend';
+import { parseExcelScheduleDay } from '@/lib/excel-schedule-day';
 
 const UploadMetadataSchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
@@ -401,11 +402,11 @@ async function createDefaultConfiguration(role: string, session: any): Promise<{
         name: 'Default Producer Schedule (Coordonatori)',
         description: 'Default configuration for producer/coordinator schedule imports',
         dateRow: 8,         // Row 9 in Excel (0-based = 8) - where dates 1,2,3...30 are
-        nameColumn: 1,      // Column B in Excel (0-based = 1)
+        nameColumn: 3,      // Column D in coordinator workbooks
         firstNameRow: 9,    // Row 10 in Excel (0-based = 9) - Marian Cosor
         lastNameRow: 11,    // Row 12 in Excel (0-based = 11) - Victorina Oancea  
-        firstDateColumn: 2, // Column C in Excel (0-based = 2)
-        lastDateColumn: 31, // Column AF in Excel (0-based = 31) - September has 30 days (C=2, so C+29=AF=31)
+        firstDateColumn: 4, // Column E in coordinator workbooks
+        lastDateColumn: 34, // Column AI supports months with up to 31 days
         skipValues: ['co']  // Skip "co" (concediu de odihnă - holiday)
       }
     };
@@ -538,11 +539,11 @@ const FALLBACK_PARSING_CONFIGS: { [key: string]: ParsingConfig } = {
   },
   PRODUCER: {
     dateRow: 8,         // Row 9 in Excel (0-based = 8) - where dates 1,2,3...30 are
-    nameColumn: 1,      // Column B in Excel (0-based = 1)
+    nameColumn: 3,      // Column D in coordinator workbooks
     firstNameRow: 9,    // Row 10 in Excel (0-based = 9) - Marian Cosor
     lastNameRow: 11,    // Row 12 in Excel (0-based = 11) - Victorina Oancea  
-    firstDateColumn: 2, // Column C in Excel (0-based = 2)
-    lastDateColumn: 31, // Column AF in Excel (0-based = 31) - September has 30 days (C=2, so C+29=AF=31)
+    firstDateColumn: 4, // Column E in coordinator workbooks
+    lastDateColumn: 34, // Column AI supports months with up to 31 days
     role: 'PRODUCER',
     skipValues: ['co'],  // Skip "co" (concediu de odihnă - holiday)
     colorDetection: true,
@@ -600,25 +601,30 @@ async function parseExcelSchedule(
     // Use role-specific configuration
     const { dateRow: DATE_ROW, nameColumn: NAME_COLUMN, firstNameRow: FIRST_NAME_ROW, lastNameRow: LAST_NAME_ROW, firstDateColumn: FIRST_DATE_COLUMN, lastDateColumn: LAST_DATE_COLUMN } = config;
     
-    console.log(`Parsing Excel with fixed structure:
-      - Date row: ${DATE_ROW + 1} (Excel row 13)
-      - Name column: ${String.fromCharCode(65 + NAME_COLUMN)} (Excel column B)
-      - Name rows: ${FIRST_NAME_ROW + 1}-${LAST_NAME_ROW + 1} (Excel rows 15-18)
-      - Date columns: ${String.fromCharCode(65 + FIRST_DATE_COLUMN)}-${String.fromCharCode(65 + LAST_DATE_COLUMN)} (Excel columns C-AG)`);
+    console.log(`Parsing Excel with configured structure:
+      - Date row: ${DATE_ROW + 1}
+      - Name column: ${XLSX.utils.encode_col(NAME_COLUMN)}
+      - Name rows: ${FIRST_NAME_ROW + 1}-${LAST_NAME_ROW + 1}
+      - Date columns: ${XLSX.utils.encode_col(FIRST_DATE_COLUMN)}-${XLSX.utils.encode_col(LAST_DATE_COLUMN)}`);
     
     // First, extract and validate the date row
     const dates: { [col: number]: number } = {};
     for (let col = FIRST_DATE_COLUMN; col <= LAST_DATE_COLUMN; col++) {
       const dateCell = worksheet[XLSX.utils.encode_cell({ r: DATE_ROW, c: col })];
-      if (dateCell && typeof dateCell.v === 'number' && dateCell.v >= 1 && dateCell.v <= 31) {
-        dates[col] = dateCell.v;
-      }
+      const day = parseExcelScheduleDay(dateCell);
+      if (day !== null) dates[col] = day;
     }
     
     console.log(`Found ${Object.keys(dates).length} valid dates in date row`);
     
     if (Object.keys(dates).length === 0) {
-      return { success: false, errors: ['No valid dates found in row 13 (C13:AG13)'] };
+      const firstDateCell = XLSX.utils.encode_cell({ r: DATE_ROW, c: FIRST_DATE_COLUMN });
+      const lastDateCell = XLSX.utils.encode_cell({ r: DATE_ROW, c: LAST_DATE_COLUMN });
+      return {
+        success: false,
+        errors: [`No schedule days (1–31) were found in ${firstDateCell}:${lastDateCell}. Check the selected Excel configuration.`],
+        configId,
+      };
     }
     
     // Extract names from the name column
@@ -630,8 +636,8 @@ async function parseExcelSchedule(
         const employeeName = nameCell.v.trim();
         
         // Validate it's a real name
-        if (employeeName.length > 2 && 
-            /^[a-zA-ZăâîșțĂÂÎȘȚ\s\-\.]+$/.test(employeeName)) {
+        if (employeeName.length > 2 &&
+            /^[\p{L}\p{M}\s.'’\-]+$/u.test(employeeName)) {
           operators[row] = employeeName;
           console.log(`✓ Found operator "${employeeName}" in row ${row + 1} (Excel row ${row + 1})`);
         } else {
@@ -642,10 +648,16 @@ async function parseExcelSchedule(
       }
     }
     
-    console.log(`Found ${Object.keys(operators).length} operators in name column`);
+    console.log(`Found ${Object.keys(operators).length} ${role.toLowerCase()} names in name column`);
     
     if (Object.keys(operators).length === 0) {
-      return { success: false, errors: ['No valid operator names found in column B (B15:B18)'] };
+      const firstNameCell = XLSX.utils.encode_cell({ r: FIRST_NAME_ROW, c: NAME_COLUMN });
+      const lastNameCell = XLSX.utils.encode_cell({ r: LAST_NAME_ROW, c: NAME_COLUMN });
+      return {
+        success: false,
+        errors: [`No valid ${role.toLowerCase()} names were found in ${firstNameCell}:${lastNameCell}. Check the selected Excel configuration.`],
+        configId,
+      };
     }
     
     // Now parse the schedule grid
