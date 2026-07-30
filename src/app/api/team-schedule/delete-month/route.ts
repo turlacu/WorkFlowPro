@@ -30,7 +30,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     // Build the where clause based on user role
-    let whereClause: any = {
+    const whereClause: any = {
       date: {
         gte: startDate,
         lt: endDate,

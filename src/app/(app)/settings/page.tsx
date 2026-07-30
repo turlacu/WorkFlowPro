@@ -129,7 +129,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="max-w-4xl space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-xl sm:text-2xl md:text-3xl font-bold flex items-center gap-2">
           <SettingsIcon className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8" />
@@ -173,12 +173,12 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label>{t('Name')}</Label>
-                <Input value={session.user.name || ''} disabled />
+                <Label htmlFor="profile-name">{t('Name')}</Label>
+                <Input id="profile-name" value={session.user.name || ''} disabled />
               </div>
               <div>
-                <Label>{t('EmailLabel')}</Label>
-                <Input value={session.user.email || ''} disabled />
+                <Label htmlFor="profile-email">{t('EmailLabel')}</Label>
+                <Input id="profile-email" value={session.user.email || ''} disabled />
               </div>
               <div>
                 <Label>{t('Role')}</Label>

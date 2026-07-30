@@ -38,13 +38,6 @@ export function DocumentViewer({ fileName, filePath, mimeType, fileSize }: Docum
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = filePath;
-    link.download = fileName;
-    link.click();
-  };
-
   const handleOfficeView = () => {
     if (isWord) {
       // Note: Microsoft Office Online viewer requires publicly accessible URLs

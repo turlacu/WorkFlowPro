@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const role = searchParams.get('role');
 
-    let whereClause: any = {};
+    const whereClause: any = {};
     if (role) {
       whereClause.role = role;
     }

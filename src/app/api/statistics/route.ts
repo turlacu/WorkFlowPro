@@ -128,7 +128,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const completedAssignments = assignments.filter(a => a.status === 'COMPLETED' && a.assignedTo);
     const commentedAssignments = assignments.filter(a => a.comment && a.comment.trim() !== '' && a.assignedTo);
 
     // Count completions by actual completing user
@@ -159,12 +158,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Build response
-    const producerStats = Array.from(producerStatsMap.entries()).map(([id, data]) => ({
+    const producerStats = Array.from(producerStatsMap.entries()).map(([, data]) => ({
       producerId: data.name,
       assignmentsCreated: data.count,
     }));
 
-    const operatorStats = Array.from(operatorStatsMap.entries()).map(([id, data]) => ({
+    const operatorStats = Array.from(operatorStatsMap.entries()).map(([, data]) => ({
       operatorId: data.name,
       assignmentsCompleted: data.completed,
       assignmentsCommented: data.commented,

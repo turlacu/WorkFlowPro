@@ -134,7 +134,7 @@ export function MonthScheduleDeleter({ selectedDate, onDeleteComplete }: MonthSc
               User Type to Delete
             </label>
             <Select value={selectedUserRole} onValueChange={setSelectedUserRole}>
-              <SelectTrigger>
+              <SelectTrigger aria-label="User type to delete">
                 <SelectValue placeholder="Select user type to delete...">
                   {selectedUserRole ? (
                     <div className="flex flex-col text-left">

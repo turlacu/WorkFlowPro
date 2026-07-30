@@ -1,14 +1,51 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
+const authenticatedRoutes = [
+  '/assignments',
+  '/todays-schedule',
+  '/settings',
+  '/dashboard/scheduling/manual',
+  '/dashboard/scheduling/import',
+  '/dashboard/scheduling/delete',
+  '/dashboard/scheduling/excel-configurations',
+  '/dashboard/scheduling/color-legend',
+  '/dashboard/users',
+  '/dashboard/statistics',
+  '/dashboard/backups',
+];
+
+async function expectPageQuality(page: import('@playwright/test').Page, path: string) {
+  const seriousViolations = (await new AxeBuilder({ page }).analyze()).violations
+    .filter((violation) => ['serious', 'critical'].includes(violation.impact || ''))
+    .map(({ id, impact, nodes }) => ({
+      id,
+      impact,
+      targets: nodes.map((node) => node.target.join(' ')),
+    }));
+
+  expect.soft(
+    seriousViolations,
+    `${path} contains serious or critical accessibility violations`,
+  ).toEqual([]);
+
+  const width = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+  }));
+  expect.soft(
+    width.documentWidth,
+    `${path} must not create document-level horizontal scrolling`,
+  ).toBeLessThanOrEqual(width.viewportWidth);
+}
+
 test('login is responsive and has no serious accessibility violations', async ({ page }, testInfo) => {
   await page.goto('/login');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(page.getByLabel(/email/i)).toBeVisible();
   await expect(page.getByLabel(/password|parolă/i)).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).analyze();
-  expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact || ''))).toEqual([]);
+  await expectPageQuality(page, '/login');
   await page.screenshot({ path: testInfo.outputPath('login.png'), fullPage: true });
 });
 
@@ -23,13 +60,41 @@ test('authenticated workspaces pass smoke and accessibility checks', async ({ pa
   await page.getByRole('button', { name: /sign in|autentificare/i }).click();
   await expect(page).toHaveURL(/assignments|settings/);
 
-  for (const path of ['/assignments', '/todays-schedule', '/settings']) {
+  const hydrationErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error' && /hydration|Minified React error #418/i.test(message.text())) {
+      hydrationErrors.push(message.text());
+    }
+  });
+
+  for (const path of authenticatedRoutes) {
     await page.goto(path);
     await expect(page.locator('main')).toBeVisible();
-    const results = await new AxeBuilder({ page }).analyze();
-    expect(results.violations.filter((violation) => ['serious', 'critical'].includes(violation.impact || ''))).toEqual([]);
-    await page.screenshot({ path: testInfo.outputPath(`${path.slice(1)}.png`), fullPage: true });
+    await expectPageQuality(page, path);
+    await page.screenshot({
+      path: testInfo.outputPath(`${path.slice(1).replaceAll('/', '-')}.png`),
+      fullPage: true,
+    });
   }
+
+  expect(hydrationErrors, 'authenticated pages must hydrate without React errors').toEqual([]);
+});
+
+test('health endpoints and unauthenticated access controls are explicit', async ({ request }) => {
+  const liveness = await request.get('/api/healthz');
+  expect(liveness.status()).toBe(200);
+  expect(await liveness.json()).toMatchObject({ status: 'healthy' });
+
+  const readiness = await request.get('/api/health');
+  expect([200, 503]).toContain(readiness.status());
+  expect(await readiness.json()).toHaveProperty('checks');
+
+  const users = await request.get('/api/users');
+  expect(users.status()).toBe(401);
+
+  const adminPage = await request.get('/dashboard/users', { maxRedirects: 0 });
+  expect(adminPage.status()).toBe(307);
+  expect(adminPage.headers().location).toContain('/login');
 });
 
 test('assigned operators receive a realtime notification', async ({ browser }, testInfo) => {

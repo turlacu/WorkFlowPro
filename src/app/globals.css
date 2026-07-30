@@ -26,7 +26,7 @@
     --accent: 38 92% 42%;
     --accent-foreground: 222 47.4% 11.2%;
  
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 70% 42%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 214 24% 84%;
@@ -61,8 +61,8 @@
     --popover: 210 11% 12%;
     --popover-foreground: 210 40% 95%;
  
-    --primary: 208 100% 65%; /* Bright blue for buttons and links (#337ab7) */
-    --primary-foreground: 0 0% 100%;
+    --primary: 208 100% 65%; /* Bright blue action and state color */
+    --primary-foreground: 210 11% 9%; /* Dark text keeps primary controls readable */
  
     --secondary: 210 15% 18%; /* Darker secondary elements (#2d3339) */
     --secondary-foreground: 210 40% 85%;
@@ -73,12 +73,12 @@
     --accent: 45 100% 65%; /* Orange/Yellow accent (#ffb347) */
     --accent-foreground: 210 11% 9%;
  
-    --destructive: 0 75% 60%;
+    --destructive: 0 70% 42%;
     --destructive-foreground: 0 0% 98%;
  
     --border: 210 15% 20%; /* Subtle borders */
     --input: 210 15% 18%; /* Input backgrounds */
-    --ring: 215 14% 48%;
+    --ring: 215 12% 55%; /* Visible without a high-glare focus halo */
 
     /* Chart Colors */
     --chart-1: 208 100% 65%; /* Blue */

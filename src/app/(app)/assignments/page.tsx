@@ -406,8 +406,6 @@ export default function AssignmentsPage() {
         return;
       }
 
-      console.log('Toggle complete - Original assignment:', assignment);
-
       // When toggling "Done" checkbox:
       // - If checking "Done": can only do this if already IN_PROGRESS, then go to COMPLETED  
       // - If unchecking "Done": go back to IN_PROGRESS (keep "Uploaded to Q" checked)
@@ -426,7 +424,6 @@ export default function AssignmentsPage() {
         // Track who marked it as completed
       };
 
-      console.log('Toggle complete - Update data being sent:', updateData);
       await api.updateAssignment(updateData);
       await Promise.all([
         fetchAssignments(), // Refresh filtered assignments
@@ -483,7 +480,6 @@ export default function AssignmentsPage() {
         sourceLocation: assignment.sourceLocation || '',
       };
 
-      console.log('Toggle uploaded to Q - Update data being sent:', updateData);
       await api.updateAssignment(updateData);
       await Promise.all([
         fetchAssignments(), // Refresh filtered assignments
@@ -558,7 +554,7 @@ export default function AssignmentsPage() {
       />
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
         <div className="xl:col-span-3">
-          <Card className="h-full">
+          <Card>
             <CardHeader className="space-y-4 pb-4 sm:pb-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-2">
                 <div className="flex-grow">
@@ -718,7 +714,7 @@ export default function AssignmentsPage() {
                 {teamForSelectedDay.producers.length > 0 ? (
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
                     {teamForSelectedDay.producers.map(p => (
-                      <li key={p.id} className="flex items-center gap-2">
+                      <li key={p.id} className="flex min-w-0 items-center gap-2">
                         {p.shiftColor && (
                           <div
                             className="w-3 h-3 rounded border"
@@ -729,8 +725,8 @@ export default function AssignmentsPage() {
                         <span
                           className={
                             isUserOnline(p.id)
-                              ? 'font-medium text-emerald-700 transition-colors dark:text-emerald-400 motion-reduce:transition-none'
-                              : 'transition-colors motion-reduce:transition-none'
+                              ? 'min-w-0 flex-1 truncate font-medium text-emerald-700 transition-colors dark:text-emerald-400 motion-reduce:transition-none'
+                              : 'min-w-0 flex-1 truncate transition-colors motion-reduce:transition-none'
                           }
                           title={
                             isUserOnline(p.id)
@@ -747,9 +743,9 @@ export default function AssignmentsPage() {
                           )}
                         </span>
                         {p.timeRange ? (
-                          <span className="text-xs text-muted-foreground">({p.timeRange})</span>
+                          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">({p.timeRange})</span>
                         ) : p.shiftHours && (
-                          <span className="text-xs text-muted-foreground">({p.shiftHours})</span>
+                          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">({p.shiftHours})</span>
                         )}
                       </li>
                     ))}
@@ -766,7 +762,7 @@ export default function AssignmentsPage() {
                 {teamForSelectedDay.operators.length > 0 ? (
                   <ul className="list-disc list-inside pl-2 text-muted-foreground text-sm">
                     {teamForSelectedDay.operators.map(o => (
-                      <li key={o.id} className="flex items-center gap-2">
+                      <li key={o.id} className="flex min-w-0 items-center gap-2">
                         {o.shiftColor && (
                           <div
                             className="w-3 h-3 rounded border"
@@ -777,8 +773,8 @@ export default function AssignmentsPage() {
                         <span
                           className={
                             isUserOnline(o.id)
-                              ? 'font-medium text-emerald-700 transition-colors dark:text-emerald-400 motion-reduce:transition-none'
-                              : 'transition-colors motion-reduce:transition-none'
+                              ? 'min-w-0 flex-1 truncate font-medium text-emerald-700 transition-colors dark:text-emerald-400 motion-reduce:transition-none'
+                              : 'min-w-0 flex-1 truncate transition-colors motion-reduce:transition-none'
                           }
                           title={
                             isUserOnline(o.id)
@@ -795,9 +791,9 @@ export default function AssignmentsPage() {
                           )}
                         </span>
                         {o.timeRange ? (
-                          <span className="text-xs text-muted-foreground">({o.timeRange})</span>
+                          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">({o.timeRange})</span>
                         ) : o.shiftHours && (
-                          <span className="text-xs text-muted-foreground">({o.shiftHours})</span>
+                          <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">({o.shiftHours})</span>
                         )}
                       </li>
                     ))}

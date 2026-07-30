@@ -10,7 +10,7 @@ interface PDFScheduleViewerProps {
   fileSize?: number;
 }
 
-export function PDFScheduleViewer({ fileName, filePath, fileSize }: PDFScheduleViewerProps) {
+export function PDFScheduleViewer({ fileName, filePath }: PDFScheduleViewerProps) {
   const [isFullscreen, setIsFullscreen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -43,14 +43,6 @@ export function PDFScheduleViewer({ fileName, filePath, fileSize }: PDFScheduleV
       </div>
     );
   }
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const handleDownload = () => {
     const fileUrl = `/api/files${filePath}`;

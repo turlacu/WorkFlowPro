@@ -44,7 +44,9 @@ export function TodaysScheduleDashboard() {
   const displayDate = (date: Date) => format(date, 'PPP', { locale });
   const t = (key: string, params?: Record<string, string>) => getTranslation(currentLang, key, params);
 
-  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
+  // The user's local calendar date is selected after hydration so the server and
+  // browser do not render different dates around timezone/day boundaries.
+  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
   const [schedules, setSchedules] = React.useState<DailySchedule[]>([]);
   const [currentSchedule, setCurrentSchedule] = React.useState<DailySchedule | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -102,8 +104,13 @@ export function TodaysScheduleDashboard() {
     }
   }, []);
 
+  React.useEffect(() => {
+    setSelectedDate(new Date());
+  }, []);
+
   // Fetch data when selected date changes
   React.useEffect(() => {
+    if (!selectedDate) return;
     fetchSchedule(selectedDate);
     fetchMonthSchedules(selectedDate);
   }, [selectedDate, fetchSchedule, fetchMonthSchedules]);
@@ -115,7 +122,7 @@ export function TodaysScheduleDashboard() {
   };
 
   const handleFileUpload = async () => {
-    if (!uploadFile || !uploadTitle.trim()) {
+    if (!selectedDate || !uploadFile || !uploadTitle.trim()) {
       toast({
         title: t('MissingInformation'),
         description: t('FileAndTitleRequired'),
@@ -178,7 +185,7 @@ export function TodaysScheduleDashboard() {
   };
 
   const handleSaveEdit = async () => {
-    if (!currentSchedule || !editTitle.trim()) {
+    if (!selectedDate || !currentSchedule || !editTitle.trim()) {
       toast({
         title: t('MissingInformation'),
         description: t('TitleRequired'),
@@ -223,7 +230,7 @@ export function TodaysScheduleDashboard() {
   };
 
   const handleDelete = async () => {
-    if (!currentSchedule) return;
+    if (!selectedDate || !currentSchedule) return;
 
     try {
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -265,6 +272,14 @@ export function TodaysScheduleDashboard() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
+
+  if (!selectedDate) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center" role="status">
+        <span className="text-sm text-muted-foreground">{t('LoadingSchedule')}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

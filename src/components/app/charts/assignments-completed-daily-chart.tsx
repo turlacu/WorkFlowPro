@@ -72,7 +72,7 @@ export function AssignmentsCompletedDailyChart({ data, selectedMonth }: Assignme
               }}
               labelStyle={{ color: 'hsl(var(--foreground))' }}
               itemStyle={{ color: 'hsl(var(--chart-1))' }}
-              formatter={(value: number, name: string) => [`${value} ${getTranslation(currentLang, 'assignments')}`, getTranslation(currentLang, 'AssignmentsCompletedDailyChartTooltipCompleted')]}
+              formatter={(value: number) => [`${value} ${getTranslation(currentLang, 'assignments')}`, getTranslation(currentLang, 'AssignmentsCompletedDailyChartTooltipCompleted')]}
             />
             <Legend 
               wrapperStyle={{ color: 'hsl(var(--foreground))' }} 

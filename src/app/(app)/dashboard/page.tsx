@@ -156,8 +156,6 @@ export default function DashboardPage() {
       
       if (response.ok) {
         const scheduleData: TeamScheduleResponse[] = await response.json();
-        console.log('Fetched schedule data:', scheduleData);
-        
         // Store full schedule data including shift information
         const scheduledUsers: User[] = scheduleData.map((schedule) => ({
           ...schedule.user,
@@ -349,7 +347,7 @@ export default function DashboardPage() {
                   };
 
   return (
-    <div className="space-y-6 px-1 sm:px-0">
+    <div className="min-w-0 max-w-full space-y-6 px-1 sm:px-0">
       <header className="border-b pb-5">
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{getTranslation(currentLang, 'DashboardTitle')}</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
@@ -357,7 +355,7 @@ export default function DashboardPage() {
         </p>
       </header>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+      <div className="grid min-w-0 max-w-full items-start gap-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
         <AdminNavigation />
         <Tabs value={primarySection} className="min-w-0 w-full">
           <header className="min-h-[5.25rem] border-b pb-5">

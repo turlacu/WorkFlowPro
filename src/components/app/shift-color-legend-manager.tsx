@@ -7,15 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus, Edit, Trash2, Palette, Palmtree } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getTranslation } from '@/lib/translations';
-import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ShiftColorLegend {
   id: string;
@@ -60,7 +57,6 @@ export function ShiftColorLegendManager() {
     role: 'OPERATOR'
   });
 
-  const { currentLang } = useLanguage();
   const { toast } = useToast();
 
   const fetchLegends = React.useCallback(async (role?: string) => {
@@ -121,8 +117,6 @@ export function ShiftColorLegendManager() {
       const url = '/api/shift-color-legend';
       const method = editingLegend ? 'PUT' : 'POST';
       const body = editingLegend ? { ...formData, id: editingLegend.id } : formData;
-
-      console.log('Saving color legend:', { method, body });
 
       const response = await fetch(url, {
         method,
@@ -188,9 +182,6 @@ export function ShiftColorLegendManager() {
     }
   };
 
-  // Get unique roles from legends for the role selector
-  const availableRoles = ['ALL', ...Array.from(new Set(legends.map(legend => legend.role)))];
-
   return (
     <div className="space-y-6">
       <Card>
@@ -207,7 +198,7 @@ export function ShiftColorLegendManager() {
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
             <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full sm:w-36">
+              <SelectTrigger className="w-full sm:w-36" aria-label="Filter color legends by role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

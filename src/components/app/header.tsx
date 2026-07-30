@@ -43,7 +43,8 @@ export default function AppHeader() {
         <MobileMenu />
         <Link href="/assignments" className="flex min-w-0 items-center gap-2" aria-label={getTranslation(currentLang, 'AppHeaderHomeAriaLabel')}>
           <CalendarClock className="h-6 w-6 shrink-0 text-primary" />
-          <span className="truncate text-base font-bold text-foreground sm:text-lg">{getTranslation(currentLang, 'AppName')}</span>
+          <span className="text-base font-bold text-foreground sm:hidden">WorkSmart</span>
+          <span className="hidden truncate text-lg font-bold text-foreground sm:inline">{getTranslation(currentLang, 'AppName')}</span>
         </Link>
 
         <nav className="ml-auto hidden items-center gap-1 md:flex" aria-label={getTranslation(currentLang, 'PrimaryNavigation')}>

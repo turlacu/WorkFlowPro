@@ -103,9 +103,9 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
   const getStatusBadgeClassName = (status: AssignmentWithUsers['status']) => {
     switch (status) {
       case 'COMPLETED':
-        return "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white";
+        return "bg-green-700 text-white hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800";
       case 'IN_PROGRESS':
-        return "bg-blue-500 hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500 text-white";
+        return "bg-blue-700 text-white hover:bg-blue-800 dark:bg-blue-700 dark:hover:bg-blue-800";
       default:
         return "";
     }
@@ -160,24 +160,21 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
   const AssignmentCard = ({ assignment }: { assignment: AssignmentWithUsers }) => (
     <Card 
       className={cn(
-        'cursor-pointer hover:shadow-md transition-shadow duration-200',
+        'transition-shadow duration-200 hover:shadow-md',
         {'border-emerald-500/20 bg-emerald-500/[0.06] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
       )}
-      onClick={() => handleViewDetails(assignment)}
-      role="button"
-      tabIndex={0}
-      aria-label={`${getTranslation(currentLang, 'View')} ${assignment.name}`}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          handleViewDetails(assignment);
-        }
-      }}
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="text-lg font-semibold leading-tight pr-2">
-            {assignment.name}
+          <CardTitle className="pr-2 text-lg font-semibold leading-tight">
+            <button
+              type="button"
+              className="line-clamp-2 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => handleViewDetails(assignment)}
+              aria-label={`${getTranslation(currentLang, 'View')} ${assignment.name}`}
+            >
+              {assignment.name}
+            </button>
           </CardTitle>
           <div className="flex flex-col gap-1 items-end flex-shrink-0">
             {getPriorityBadge(assignment.priority)}
@@ -305,14 +302,14 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
         <Table className="table-fixed [&_td]:px-2 [&_td]:py-3 [&_th]:px-2">
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>
-              <TableHead className="w-[16%]">{getTranslation(currentLang, 'AssignmentTableTaskName')}</TableHead>
-              <TableHead className="w-[14%]">{getTranslation(currentLang, 'AssignmentTableDueDate')}</TableHead>
-              <TableHead className="w-[14%]">{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
-              <TableHead className="w-[13%]">{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
-              <TableHead className="w-[10%]">{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
-              <TableHead className="w-[13%] text-center leading-4">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
+              <TableHead className="w-[22%]">{getTranslation(currentLang, 'AssignmentTableTaskName')}</TableHead>
+              <TableHead className="w-[13%]">{getTranslation(currentLang, 'AssignmentTableDueDate')}</TableHead>
+              <TableHead className="w-[13%]">{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
+              <TableHead className="w-[12%]">{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
+              <TableHead className="w-[9%]">{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
+              <TableHead className="w-[12%] text-center leading-4">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
               {canCompleteAssignments && (
-                <TableHead className="w-[8%] text-center">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>
+                <TableHead className="w-[7%] text-center">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>
               )}
               {canManageAssignments && (
                 <TableHead className="w-[12%] border-l text-center">{getTranslation(currentLang, 'AssignmentTableActions')}</TableHead>
@@ -324,20 +321,20 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
               <TableRow
                 key={assignment.id}
                 className={cn(
-                  'cursor-pointer hover:bg-muted/50',
+                  'hover:bg-muted/50',
                   {'bg-emerald-500/[0.07] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
                 )}
-                onClick={() => handleViewDetails(assignment)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    handleViewDetails(assignment);
-                  }
-                }}
               >
-                <TableCell className="break-words font-medium leading-5">{assignment.name}</TableCell>
+                <TableCell className="font-medium leading-5">
+                  <button
+                    type="button"
+                    className="line-clamp-2 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    onClick={() => handleViewDetails(assignment)}
+                    title={assignment.name}
+                  >
+                    {assignment.name}
+                  </button>
+                </TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
                 <TableCell className="truncate">
                   <span title={assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}>

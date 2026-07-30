@@ -54,7 +54,8 @@ test('UI accessibility foundations remain enabled', () => {
   assert.match(mobileMenu, /SheetContent/);
   assert.match(mobileMenu, /aria-current/);
   assert.doesNotMatch(assignments, /calc\(100vh-3(?:00|50)px\)/);
-  assert.match(assignments, /event\.key === 'Enter' \|\| event\.key === ' '/);
+  assert.match(assignments, /aria-label=\{`\$\{getTranslation\(currentLang, 'View'\)/);
+  assert.doesNotMatch(assignments, /<TableRow[\s\S]{0,240}role="button"/);
   assert.match(themeToggle, /resolvedTheme/);
 });
 
@@ -86,6 +87,24 @@ test('container startup migrates without destructive seeding', () => {
     );
   }
   assert.doesNotMatch(compose, /cloudflared|CLOUDFLARE_TUNNEL_TOKEN/);
+});
+
+test('production responses are hardened and health checks use supported routes', () => {
+  const nextConfig = read('next.config.ts');
+  const middleware = read('src/middleware.ts');
+  const dockerfile = read('Dockerfile');
+  const compose = read('docker-compose.coolify.yml');
+
+  assert.match(nextConfig, /poweredByHeader:\s*false/);
+  assert.match(nextConfig, /removeConsole/);
+  assert.match(nextConfig, /Content-Security-Policy/);
+  assert.match(nextConfig, /Strict-Transport-Security/);
+  assert.match(nextConfig, /X-Content-Type-Options/);
+  assert.match(nextConfig, /frame-ancestors 'none'/);
+  assert.match(middleware, /Cache-Control', 'no-store, max-age=0'/);
+  assert.match(dockerfile, /\/api\/health/);
+  assert.match(compose, /\/api\/health/);
+  assert.doesNotMatch(`${dockerfile}\n${compose}`, /\/api\/health\/ready/);
 });
 
 test('migration history includes the missing daily schedules table and security fields', () => {

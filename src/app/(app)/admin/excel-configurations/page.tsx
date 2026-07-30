@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Settings, Trash2, Edit, TestTube, Eye, Activity } from 'lucide-react';
+import { Plus, Settings, Trash2, Edit, Eye, Activity } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ConfigurationWizard } from '@/components/app/configuration-wizard';
 import { usePathname } from 'next/navigation';
@@ -280,6 +280,8 @@ export default function ExcelConfigurationsPage() {
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedConfig(config)}
+                          aria-label={`View configuration ${config.name}`}
+                          title={`View ${config.name}`}
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
@@ -290,12 +292,19 @@ export default function ExcelConfigurationsPage() {
                             setEditingConfig(config);
                             setShowWizard(true);
                           }}
+                          aria-label={`Edit configuration ${config.name}`}
+                          title={`Edit ${config.name}`}
                         >
                           <Edit className="h-3 w-3" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              aria-label={`Delete configuration ${config.name}`}
+                              title={`Delete ${config.name}`}
+                            >
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </AlertDialogTrigger>

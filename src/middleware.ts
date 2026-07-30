@@ -6,7 +6,10 @@ export default withAuth(
     const token = request.nextauth.token;
     if (!token) {
       if (request.nextUrl.pathname.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const response = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        response.headers.set('Cache-Control', 'no-store, max-age=0');
+        response.headers.set('Pragma', 'no-cache');
+        return response;
       }
       const publicOrigin = process.env.NEXTAUTH_URL || request.nextUrl.origin;
       const loginUrl = new URL('/login', publicOrigin);
@@ -25,6 +28,13 @@ export default withAuth(
       settingsUrl.searchParams.set('passwordResetRequired', '1');
       return NextResponse.redirect(settingsUrl);
     }
+
+    const response = NextResponse.next();
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      response.headers.set('Cache-Control', 'no-store, max-age=0');
+      response.headers.set('Pragma', 'no-cache');
+    }
+    return response;
   },
   {
     callbacks: {

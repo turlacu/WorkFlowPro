@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
 
-    let whereClause: any = {};
+    const whereClause: any = {};
     if (date) {
       const range = utcDayRange(date);
       if (!range) return NextResponse.json({ error: 'Invalid date' }, { status: 400 });

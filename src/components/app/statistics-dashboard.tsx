@@ -23,13 +23,17 @@ type GenerateStatisticsOutput = {
 import { DailyCompletionsPieChart } from '@/components/app/charts/daily-completions-pie-chart';
 import { MonthlyCompletionsTrendChart } from '@/components/app/charts/monthly-completions-trend-chart';
 import { format, subMonths, addMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { enUS, ro } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 // Pie chart data will be calculated dynamically
-const generatePieData = (statsData: GenerateStatisticsOutput | null) => {
+const generatePieData = (
+  statsData: GenerateStatisticsOutput | null,
+  labels: { completed: string; inProgress: string; noData: string },
+) => {
   if (!statsData) {
     return [
-      { name: 'No Data', value: 1, fill: 'hsl(var(--muted))' },
+      { name: labels.noData, value: 1, fill: 'hsl(var(--muted))' },
     ];
   }
   
@@ -39,18 +43,19 @@ const generatePieData = (statsData: GenerateStatisticsOutput | null) => {
   
   if (totalCreated === 0) {
     return [
-      { name: 'No Assignments', value: 1, fill: 'hsl(var(--muted))' },
+      { name: labels.noData, value: 1, fill: 'hsl(var(--muted))' },
     ];
   }
   
   return [
-    { name: 'Completed', value: totalCompleted, fill: 'hsl(142 76% 36%)' },
-    { name: 'In Progress', value: inProgress, fill: 'hsl(48 96% 53%)' },
+    { name: labels.completed, value: totalCompleted, fill: 'hsl(142 76% 36%)' },
+    { name: labels.inProgress, value: inProgress, fill: 'hsl(48 96% 53%)' },
   ].filter(item => item.value > 0);
 };
 
 export function StatisticsDashboard() {
   const { currentLang } = useLanguage();
+  const locale = currentLang === 'ro' ? ro : enUS;
   const [statsData, setStatsData] = React.useState<GenerateStatisticsOutput | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -63,16 +68,12 @@ export function StatisticsDashboard() {
     async function fetchInitialStats() {
       try {
         setLoading(true);
-        console.log('🔍 Fetching statistics...');
-        
         // Use a broader date range to catch all data (last 6 months)
         const sixMonthsAgo = subMonths(new Date(), 6);
         const today = new Date();
         
         const startDate = format(startOfMonth(sixMonthsAgo), 'yyyy-MM-dd');
         const endDate = format(endOfMonth(today), 'yyyy-MM-dd');
-        
-        console.log('📅 Date range for statistics:', { startDate, endDate });
         
         const response = await fetch('/api/statistics', {
           method: 'POST',
@@ -92,15 +93,7 @@ export function StatisticsDashboard() {
         
         const result = await response.json();
         
-        console.log('📊 Full statistics result:', result);
-        
         if (!('error' in result)) {
-          console.log('✅ Statistics loaded successfully:', {
-            totalCreated: result.totalAssignmentsCreated,
-            totalCompleted: result.totalAssignmentsCompleted,
-            producerCount: result.producerStats.length,
-            operatorCount: result.operatorStats.length
-          });
           setStatsData(result);
           setError(null);
           setCurrentViewType('broad');
@@ -131,8 +124,6 @@ export function StatisticsDashboard() {
   const handleRefreshStats = async (viewType: 'day' | 'month') => {
     try {
       setLoading(true);
-      console.log('🔄 Refreshing statistics for:', viewType, 'Date:', userActivityDate);
-      
       let startDate: string;
       let endDate: string;
       
@@ -145,8 +136,6 @@ export function StatisticsDashboard() {
         startDate = format(startOfMonth(userActivityDate), 'yyyy-MM-dd');
         endDate = format(endOfMonth(userActivityDate), 'yyyy-MM-dd');
       }
-      
-      console.log('📅 Fetching statistics for date range:', { startDate, endDate });
       
       const response = await fetch('/api/statistics', {
         method: 'POST',
@@ -170,7 +159,6 @@ export function StatisticsDashboard() {
         setStatsData(result);
         setError(null);
         setCurrentViewType(viewType);
-        console.log('✅ Statistics updated successfully');
       } else {
         console.error("Error fetching filtered stats:", result.error);
         setStatsData(null);
@@ -205,20 +193,27 @@ export function StatisticsDashboard() {
 
   // Generate description text based on current view type
   const getViewDescription = () => {
-    const selectedDate = format(userActivityDate, 'MMMM do, yyyy');
+    const selectedDate = format(userActivityDate, 'PPP', { locale });
     
     switch (currentViewType) {
       case 'day':
-        return `Day View: Statistics for ${selectedDate} only`;
+        return getTranslation(currentLang, 'StatisticsDayDescription', { date: selectedDate });
       case 'month':
-        return `Month View: Statistics for ${format(userActivityDate, 'MMMM yyyy')}`;
+        return getTranslation(currentLang, 'StatisticsMonthDescription', {
+          month: format(userActivityDate, 'MMMM yyyy', { locale }),
+        });
       case 'broad':
-        const currentYear = new Date().getFullYear();
-        return `Broad View: Statistics from January 1st, ${currentYear} to present day`;
+        return getTranslation(currentLang, 'StatisticsBroadDescription');
       default:
-        return `Statistics for ${selectedDate}`;
+        return getTranslation(currentLang, 'StatisticsDayDescription', { date: selectedDate });
     }
   };
+
+  const statisticsPeriod = currentViewType === 'broad'
+    ? getTranslation(currentLang, 'StatisticsPeriodLastSixMonths')
+    : currentViewType === 'month'
+      ? format(userActivityDate, 'MMMM yyyy', { locale })
+      : format(userActivityDate, 'PPP', { locale });
 
 
   if (loading) {
@@ -284,44 +279,44 @@ export function StatisticsDashboard() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm">
           <div>
-            <h4 className="font-semibold text-muted-foreground mb-2">Assignment Summary</h4>
+            <h4 className="mb-2 font-semibold text-muted-foreground">{getTranslation(currentLang, 'StatisticsAssignmentSummary')}</h4>
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-blue-50 dark:bg-blue-950 p-3 rounded-lg">
                 <p className="text-blue-600 dark:text-blue-400 font-semibold text-lg">{statusBreakdown.totalCreated}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">Total Created</p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">{getTranslation(currentLang, 'StatisticsTotalCreated')}</p>
               </div>
               <div className="bg-green-50 dark:bg-green-950 p-3 rounded-lg">
                 <p className="text-green-600 dark:text-green-400 font-semibold text-lg">{statusBreakdown.totalCompleted}</p>
-                <p className="text-xs text-green-600 dark:text-green-400">Completed</p>
+                <p className="text-xs text-green-600 dark:text-green-400">{getTranslation(currentLang, 'StatisticsCompleted')}</p>
               </div>
               <div className="bg-orange-50 dark:bg-orange-950 p-3 rounded-lg">
                 <p className="text-orange-600 dark:text-orange-400 font-semibold text-lg">{statusBreakdown.inProgress}</p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">In Progress</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">{getTranslation(currentLang, 'StatisticsInProgress')}</p>
               </div>
               <div className="bg-purple-50 dark:bg-purple-950 p-3 rounded-lg">
                 <p className="text-purple-600 dark:text-purple-400 font-semibold text-lg">{statusBreakdown.completionRate}%</p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">Completion Rate</p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">{getTranslation(currentLang, 'StatisticsCompletionRate')}</p>
               </div>
             </div>
           </div>
           <hr className="border-[hsl(var(--border))]" />
           <div>
-            <h4 className="font-semibold text-muted-foreground mb-2">Team Performance</h4>
+            <h4 className="mb-2 font-semibold text-muted-foreground">{getTranslation(currentLang, 'StatisticsTeamPerformance')}</h4>
             <div className="space-y-2">
               <div className="flex justify-between">
-                <span>Active Producers:</span>
+                <span>{getTranslation(currentLang, 'StatisticsActiveProducers')}:</span>
                 <span className="font-medium">{teamPerformance.totalProducers}</span>
               </div>
               <div className="flex justify-between">
-                <span>Active Operators:</span>
+                <span>{getTranslation(currentLang, 'StatisticsActiveOperators')}:</span>
                 <span className="font-medium">{teamPerformance.totalOperators}</span>
               </div>
               <div className="flex justify-between">
-                <span>Top Producer:</span>
+                <span>{getTranslation(currentLang, 'StatisticsTopProducer')}:</span>
                 <span className="font-medium text-blue-600 dark:text-blue-400">{teamPerformance.mostActiveProducer}</span>
               </div>
               <div className="flex justify-between">
-                <span>Top Operator:</span>
+                <span>{getTranslation(currentLang, 'StatisticsTopOperator')}:</span>
                 <span className="font-medium text-green-600 dark:text-green-400">{teamPerformance.mostActiveOperator}</span>
               </div>
             </div>
@@ -337,18 +332,24 @@ export function StatisticsDashboard() {
             {getTranslation(currentLang, 'StatisticsDailyCompletionsTitle')}
           </CardTitle>
           <CardDescription>
-            {getTranslation(currentLang, 'StatisticsDailyCompletionsDescription', { month: format(new Date(2025,4,1), 'MMMM yyyy')})}
+            {getTranslation(currentLang, 'StatisticsStatusDistributionDescription', { period: statisticsPeriod })}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
-          <DailyCompletionsPieChart data={generatePieData(statsData)} />
+          <DailyCompletionsPieChart
+            data={generatePieData(statsData, {
+              completed: getTranslation(currentLang, 'StatisticsCompleted'),
+              inProgress: getTranslation(currentLang, 'StatisticsInProgress'),
+              noData: getTranslation(currentLang, 'UserActivityTableNoData'),
+            })}
+          />
           <div className="mt-3 text-center space-y-1">
             <p className="text-xs text-muted-foreground">
-              Assignment Status Distribution
+              {getTranslation(currentLang, 'StatisticsStatusDistribution')}
             </p>
             {statsData && statsData.totalAssignmentsCreated > 0 && (
               <p className="text-xs text-green-600 dark:text-green-400">
-                {statusBreakdown.completionRate}% completion rate
+                {statusBreakdown.completionRate}% {getTranslation(currentLang, 'StatisticsCompletionRate').toLowerCase()}
               </p>
             )}
           </div>
@@ -529,11 +530,21 @@ export function StatisticsDashboard() {
               </CardDescription>
             </div>
             <div className="flex items-center gap-1">
-              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handlePrevMonth}>
+              <Button
+                className="h-8 w-8 min-h-[44px] min-w-[44px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground md:min-h-[32px] md:min-w-[32px]"
+                onClick={handlePrevMonth}
+                aria-label={getTranslation(currentLang, 'StatisticsPreviousMonth')}
+                title={getTranslation(currentLang, 'StatisticsPreviousMonth')}
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <span className="text-sm font-medium w-28 text-center">{format(trendChartMonth, 'MMMM yyyy')}</span>
-              <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 min-h-[44px] min-w-[44px] md:min-h-[32px] md:min-w-[32px] touch-manipulation" onClick={handleNextMonth}>
+              <Button
+                className="h-8 w-8 min-h-[44px] min-w-[44px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground md:min-h-[32px] md:min-w-[32px]"
+                onClick={handleNextMonth}
+                aria-label={getTranslation(currentLang, 'StatisticsNextMonth')}
+                title={getTranslation(currentLang, 'StatisticsNextMonth')}
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

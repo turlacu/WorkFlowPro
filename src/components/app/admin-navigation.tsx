@@ -37,7 +37,7 @@ export function AdminNavigation() {
         href={item.href}
         aria-current={active ? 'page' : undefined}
         className={cn(
-          'flex min-h-11 shrink-0 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          'flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
           nested && 'lg:pl-3',
           active ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
         )}
@@ -49,13 +49,13 @@ export function AdminNavigation() {
   };
 
   return (
-    <aside className="lg:sticky lg:top-24 lg:self-start" aria-label={getTranslation(currentLang, 'AdminNavigation')}>
-      <nav className="space-y-2 border-b pb-4 lg:space-y-3 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
-        <div className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+    <aside className="min-w-0 max-w-full lg:sticky lg:top-24 lg:self-start" aria-label={getTranslation(currentLang, 'AdminNavigation')}>
+      <nav className="min-w-0 max-w-full space-y-2 overflow-hidden border-b pb-4 lg:space-y-3 lg:overflow-visible lg:border-b-0 lg:border-r lg:pb-0 lg:pr-4">
+        <div className="flex max-w-full gap-1 overflow-x-auto overscroll-x-contain pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
           {items.map((item) => link(item))}
         </div>
         {scheduling && (
-          <div className="flex gap-1 overflow-x-auto border-t pt-2 lg:flex-col lg:overflow-visible">
+          <div className="flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-t pt-2 lg:flex-col lg:overflow-visible">
             {schedulingItems.map((item) => link(item, true))}
           </div>
         )}

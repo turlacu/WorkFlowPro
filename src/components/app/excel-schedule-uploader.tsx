@@ -331,8 +331,6 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
           const method = existingMapping ? 'PUT' : 'POST';
           const body = existingMapping ? { ...mapping, id: existingMapping.id } : mapping;
           
-          console.log(`${method} request for color mapping:`, body);
-          
           const response = await fetch('/api/shift-color-legend', {
             method,
             headers: { 'Content-Type': 'application/json' },
@@ -346,7 +344,6 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
             if (response.status === 400 && errorData.error === 'Color code already exists') {
               // Try to update instead
               if (method === 'POST') {
-                console.log('Attempting to update existing color instead...');
                 const updateResponse = await fetch('/api/shift-color-legend', {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
@@ -471,7 +468,7 @@ export function ExcelScheduleUploader({ selectedDate, onUploadComplete, targetRo
               </div>
             ) : (
               <Select value={selectedConfig} onValueChange={handleConfigurationChange}>
-                <SelectTrigger>
+                <SelectTrigger id="config-select" aria-label="Excel import configuration">
                   <SelectValue placeholder="Select configuration...">
                     {selectedConfiguration ? (
                       <div className="flex flex-col text-left">

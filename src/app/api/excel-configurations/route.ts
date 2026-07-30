@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role');
     const active = searchParams.get('active');
 
-    let whereClause: any = {};
+    const whereClause: any = {};
     if (role) whereClause.role = role;
     if (active !== null) whereClause.active = active === 'true';
 

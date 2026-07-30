@@ -30,8 +30,6 @@ export function MonthlyCompletionsTrendChart({ selectedMonth }: MonthlyCompletio
         setError(null);
         
         const monthStr = format(selectedMonth, 'yyyy-MM');
-        console.log('📊 Fetching daily completions for month:', monthStr);
-        
         const response = await fetch('/api/statistics/daily-completions', {
           method: 'POST',
           headers: {
@@ -45,8 +43,6 @@ export function MonthlyCompletionsTrendChart({ selectedMonth }: MonthlyCompletio
         }
 
         const result = await response.json();
-        console.log('📈 Daily completions received:', result);
-
         // Transform the data for the chart
         const transformedData = result.dailyData.map((day: DailyData) => ({
           date: day.date,
@@ -98,8 +94,17 @@ export function MonthlyCompletionsTrendChart({ selectedMonth }: MonthlyCompletio
     );
   }
 
+  const totalCompletions = chartData.reduce((sum, day) => (
+    sum + Number(day[getTranslation(currentLang, 'StatisticsChartLegendCompleted')] || 0)
+  ), 0);
+
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <div
+      role="img"
+      aria-label={`${getTranslation(currentLang, 'StatisticsMonthlyCompletionsTrendTitle')}: ${totalCompletions} ${getTranslation(currentLang, 'StatisticsChartLegendCompleted')}`}
+    >
+      <div aria-hidden="true">
+      <ResponsiveContainer width="100%" height={300}>
       <LineChart
         data={chartData}
         margin={{
@@ -154,6 +159,8 @@ export function MonthlyCompletionsTrendChart({ selectedMonth }: MonthlyCompletio
           activeDot={{ r: 5, stroke: 'hsl(var(--background))', strokeWidth: 2 }}
         />
       </LineChart>
-    </ResponsiveContainer>
+      </ResponsiveContainer>
+      </div>
+    </div>
   );
 }

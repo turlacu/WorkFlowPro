@@ -53,7 +53,7 @@ export function DataBackupRestoreDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while fetching backups',
@@ -98,7 +98,7 @@ export function DataBackupRestoreDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while creating backup',
@@ -148,7 +148,7 @@ export function DataBackupRestoreDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while restoring backup',
@@ -179,7 +179,7 @@ export function DataBackupRestoreDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while deleting backup',

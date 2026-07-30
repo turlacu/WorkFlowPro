@@ -54,7 +54,6 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
   }
 
   const handlePostComment = () => {
-    console.log('Posting comment:', comment, 'for assignment ID:', assignment.id);
     // Here you would typically call an API to save the comment
     // For now, let's just close the modal or give some feedback
     onClose();
@@ -63,9 +62,9 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
   const getStatusBadgeClassName = (status: AssignmentWithUsers['status']) => {
     switch (status) {
       case 'COMPLETED':
-        return "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 text-white";
+        return "bg-green-700 text-white hover:bg-green-800 dark:bg-green-700 dark:hover:bg-green-800";
       case 'IN_PROGRESS':
-        return "bg-blue-500 hover:bg-blue-600 dark:bg-blue-400 dark:hover:bg-blue-500 text-white"; 
+        return "bg-blue-700 text-white hover:bg-blue-800 dark:bg-blue-700 dark:hover:bg-blue-800";
       default:
         return "";
     }

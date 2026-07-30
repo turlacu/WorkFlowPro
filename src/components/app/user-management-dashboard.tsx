@@ -85,7 +85,7 @@ export function UserManagementDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while fetching users',
@@ -144,7 +144,7 @@ export function UserManagementDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while creating user',
@@ -200,7 +200,7 @@ export function UserManagementDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while updating user',
@@ -230,7 +230,7 @@ export function UserManagementDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while deleting user',
@@ -266,7 +266,7 @@ export function UserManagementDashboard() {
           variant: 'destructive',
         });
       }
-    } catch (error) {
+    } catch {
       toast({
         title: getTranslation(currentLang, 'Error'),
         description: 'Network error while resetting password',
