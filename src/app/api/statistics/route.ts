@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
+import { summarizeCompletionTiming, zonedDateRange } from '@/lib/assignment-timing';
 import { parseDateOnly } from '@/lib/date-only';
 
 const GetStatisticsSchema = z.object({
-  startDate: z.string(),
-  endDate: z.string(),
+  startDate: z.string().refine((value) => parseDateOnly(value) !== null),
+  endDate: z.string().refine((value) => parseDateOnly(value) !== null),
 });
 
 export async function POST(request: NextRequest) {
@@ -25,17 +26,10 @@ export async function POST(request: NextRequest) {
     if (auth.response) return auth.response;
 
     // Validate dates
-    const start = parseDateOnly(startDate);
-    const endDay = parseDateOnly(endDate);
-    const end = endDay ? new Date(endDay.getTime() + 24 * 60 * 60 * 1000) : null;
-    
-    if (!start || !end) {
-      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
-    }
-
-    if (start >= end) {
+    if (startDate > endDate) {
       return NextResponse.json({ error: 'Start date cannot be after end date' }, { status: 400 });
     }
+    const { start, end } = zonedDateRange(startDate, endDate);
 
     console.log('📊 Processing date range:', {
       startDate: start.toISOString(),
@@ -57,7 +51,7 @@ export async function POST(request: NextRequest) {
     // Note: Always apply date filter when specific dates are requested (Day/Month view)
     // Only ignore date filter for the initial broad overview
     const whereClause = {
-      createdAt: {
+      dueDate: {
         gte: start,
         lt: end,
       },
@@ -80,6 +74,13 @@ export async function POST(request: NextRequest) {
           },
         },
         assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        completedBy: {
           select: {
             id: true,
             name: true,
@@ -110,28 +111,12 @@ export async function POST(request: NextRequest) {
     // Calculate operator statistics (based on who actually completed assignments)
     const operatorStatsMap = new Map<string, { name: string; completed: number; commented: number }>();
     
-    // Get assignments completed by operators (use completedBy field)
-    const assignmentsWithCompletedBy = await prisma.assignment.findMany({
-      where: {
-        ...whereClause,
-        status: 'COMPLETED',
-        completedById: { not: null }
-      },
-      include: {
-        completedBy: {
-          select: {
-            id: true,
-            name: true,
-            role: true,
-          },
-        },
-      },
-    });
+    const completedAssignments = assignments.filter((assignment) => assignment.status === 'COMPLETED');
 
     const commentedAssignments = assignments.filter(a => a.comment && a.comment.trim() !== '' && a.assignedTo);
 
     // Count completions by actual completing user
-    assignmentsWithCompletedBy.forEach(assignment => {
+    completedAssignments.forEach(assignment => {
       if (assignment.completedBy && assignment.completedBy.role === 'OPERATOR') {
         const operatorId = assignment.completedBy.id;
         const operatorName = assignment.completedBy.name || assignment.completedBy.id;
@@ -170,7 +155,11 @@ export async function POST(request: NextRequest) {
     }));
 
     const totalAssignmentsCreated = assignments.length;
-    const totalAssignmentsCompleted = assignmentsWithCompletedBy.length;
+    const completionTiming = summarizeCompletionTiming(assignments);
+    const totalAssignmentsCompleted = completionTiming.completed;
+    const totalAssignmentsCompletedLate = completionTiming.completedLate;
+    const totalAssignmentsCompletionTimeUnknown = completionTiming.completionTimeUnknown;
+    const totalAssignmentsCompletedOnTime = completionTiming.completedOnTime;
 
     const mostActiveProducer = producerStats.reduce((max, current) => 
       current.assignmentsCreated > max.assignmentsCreated ? current : max, 
@@ -187,6 +176,9 @@ export async function POST(request: NextRequest) {
       operatorStats,
       totalAssignmentsCreated,
       totalAssignmentsCompleted,
+      totalAssignmentsCompletedOnTime,
+      totalAssignmentsCompletedLate,
+      totalAssignmentsCompletionTimeUnknown,
       mostActiveProducer,
       mostActiveOperator,
     };
@@ -201,6 +193,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(statistics);
 
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid date format', details: error.errors }, { status: 400 });
+    }
     console.error('❌ Statistics API error:', error);
     return NextResponse.json({
       error: 'Failed to generate statistics'

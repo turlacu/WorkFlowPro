@@ -3,8 +3,14 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { canManageAssignmentDetails, canTransitionAssignment } from '@/lib/roles';
-import { utcDayRange } from '@/lib/date-only';
 import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
+import { parseDateOnly } from '@/lib/date-only';
+import {
+  getCalendarDateKey,
+  validateDueDateForCreate,
+  validateDueDateForUpdate,
+  zonedDateRange,
+} from '@/lib/assignment-timing';
 
 const CreateAssignmentSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -37,7 +43,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
     const search = searchParams.get('search')?.trim();
-    const range = date ? utcDayRange(date) : null;
+    const validDate = date && parseDateOnly(date);
+    const range = validDate ? zonedDateRange(date, date) : null;
     if (date && !range) {
       return NextResponse.json({ error: 'Invalid date' }, { status: 400 });
     }
@@ -62,6 +69,11 @@ export async function POST(request: NextRequest) {
     const auth = await requireUser(['ADMIN', 'PRODUCER']);
     if (auth.response) return auth.response;
     const data = CreateAssignmentSchema.parse(await request.json());
+    const dueDate = new Date(data.dueDate);
+
+    if (validateDueDateForCreate(dueDate)) {
+      return NextResponse.json({ error: 'Assignment due date cannot be before today' }, { status: 400 });
+    }
 
     if (data.assignedToId) {
       const assignedUser = await prisma.user.findUnique({
@@ -77,7 +89,7 @@ export async function POST(request: NextRequest) {
       const createdAssignment = await transaction.assignment.create({
         data: {
           ...data,
-          dueDate: new Date(data.dueDate),
+          dueDate,
           createdById: auth.user.id,
           lastUpdatedById: auth.user.id,
         },
@@ -125,11 +137,23 @@ export async function PUT(request: NextRequest) {
     if (!existing) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
 
     const dueDate = new Date(data.dueDate);
+    const dueDateValidation = validateDueDateForUpdate({
+      existingDueDate: existing.dueDate,
+      requestedDueDate: dueDate,
+      existingStatus: existing.status,
+    });
+    if (dueDateValidation === 'COMPLETED_DUE_DATE_LOCKED') {
+      return NextResponse.json({ error: 'The due date is locked after an assignment is completed' }, { status: 400 });
+    }
+    if (dueDateValidation === 'PAST_DUE_DATE') {
+      return NextResponse.json({ error: 'Assignment due date cannot be before today' }, { status: 400 });
+    }
+    const dueDateChanged = getCalendarDateKey(dueDate) !== getCalendarDateKey(existing.dueDate);
     const detailsChanged =
       data.name !== existing.name ||
       (data.description ?? null) !== existing.description ||
       (data.author ?? null) !== existing.author ||
-      dueDate.getTime() !== existing.dueDate.getTime() ||
+      dueDateChanged ||
       data.priority !== existing.priority ||
       (data.assignedToId ?? null) !== existing.assignedToId ||
       (data.sourceLocation ?? null) !== existing.sourceLocation;
@@ -163,7 +187,7 @@ export async function PUT(request: NextRequest) {
           name: data.name,
           description: data.description,
           author: data.author,
-          dueDate,
+          dueDate: dueDateChanged ? dueDate : existing.dueDate,
           priority: data.priority,
           assignedToId: data.assignedToId,
           sourceLocation: data.sourceLocation,

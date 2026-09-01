@@ -19,6 +19,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { usePresence } from '@/contexts/PresenceContext';
 import { useToast } from "@/hooks/use-toast";
 import { api, type AssignmentWithUsers } from '@/lib/api';
+import { calendarDateToAssignmentTimestamp } from '@/lib/assignment-timing';
 import {
   filterAssignmentsBySummary,
   summarizeAssignments,
@@ -302,7 +303,7 @@ export default function AssignmentsPage() {
         const updateData = {
           id: assignmentIdToUpdate,
           name: data.title,
-          dueDate: data.dueDate.toISOString(),
+          dueDate: calendarDateToAssignmentTimestamp(data.dueDate),
           status: data.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED',
           priority: data.priority as 'LOW' | 'NORMAL' | 'URGENT',
           assignedToId: data.assignedTo === 'unassigned' ? undefined : data.assignedTo,
@@ -319,7 +320,7 @@ export default function AssignmentsPage() {
       } else {
         const createData = {
           name: data.title,
-          dueDate: data.dueDate.toISOString(),
+          dueDate: calendarDateToAssignmentTimestamp(data.dueDate),
           priority: data.priority as 'LOW' | 'NORMAL' | 'URGENT',
           assignedToId: data.assignedTo === 'unassigned' ? undefined : data.assignedTo,
           description: data.description || '',

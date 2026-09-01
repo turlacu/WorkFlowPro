@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -27,6 +27,8 @@ import { cn } from '@/lib/utils';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { AssignmentWithUsers } from '@/lib/api';
+import { formatDateOnly } from '@/lib/date-only';
+import { getCalendarDateKey } from '@/lib/assignment-timing';
 
 interface Operator {
   id: string;
@@ -44,7 +46,7 @@ interface NewAssignmentModalProps {
   availableOperators: Operator[];
 }
 
-const getNewAssignmentFormSchema = (currentLang: string) => z.object({
+const getNewAssignmentFormSchema = (currentLang: string, existingDueDateKey?: string) => z.object({
   title: z.string().min(1, { message: getTranslation(currentLang, 'ZodAssignmentTitleRequired') }),
   description: z.string().optional(),
   author: z.string().optional(),
@@ -53,6 +55,15 @@ const getNewAssignmentFormSchema = (currentLang: string) => z.object({
   status: z.enum(statuses, { required_error: getTranslation(currentLang, 'ZodAssignmentStatusRequired')}),
   assignedTo: z.string().optional(),
   dueDate: z.date({ required_error: getTranslation(currentLang, 'ZodAssignmentDueDateRequired') }),
+}).superRefine((data, context) => {
+  const selectedDateKey = formatDateOnly(data.dueDate);
+  if (selectedDateKey < getCalendarDateKey(new Date()) && selectedDateKey !== existingDueDateKey) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: getTranslation(currentLang, 'ZodAssignmentDueDatePast'),
+      path: ['dueDate'],
+    });
+  }
 });
 
 export type NewAssignmentFormValues = {
@@ -70,8 +81,15 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
   const { currentLang } = useLanguage();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const isEditMode = !!assignmentToEdit;
+  const isCompletedAssignment = assignmentToEdit?.status === 'COMPLETED';
+  const existingDueDateKey = assignmentToEdit
+    ? getCalendarDateKey(assignmentToEdit.dueDate)
+    : undefined;
 
-  const formSchema = React.useMemo(() => getNewAssignmentFormSchema(currentLang), [currentLang]);
+  const formSchema = React.useMemo(
+    () => getNewAssignmentFormSchema(currentLang, existingDueDateKey),
+    [currentLang, existingDueDateKey],
+  );
 
   const form = useForm<NewAssignmentFormValues>({
     resolver: zodResolver(formSchema),
@@ -297,6 +315,7 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
+                          disabled={isCompletedAssignment}
                           className={cn(
                             'w-full pl-3 text-left font-normal h-11 sm:h-10 border border-input bg-background hover:bg-accent hover:text-accent-foreground',
                             !field.value && 'text-muted-foreground'
@@ -316,11 +335,17 @@ export function NewAssignmentModal({ isOpen, onClose, onSaveAssignment, assignme
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) => date < new Date(new Date().setHours(0,0,0,0)) && !isEditMode } // Allow past dates if editing
+                        disabled={(date) => {
+                          const dateKey = formatDateOnly(date);
+                          return dateKey < getCalendarDateKey(new Date()) && dateKey !== existingDueDateKey;
+                        }}
                         initialFocus
                       />
                     </PopoverContent>
                   </Popover>
+                  {isCompletedAssignment && (
+                    <FormDescription>{getTranslation(currentLang, 'AssignmentDueDateLockedHelp')}</FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

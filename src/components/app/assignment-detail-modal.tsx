@@ -16,6 +16,7 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { AssignmentWithUsers } from '@/lib/api';
 import { format as formatDate } from 'date-fns'; 
+import { enUS, ro } from 'date-fns/locale';
 import {
   Info,
   CheckCircle2,
@@ -30,6 +31,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getAssignmentTiming } from '@/lib/assignment-timing';
 
 interface AssignmentDetailModalProps {
   isOpen: boolean;
@@ -42,6 +44,7 @@ const currentUserRole = 'Operator';
 export function AssignmentDetailModal({ isOpen, onClose, assignment }: AssignmentDetailModalProps) {
   const [comment, setComment] = React.useState('');
   const { currentLang } = useLanguage();
+  const locale = currentLang === 'ro' ? ro : enUS;
 
   React.useEffect(() => {
     if (assignment) {
@@ -71,6 +74,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
   };
 
   const assignmentAuthor = (assignment as AssignmentWithUsers & { author?: string }).author;
+  const timing = getAssignmentTiming(assignment);
 
 
   return (
@@ -85,6 +89,26 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
           </DialogHeader>
 
           <div className="space-y-3">
+            {timing.isCompletedLate && assignment.completedAt && (
+              <div className="flex items-start gap-3 rounded-md border border-amber-500/20 bg-amber-500/[0.07] px-3 py-2 text-amber-900 dark:text-amber-200">
+                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" />
+                <div>
+                  <p className="text-sm font-semibold">
+                    {getTranslation(
+                      currentLang,
+                      timing.daysLate === 1 ? 'AssignmentCompletedLateOneDay' : 'AssignmentCompletedLateDays',
+                      { count: String(timing.daysLate) },
+                    )}
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-800/80 dark:text-amber-200/75">
+                    {getTranslation(currentLang, 'AssignmentCompletedLateDates', {
+                      dueDate: formatDate(new Date(assignment.dueDate), 'PP', { locale }),
+                      completedDate: formatDate(new Date(assignment.completedAt), 'PP', { locale }),
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
             {assignment.description && (
               <div className="flex items-start gap-3 rounded-md bg-muted/40 px-3 py-2">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />

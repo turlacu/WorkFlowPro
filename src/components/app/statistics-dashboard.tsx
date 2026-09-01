@@ -17,6 +17,9 @@ type GenerateStatisticsOutput = {
   operatorStats: { operatorId: string; assignmentsCompleted: number; assignmentsCommented: number; }[];
   totalAssignmentsCreated: number;
   totalAssignmentsCompleted: number;
+  totalAssignmentsCompletedOnTime: number;
+  totalAssignmentsCompletedLate: number;
+  totalAssignmentsCompletionTimeUnknown: number;
   mostActiveProducer: string;
   mostActiveOperator: string;
 };
@@ -29,7 +32,7 @@ import { cn } from '@/lib/utils';
 // Pie chart data will be calculated dynamically
 const generatePieData = (
   statsData: GenerateStatisticsOutput | null,
-  labels: { completed: string; inProgress: string; noData: string },
+  labels: { onTime: string; late: string; outstanding: string; unknown: string; noData: string },
 ) => {
   if (!statsData) {
     return [
@@ -38,8 +41,7 @@ const generatePieData = (
   }
   
   const totalCreated = statsData.totalAssignmentsCreated;
-  const totalCompleted = statsData.totalAssignmentsCompleted;
-  const inProgress = Math.max(0, totalCreated - totalCompleted);
+  const outstanding = Math.max(0, totalCreated - statsData.totalAssignmentsCompleted);
   
   if (totalCreated === 0) {
     return [
@@ -48,8 +50,10 @@ const generatePieData = (
   }
   
   return [
-    { name: labels.completed, value: totalCompleted, fill: 'hsl(142 76% 36%)' },
-    { name: labels.inProgress, value: inProgress, fill: 'hsl(48 96% 53%)' },
+    { name: labels.onTime, value: statsData.totalAssignmentsCompletedOnTime, fill: 'hsl(142 71% 36%)' },
+    { name: labels.late, value: statsData.totalAssignmentsCompletedLate, fill: 'hsl(38 82% 48%)' },
+    { name: labels.outstanding, value: outstanding, fill: 'hsl(217 70% 52%)' },
+    { name: labels.unknown, value: statsData.totalAssignmentsCompletionTimeUnknown, fill: 'hsl(var(--muted-foreground))' },
   ].filter(item => item.value > 0);
 };
 
@@ -177,9 +181,15 @@ export function StatisticsDashboard() {
   const statusBreakdown = {
     totalCreated: statsData?.totalAssignmentsCreated || 0,
     totalCompleted: statsData?.totalAssignmentsCompleted || 0,
+    completedOnTime: statsData?.totalAssignmentsCompletedOnTime || 0,
+    completedLate: statsData?.totalAssignmentsCompletedLate || 0,
+    completionTimeUnknown: statsData?.totalAssignmentsCompletionTimeUnknown || 0,
     inProgress: Math.max(0, (statsData?.totalAssignmentsCreated || 0) - (statsData?.totalAssignmentsCompleted || 0)),
     completionRate: statsData?.totalAssignmentsCreated 
       ? Math.round((statsData.totalAssignmentsCompleted / statsData.totalAssignmentsCreated) * 100)
+      : 0,
+    lateRate: statsData?.totalAssignmentsCompleted
+      ? Math.round((statsData.totalAssignmentsCompletedLate / statsData.totalAssignmentsCompleted) * 100)
       : 0,
   };
 
@@ -289,11 +299,17 @@ export function StatisticsDashboard() {
                 <p className="text-green-600 dark:text-green-400 font-semibold text-lg">{statusBreakdown.totalCompleted}</p>
                 <p className="text-xs text-green-600 dark:text-green-400">{getTranslation(currentLang, 'StatisticsCompleted')}</p>
               </div>
+              <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-950/60">
+                <p className="text-lg font-semibold text-amber-700 dark:text-amber-400">{statusBreakdown.completedLate}</p>
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  {getTranslation(currentLang, 'StatisticsCompletedLate')} · {statusBreakdown.lateRate}%
+                </p>
+              </div>
               <div className="bg-orange-50 dark:bg-orange-950 p-3 rounded-lg">
                 <p className="text-orange-600 dark:text-orange-400 font-semibold text-lg">{statusBreakdown.inProgress}</p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">{getTranslation(currentLang, 'StatisticsInProgress')}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">{getTranslation(currentLang, 'StatisticsOutstanding')}</p>
               </div>
-              <div className="bg-purple-50 dark:bg-purple-950 p-3 rounded-lg">
+              <div className="col-span-2 bg-purple-50 dark:bg-purple-950 p-3 rounded-lg">
                 <p className="text-purple-600 dark:text-purple-400 font-semibold text-lg">{statusBreakdown.completionRate}%</p>
                 <p className="text-xs text-purple-600 dark:text-purple-400">{getTranslation(currentLang, 'StatisticsCompletionRate')}</p>
               </div>
@@ -338,8 +354,10 @@ export function StatisticsDashboard() {
         <CardContent className="flex flex-col items-center">
           <DailyCompletionsPieChart
             data={generatePieData(statsData, {
-              completed: getTranslation(currentLang, 'StatisticsCompleted'),
-              inProgress: getTranslation(currentLang, 'StatisticsInProgress'),
+              onTime: getTranslation(currentLang, 'StatisticsCompletedOnTime'),
+              late: getTranslation(currentLang, 'StatisticsCompletedLate'),
+              outstanding: getTranslation(currentLang, 'StatisticsOutstanding'),
+              unknown: getTranslation(currentLang, 'StatisticsCompletionTimeUnknown'),
               noData: getTranslation(currentLang, 'UserActivityTableNoData'),
             })}
           />

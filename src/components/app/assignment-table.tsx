@@ -24,6 +24,7 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSession } from 'next-auth/react';
 import type { AssignmentWithUsers } from '@/lib/api';
+import { getAssignmentTiming } from '@/lib/assignment-timing';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -157,6 +158,20 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const getLateCompletionNote = (assignment: AssignmentWithUsers) => {
+    const timing = getAssignmentTiming(assignment);
+    if (!timing.isCompletedLate) return null;
+    return (
+      <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+        {getTranslation(
+          currentLang,
+          timing.daysLate === 1 ? 'AssignmentCompletedLateOneDay' : 'AssignmentCompletedLateDays',
+          { count: String(timing.daysLate) },
+        )}
+      </p>
+    );
+  };
+
   const AssignmentCard = ({ assignment }: { assignment: AssignmentWithUsers }) => (
     <Card 
       className={cn(
@@ -215,6 +230,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
             </div>
             <div className="flex flex-col items-end gap-1">
               {getStatusBadge(assignment.status)}
+              {getLateCompletionNote(assignment)}
             </div>
           </div>
 
@@ -343,7 +359,10 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                       : assignment.assignedTo.name}
                   </span>
                 </TableCell>
-                <TableCell>{getStatusBadge(assignment.status)}</TableCell>
+                <TableCell>
+                  {getStatusBadge(assignment.status)}
+                  {getLateCompletionNote(assignment)}
+                </TableCell>
                 <TableCell>{getPriorityBadge(assignment.priority)}</TableCell>
                 <TableCell className="text-center [&:has([role=checkbox])]:pr-4" onClick={(event) => event.stopPropagation()}>
                   <div className="flex min-h-10 items-center justify-center">
