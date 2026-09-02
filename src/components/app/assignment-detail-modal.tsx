@@ -45,6 +45,7 @@ interface AssignmentDetailModalProps {
 
 export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSaved }: AssignmentDetailModalProps) {
   const [comment, setComment] = React.useState('');
+  const [savedComment, setSavedComment] = React.useState('');
   const [isSavingComment, setIsSavingComment] = React.useState(false);
   const { currentLang } = useLanguage();
   const { toast } = useToast();
@@ -53,6 +54,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSa
   React.useEffect(() => {
     if (assignment) {
       setComment(assignment.comment || '');
+      setSavedComment(assignment.comment || '');
     }
   }, [assignment]);
 
@@ -63,9 +65,14 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSa
   const handlePostComment = async () => {
     setIsSavingComment(true);
     try {
-      const updatedAssignment = await api.updateAssignmentComment(assignment.id, comment);
-      setComment(updatedAssignment.comment || '');
-      onCommentSaved(updatedAssignment);
+      await api.updateAssignmentComment(assignment.id, comment);
+      const persistedAssignment = await api.getAssignment(assignment.id);
+      if ((persistedAssignment.comment || '') !== comment) {
+        throw new Error(getTranslation(currentLang, 'AssignmentCommentVerificationError'));
+      }
+      setComment(persistedAssignment.comment || '');
+      setSavedComment(persistedAssignment.comment || '');
+      onCommentSaved(persistedAssignment);
       toast({
         title: getTranslation(currentLang, 'AssignmentCommentSavedTitle'),
         description: getTranslation(currentLang, 'AssignmentCommentSavedDescription'),
@@ -204,6 +211,16 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSa
                   {getTranslation(currentLang, 'AssignmentDetailAddCommentLabel')}
                 </h3>
               </div>
+              {savedComment && (
+                <div className="rounded-md border bg-muted/40 px-3 py-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    {getTranslation(currentLang, 'AssignmentDetailSavedCommentLabel')}
+                  </p>
+                  <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">
+                    {savedComment}
+                  </p>
+                </div>
+              )}
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                 <Textarea
                   value={comment}

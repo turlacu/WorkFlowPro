@@ -12,6 +12,9 @@ test('posting an assignment comment persists it and updates the visible assignme
   assert.match(assignmentRoute, /export async function PATCH/);
   assert.match(assignmentRoute, /comment,\s*lastUpdatedById: auth\.user\.id/);
   assert.match(detailModal, /api\.updateAssignmentComment\(assignment\.id, comment\)/);
-  assert.match(detailModal, /onCommentSaved\(updatedAssignment\)/);
+  assert.match(detailModal, /api\.getAssignment\(assignment\.id\)/);
+  assert.match(detailModal, /persistedAssignment\.comment/);
+  assert.match(detailModal, /onCommentSaved\(persistedAssignment\)/);
+  assert.match(detailModal, /savedComment/);
   assert.match(assignmentTable, /setSelectedAssignmentForDetail\(updatedAssignment\)/);
 });

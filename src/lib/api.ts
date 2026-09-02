@@ -73,7 +73,7 @@ class ApiClient {
     if (params?.search) searchParams.append('search', params.search);
     
     const query = searchParams.toString() ? `?${searchParams.toString()}` : '';
-    return this.request<AssignmentWithUsers[]>(`/assignments${query}`);
+    return this.request<AssignmentWithUsers[]>(`/assignments${query}`, { cache: 'no-store' });
   }
 
   async createAssignment(data: CreateAssignmentData) {
@@ -104,7 +104,7 @@ class ApiClient {
   }
 
   async getAssignment(id: string) {
-    return this.request<AssignmentWithUsers>(`/assignments/${id}`);
+    return this.request<AssignmentWithUsers>(`/assignments/${id}`, { cache: 'no-store' });
   }
 
   // User APIs
