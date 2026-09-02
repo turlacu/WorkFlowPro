@@ -117,8 +117,6 @@ export async function POST(request: NextRequest) {
     
     const completedAssignments = assignments.filter((assignment) => assignment.status === 'COMPLETED');
 
-    const commentedAssignments = assignments.filter(a => a.comment && a.comment.trim() !== '' && a.assignedTo);
-
     // Count completions by actual completing user
     completedAssignments.forEach(assignment => {
       if (assignment.completedBy && assignment.completedBy.role === 'OPERATOR') {
@@ -133,16 +131,21 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    commentedAssignments.forEach(assignment => {
-      if (assignment.assignedTo && assignment.assignedTo.role === 'OPERATOR') {
-        const operatorId = assignment.assignedTo.id;
-        const operatorName = assignment.assignedTo.name || assignment.assignedTo.id;
-        
-        if (operatorStatsMap.has(operatorId)) {
-          operatorStatsMap.get(operatorId)!.commented++;
-        } else {
-          operatorStatsMap.set(operatorId, { name: operatorName, completed: 0, commented: 1 });
-        }
+    const operatorComments = await prisma.$queryRaw<Array<{ assignmentId: string; authorId: string; authorName: string }>>`
+      SELECT DISTINCT
+        assignment_comment."assignmentId", assignment_comment."authorId", assignment_comment."authorName"
+      FROM "assignment_comments" AS assignment_comment
+      INNER JOIN "users" AS author ON author."id" = assignment_comment."authorId"
+      INNER JOIN "assignments" AS assignment ON assignment."id" = assignment_comment."assignmentId"
+      WHERE author."role" = 'OPERATOR'::"UserRole"
+        AND assignment."dueDate" >= ${start}
+        AND assignment."dueDate" < ${end}
+    `;
+    operatorComments.forEach(({ authorId: operatorId, authorName: operatorName }) => {
+      if (operatorStatsMap.has(operatorId)) {
+        operatorStatsMap.get(operatorId)!.commented++;
+      } else {
+        operatorStatsMap.set(operatorId, { name: operatorName, completed: 0, commented: 1 });
       }
     });
 

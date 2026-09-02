@@ -356,15 +356,6 @@ export default function AssignmentsPage() {
     setIsAssignmentModalOpen(true);
   }, []);
 
-  const handleAssignmentUpdated = useCallback((updatedAssignment: AssignmentWithUsers) => {
-    setAllAssignments((current) => current.map((assignment) =>
-      assignment.id === updatedAssignment.id ? updatedAssignment : assignment
-    ));
-    setCalendarAssignments((current) => current.map((assignment) =>
-      assignment.id === updatedAssignment.id ? updatedAssignment : assignment
-    ));
-  }, []);
-
   const handleDeleteAssignment = useCallback(async (assignmentId: string, assignmentName: string) => {
     try {
       await api.deleteAssignment(assignmentId);
@@ -613,7 +604,6 @@ export default function AssignmentsPage() {
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
                   onToggleUploadedToQ={handleToggleUploadedToQ}
-                  onAssignmentUpdated={handleAssignmentUpdated}
                 />
               ) : (
                 <div className="text-center py-10">

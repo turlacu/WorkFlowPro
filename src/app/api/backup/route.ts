@@ -12,7 +12,7 @@ export async function POST() {
     const limit = checkRateLimit(`backup:${auth.user.id}`, { limit: 5, windowMs: 60 * 60_000 });
     if (!limit.allowed) return NextResponse.json({ error: 'Too many backup requests' }, { status: 429 });
 
-    const [users, assignments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules] =
+    const [users, assignments, assignmentComments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules] =
       await prisma.$transaction(async (tx) => Promise.all([
         tx.user.findMany({
           select: {
@@ -21,6 +21,10 @@ export async function POST() {
           },
         }),
         tx.assignment.findMany(),
+        tx.$queryRaw<Array<{
+          id: string; content: string; createdAt: Date; updatedAt: Date; assignmentId: string;
+          authorId: string | null; authorName: string; parentId: string | null;
+        }>>`SELECT * FROM "assignment_comments" ORDER BY "createdAt" ASC`,
         tx.teamSchedule.findMany(),
         tx.shiftColorLegend.findMany(),
         tx.excelUploadConfiguration.findMany(),
@@ -30,11 +34,11 @@ export async function POST() {
 
     const data = {
       metadata: {
-        schemaVersion: 2,
+        schemaVersion: 3,
         exportedAt: new Date().toISOString(),
         exportedBy: { id: auth.user.id, email: auth.user.email },
       },
-      data: { users, assignments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules },
+      data: { users, assignments, assignmentComments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules },
     };
     const id = `backup-${randomUUID()}`;
     const fileName = `${id}.json`;

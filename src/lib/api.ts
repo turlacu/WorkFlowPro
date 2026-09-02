@@ -7,6 +7,18 @@ export interface AssignmentWithUsers extends Assignment {
   completedBy?: Pick<User, 'id' | 'name' | 'email'>;
 }
 
+export interface AssignmentCommentWithAuthor {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  assignmentId: string;
+  authorId: string | null;
+  authorName: string;
+  parentId: string | null;
+  author: Pick<User, 'id' | 'name' | 'email'> | null;
+}
+
 export interface CreateAssignmentData {
   name: string;
   description?: string;
@@ -20,7 +32,6 @@ export interface CreateAssignmentData {
 export interface UpdateAssignmentData extends CreateAssignmentData {
   id: string;
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
-  comment?: string;
 }
 
 export interface CreateUserData {
@@ -90,13 +101,6 @@ class ApiClient {
     });
   }
 
-  async updateAssignmentComment(id: string, comment: string) {
-    return this.request<AssignmentWithUsers>(`/assignments/${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ comment }),
-    });
-  }
-
   async deleteAssignment(id: string) {
     return this.request<{ message: string }>(`/assignments/${id}`, {
       method: 'DELETE',
@@ -105,6 +109,17 @@ class ApiClient {
 
   async getAssignment(id: string) {
     return this.request<AssignmentWithUsers>(`/assignments/${id}`, { cache: 'no-store' });
+  }
+
+  async getAssignmentComments(id: string) {
+    return this.request<AssignmentCommentWithAuthor[]>(`/assignments/${id}/comments`, { cache: 'no-store' });
+  }
+
+  async createAssignmentComment(id: string, content: string, parentId?: string) {
+    return this.request<AssignmentCommentWithAuthor>(`/assignments/${id}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content, parentId }),
+    });
   }
 
   // User APIs

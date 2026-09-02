@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { USER_ROLES } from '@/lib/roles';
+import { Prisma } from '@prisma/client';
 
 const date = z.string().datetime();
 const nullableDate = date.nullable();
@@ -15,7 +16,7 @@ const priority = z.enum(['LOW', 'NORMAL', 'URGENT']);
 
 const BackupSchema = z.object({
   metadata: z.object({
-    schemaVersion: z.literal(2),
+    schemaVersion: z.union([z.literal(2), z.literal(3)]),
     exportedAt: date,
     exportedBy: z.object({ id: z.string(), email: z.string().email() }),
   }),
@@ -30,6 +31,10 @@ const BackupSchema = z.object({
       createdAt: date, updatedAt: date, completedAt: nullableDate, completedById: z.string().nullable(),
       assignedToId: z.string().nullable(), createdById: z.string(), lastUpdatedById: z.string(),
     })).max(100_000),
+    assignmentComments: z.array(z.object({
+      id: z.string(), content: z.string().max(10_000), createdAt: date, updatedAt: date,
+      assignmentId: z.string(), authorId: z.string().nullable(), authorName: z.string(), parentId: z.string().nullable(),
+    })).max(500_000).optional().default([]),
     teamSchedules: z.array(z.object({
       id: z.string(), date, userId: z.string(), createdAt: date, updatedAt: date,
       shiftColor: z.string().nullable(), shiftHours: z.string().nullable(),
@@ -136,6 +141,58 @@ export async function POST(request: NextRequest) {
           assignedToId: remapUserId(item.assignedToId), completedById: remapUserId(item.completedById),
           createdById: remapUserId(item.createdById)!, lastUpdatedById: remapUserId(item.lastUpdatedById)!,
         })) });
+      }
+      const commentsToRestore = backup.data.assignmentComments.length > 0
+        ? backup.data.assignmentComments.map((item) => ({
+            ...item,
+            authorId: remapUserId(item.authorId),
+            createdAt: new Date(item.createdAt),
+            updatedAt: new Date(item.updatedAt),
+          }))
+        : backup.data.assignments
+            .filter((item) => item.comment && item.comment.trim() !== '')
+            .map((item) => ({
+              id: `legacy_${item.id}`,
+              content: item.comment!,
+              assignmentId: item.id,
+              authorId: remapUserId(item.lastUpdatedById),
+              authorName: backup.data.users.find((user) => user.id === item.lastUpdatedById)?.name
+                || backup.data.users.find((user) => user.id === item.lastUpdatedById)?.email
+                || 'Unknown',
+              parentId: null,
+              createdAt: new Date(item.updatedAt),
+              updatedAt: new Date(item.updatedAt),
+            }));
+      if (commentsToRestore.length) {
+        const commentsById = new Map(commentsToRestore.map((item) => [item.id, item]));
+        const orderedComments: typeof commentsToRestore = [];
+        const visited = new Set<string>();
+        const visiting = new Set<string>();
+        const appendComment = (item: (typeof commentsToRestore)[number]) => {
+          if (visited.has(item.id)) return;
+          if (visiting.has(item.id)) throw new Error('Backup contains a circular comment reply');
+          visiting.add(item.id);
+          if (item.parentId) {
+            const parent = commentsById.get(item.parentId);
+            if (parent) appendComment(parent);
+          }
+          visiting.delete(item.id);
+          visited.add(item.id);
+          orderedComments.push(item);
+        };
+        commentsToRestore.forEach(appendComment);
+
+        for (let index = 0; index < orderedComments.length; index += 1_000) {
+          const batch = orderedComments.slice(index, index + 1_000);
+          await tx.$executeRaw`
+            INSERT INTO "assignment_comments" (
+              "id", "content", "createdAt", "updatedAt", "assignmentId", "authorId", "authorName", "parentId"
+            ) VALUES ${Prisma.join(batch.map((item) => Prisma.sql`(
+              ${item.id}, ${item.content}, ${item.createdAt}, ${item.updatedAt}, ${item.assignmentId},
+              ${item.authorId}, ${item.authorName}, ${item.parentId}
+            )`))}
+          `;
+        }
       }
       if (backup.data.teamSchedules.length) {
         await tx.teamSchedule.createMany({ data: backup.data.teamSchedules.map((item) => ({

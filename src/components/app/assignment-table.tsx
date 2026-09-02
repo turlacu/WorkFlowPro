@@ -43,10 +43,9 @@ interface AssignmentTableProps {
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
-  onAssignmentUpdated: (assignment: AssignmentWithUsers) => void;
 }
 
-export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onAssignmentUpdated }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
@@ -461,10 +460,6 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
           assignment={selectedAssignmentForDetail}
-          onCommentSaved={(updatedAssignment) => {
-            setSelectedAssignmentForDetail(updatedAssignment);
-            onAssignmentUpdated(updatedAssignment);
-          }}
         />
       )}
       {assignmentToDelete && (

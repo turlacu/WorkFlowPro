@@ -25,7 +25,6 @@ const CreateAssignmentSchema = z.object({
 const UpdateAssignmentSchema = CreateAssignmentSchema.extend({
   id: z.string().cuid(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
-  comment: z.string().max(10_000).optional(),
 });
 
 const assignmentInclude = {
@@ -191,7 +190,6 @@ export async function PUT(request: NextRequest) {
           priority: data.priority,
           assignedToId: data.assignedToId,
           sourceLocation: data.sourceLocation,
-          comment: data.comment,
           status: nextStatus,
           lastUpdatedById: auth.user.id,
           ...(enteringCompleted ? { completedAt: new Date(), completedById: auth.user.id } : {}),

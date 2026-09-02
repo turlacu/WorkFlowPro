@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
-import type { AssignmentWithUsers } from '@/lib/api';
+import type { AssignmentCommentWithAuthor, AssignmentWithUsers } from '@/lib/api';
 import { api } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { format as formatDate } from 'date-fns'; 
@@ -32,6 +32,8 @@ import {
   Tag,
   MapPin,
   Loader2,
+  Reply,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
@@ -40,39 +42,64 @@ interface AssignmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   assignment: AssignmentWithUsers | null;
-  onCommentSaved: (assignment: AssignmentWithUsers) => void;
 }
 
-export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSaved }: AssignmentDetailModalProps) {
+export function AssignmentDetailModal({ isOpen, onClose, assignment }: AssignmentDetailModalProps) {
   const [comment, setComment] = React.useState('');
-  const [savedComment, setSavedComment] = React.useState('');
+  const [comments, setComments] = React.useState<AssignmentCommentWithAuthor[]>([]);
+  const [replyingTo, setReplyingTo] = React.useState<{ id: string; authorName: string } | null>(null);
+  const [isLoadingComments, setIsLoadingComments] = React.useState(false);
   const [isSavingComment, setIsSavingComment] = React.useState(false);
   const { currentLang } = useLanguage();
   const { toast } = useToast();
   const locale = currentLang === 'ro' ? ro : enUS;
 
   React.useEffect(() => {
-    if (assignment) {
-      setComment(assignment.comment || '');
-      setSavedComment(assignment.comment || '');
-    }
-  }, [assignment]);
+    if (!isOpen || !assignment) return;
+    let cancelled = false;
+    setComment('');
+    setReplyingTo(null);
+    setIsLoadingComments(true);
+    void api.getAssignmentComments(assignment.id)
+      .then((result) => {
+        if (!cancelled) setComments(result);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          toast({
+            title: getTranslation(currentLang, 'Error'),
+            description: error instanceof Error
+              ? error.message
+              : getTranslation(currentLang, 'AssignmentCommentsLoadError'),
+            variant: 'destructive',
+          });
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingComments(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [assignment, currentLang, isOpen, toast]);
 
   if (!assignment) {
     return null;
   }
 
   const handlePostComment = async () => {
+    const content = comment.trim();
+    if (!content) return;
     setIsSavingComment(true);
     try {
-      await api.updateAssignmentComment(assignment.id, comment);
-      const persistedAssignment = await api.getAssignment(assignment.id);
-      if ((persistedAssignment.comment || '') !== comment) {
+      const createdComment = await api.createAssignmentComment(assignment.id, content, replyingTo?.id);
+      const persistedComments = await api.getAssignmentComments(assignment.id);
+      if (!persistedComments.some((item) => item.id === createdComment.id)) {
         throw new Error(getTranslation(currentLang, 'AssignmentCommentVerificationError'));
       }
-      setComment(persistedAssignment.comment || '');
-      setSavedComment(persistedAssignment.comment || '');
-      onCommentSaved(persistedAssignment);
+      setComments(persistedComments);
+      setComment('');
+      setReplyingTo(null);
       toast({
         title: getTranslation(currentLang, 'AssignmentCommentSavedTitle'),
         description: getTranslation(currentLang, 'AssignmentCommentSavedDescription'),
@@ -103,6 +130,48 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSa
 
   const assignmentAuthor = (assignment as AssignmentWithUsers & { author?: string }).author;
   const timing = getAssignmentTiming(assignment);
+  const commentsByParent = comments.reduce((map, item) => {
+    const parentId = item.parentId || 'root';
+    const children = map.get(parentId) || [];
+    children.push(item);
+    map.set(parentId, children);
+    return map;
+  }, new Map<string, AssignmentCommentWithAuthor[]>());
+
+  const renderComment = (item: AssignmentCommentWithAuthor, depth = 0): React.ReactNode => {
+    const authorName = item.author?.name || item.authorName;
+    const replies = commentsByParent.get(item.id) || [];
+    return (
+      <div key={item.id} className={cn(depth > 0 && 'ml-5 border-l pl-3')}>
+        <div className="rounded-md border bg-muted/30 px-3 py-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold" title={authorName}>{authorName}</p>
+              <p className="text-xs text-muted-foreground">
+                {formatDate(new Date(item.createdAt), 'PPp', { locale })}
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 shrink-0 gap-1 px-2"
+              onClick={() => setReplyingTo({ id: item.id, authorName })}
+            >
+              <Reply className="h-3.5 w-3.5" />
+              {getTranslation(currentLang, 'AssignmentCommentReplyButton')}
+            </Button>
+          </div>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-foreground">{item.content}</p>
+        </div>
+        {replies.length > 0 && (
+          <div className="mt-2 space-y-2">
+            {replies.map((reply) => renderComment(reply, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
 
   return (
@@ -205,38 +274,68 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSa
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold">
-                  {getTranslation(currentLang, 'AssignmentDetailAddCommentLabel')}
-                </h3>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">
+                    {getTranslation(currentLang, 'AssignmentCommentsTitle')}
+                  </h3>
+                </div>
+                <Badge variant="secondary">{comments.length}</Badge>
               </div>
-              {savedComment && (
-                <div className="rounded-md border bg-muted/40 px-3 py-2">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    {getTranslation(currentLang, 'AssignmentDetailSavedCommentLabel')}
-                  </p>
-                  <p className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">
-                    {savedComment}
-                  </p>
+              {isLoadingComments ? (
+                <div className="flex items-center justify-center gap-2 rounded-md border py-5 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {getTranslation(currentLang, 'AssignmentCommentsLoading')}
+                </div>
+              ) : comments.length > 0 ? (
+                <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
+                  {(commentsByParent.get('root') || []).map((item) => renderComment(item))}
+                </div>
+              ) : (
+                <p className="rounded-md border border-dashed px-3 py-4 text-center text-sm text-muted-foreground">
+                  {getTranslation(currentLang, 'AssignmentCommentsEmpty')}
+                </p>
+              )}
+              {replyingTo && (
+                <div className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm">
+                  <span className="truncate">
+                    {getTranslation(currentLang, 'AssignmentCommentReplyingTo', { name: replyingTo.authorName })}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0"
+                    onClick={() => setReplyingTo(null)}
+                    aria-label={getTranslation(currentLang, 'Cancel')}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                 <Textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  placeholder={getTranslation(currentLang, 'AssignmentDetailCommentPlaceholder')}
+                  placeholder={getTranslation(
+                    currentLang,
+                    replyingTo ? 'AssignmentCommentReplyPlaceholder' : 'AssignmentDetailCommentPlaceholder',
+                  )}
                   maxLength={10_000}
                   disabled={isSavingComment}
                   className="min-h-16 flex-1 resize-y"
                 />
                 <Button
                   onClick={handlePostComment}
-                  disabled={isSavingComment}
+                  disabled={isSavingComment || !comment.trim()}
                   className="w-full shrink-0 sm:w-auto"
                 >
                   {isSavingComment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {getTranslation(currentLang, 'AssignmentDetailPostCommentButton')}
+                  {getTranslation(
+                    currentLang,
+                    replyingTo ? 'AssignmentCommentPostReplyButton' : 'AssignmentDetailPostCommentButton',
+                  )}
                 </Button>
               </div>
             </div>
