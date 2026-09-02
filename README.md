@@ -38,9 +38,11 @@ A comprehensive work assignment and team scheduling application built with Next.
 
 ## 📚 Documentation
 
+- **[Manual utilizator — Operator](./MANUAL_UTILIZATOR_OPERATOR.md)** - Fluxul de lucru actual pentru Operatori, în limba română
+- **[Manual utilizator — Editor / Producer](./MANUAL_UTILIZATOR_EDITOR.md)** - Fluxul de lucru actual pentru Editori, în limba română
 - **[API Documentation](./API.md)** - Complete API reference and endpoints
 - **[Development Setup](./DEVELOPMENT.md)** - Local development and deployment guide
-- **[User Guide](./USER_GUIDE.md)** - Comprehensive user manual
+- **[Legacy User Guide](./USER_GUIDE.md)** - Outdated guide retained for historical reference
 - **[Architecture Overview](./ARCHITECTURE.md)** - System design and technical details
 - **[Deployment Guide](./DEPLOYMENT.md)** - Production deployment instructions
 

@@ -11,7 +11,7 @@ export async function GET() {
 
     let statistics: any = {};
 
-    if (userRole === 'PRODUCER' || userRole === 'ADMIN') {
+    if (userRole === 'PRODUCER' || userRole === 'CONTRIBUTOR' || userRole === 'ADMIN') {
       // Get assignment statistics for producers (assignments created)
       const createdAssignments = await prisma.assignment.findMany({
         where: { createdById: userId },

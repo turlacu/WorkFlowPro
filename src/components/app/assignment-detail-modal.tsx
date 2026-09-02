@@ -15,6 +15,8 @@ import { Badge } from '@/components/ui/badge';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import type { AssignmentWithUsers } from '@/lib/api';
+import { api } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 import { format as formatDate } from 'date-fns'; 
 import { enUS, ro } from 'date-fns/locale';
 import {
@@ -29,6 +31,7 @@ import {
   CalendarCheck,
   Tag,
   MapPin,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
@@ -37,13 +40,14 @@ interface AssignmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   assignment: AssignmentWithUsers | null;
+  onCommentSaved: (assignment: AssignmentWithUsers) => void;
 }
 
-const currentUserRole = 'Operator';
-
-export function AssignmentDetailModal({ isOpen, onClose, assignment }: AssignmentDetailModalProps) {
+export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentSaved }: AssignmentDetailModalProps) {
   const [comment, setComment] = React.useState('');
+  const [isSavingComment, setIsSavingComment] = React.useState(false);
   const { currentLang } = useLanguage();
+  const { toast } = useToast();
   const locale = currentLang === 'ro' ? ro : enUS;
 
   React.useEffect(() => {
@@ -56,10 +60,27 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
     return null;
   }
 
-  const handlePostComment = () => {
-    // Here you would typically call an API to save the comment
-    // For now, let's just close the modal or give some feedback
-    onClose();
+  const handlePostComment = async () => {
+    setIsSavingComment(true);
+    try {
+      const updatedAssignment = await api.updateAssignmentComment(assignment.id, comment);
+      setComment(updatedAssignment.comment || '');
+      onCommentSaved(updatedAssignment);
+      toast({
+        title: getTranslation(currentLang, 'AssignmentCommentSavedTitle'),
+        description: getTranslation(currentLang, 'AssignmentCommentSavedDescription'),
+      });
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: error instanceof Error
+          ? error.message
+          : getTranslation(currentLang, 'AssignmentCommentSaveError'),
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingComment(false);
+    }
   };
 
   const getStatusBadgeClassName = (status: AssignmentWithUsers['status']) => {
@@ -176,27 +197,32 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
               </div>
             </div>
 
-            {currentUserRole === 'Operator' && (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <h3 className="text-sm font-semibold">
-                    {getTranslation(currentLang, 'AssignmentDetailAddCommentLabel')}
-                  </h3>
-                </div>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-                  <Textarea
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder={getTranslation(currentLang, 'AssignmentDetailCommentPlaceholder')}
-                    className="min-h-16 flex-1 resize-y"
-                  />
-                  <Button onClick={handlePostComment} className="w-full shrink-0 sm:w-auto">
-                    {getTranslation(currentLang, 'AssignmentDetailPostCommentButton')}
-                  </Button>
-                </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">
+                  {getTranslation(currentLang, 'AssignmentDetailAddCommentLabel')}
+                </h3>
               </div>
-            )}
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder={getTranslation(currentLang, 'AssignmentDetailCommentPlaceholder')}
+                  maxLength={10_000}
+                  disabled={isSavingComment}
+                  className="min-h-16 flex-1 resize-y"
+                />
+                <Button
+                  onClick={handlePostComment}
+                  disabled={isSavingComment}
+                  className="w-full shrink-0 sm:w-auto"
+                >
+                  {isSavingComment && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {getTranslation(currentLang, 'AssignmentDetailPostCommentButton')}
+                </Button>
+              </div>
+            </div>
 
             <div className="grid gap-4 border-t pt-3 text-sm sm:grid-cols-2 sm:gap-6">
               <div>

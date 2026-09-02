@@ -21,22 +21,22 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
+import type { UserRole } from '@prisma/client';
+import { USER_ROLES } from '@/lib/roles';
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'PRODUCER' | 'OPERATOR';
+  role: UserRole;
 }
-
-const userRoles = ['ADMIN', 'PRODUCER', 'OPERATOR'] as const;
 
 // Define Zod schema dynamically to use translations for error messages
 const getUserFormSchema = (currentLang: string) => z.object({
   name: z.string().min(1, { message: getTranslation(currentLang, 'ZodUserNameRequired') }),
   email: z.string().email({ message: getTranslation(currentLang, 'ZodEmailInvalid') })
            .min(1, { message: getTranslation(currentLang, 'ZodUserEmailRequired') }),
-  role: z.enum(userRoles, { 
+  role: z.enum(USER_ROLES, {
     required_error: getTranslation(currentLang, 'ZodUserRoleRequired'),
   }),
 });
@@ -139,7 +139,7 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {userRoles.map(role => (
+                      {USER_ROLES.map(role => (
                         <SelectItem key={role} value={role}>
                           {getTranslation(currentLang, role)}
                         </SelectItem>
@@ -175,4 +175,3 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
   );
 }
 
-    

@@ -5,10 +5,11 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { USER_ROLES } from '@/lib/roles';
 
 const date = z.string().datetime();
 const nullableDate = date.nullable();
-const role = z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']);
+const role = z.enum(USER_ROLES);
 const status = z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']);
 const priority = z.enum(['LOW', 'NORMAL', 'URGENT']);
 

@@ -43,9 +43,10 @@ interface AssignmentTableProps {
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
+  onAssignmentUpdated: (assignment: AssignmentWithUsers) => void;
 }
 
-export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onAssignmentUpdated }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
@@ -55,8 +56,17 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
   const openedAssignmentId = React.useRef<string | null>(null);
 
   const currentUserRole = session?.user?.role;
-  const canManageAssignments = currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN';
+  const isAssignmentManager = currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN';
+  const isContributor = currentUserRole === 'CONTRIBUTOR';
+  const showActionsColumn = isAssignmentManager || isContributor;
   const canCompleteAssignments = currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN';
+  const canEditAssignment = (assignment: AssignmentWithUsers) =>
+    isAssignmentManager || (isContributor && assignment.createdBy.id === session?.user?.id);
+  const canDeleteAssignments = isAssignmentManager;
+  const canTransitionAssignment = (assignment: AssignmentWithUsers) =>
+    isAssignmentManager ||
+    (currentUserRole === 'OPERATOR' && assignment.assignedToId === session?.user?.id) ||
+    (isContributor && assignment.createdBy.id === session?.user?.id);
 
   const handleViewDetails = (assignment: AssignmentWithUsers) => {
     setSelectedAssignmentForDetail(assignment);
@@ -172,8 +182,12 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
     );
   };
 
-  const AssignmentCard = ({ assignment }: { assignment: AssignmentWithUsers }) => (
-    <Card 
+  const AssignmentCard = ({ assignment }: { assignment: AssignmentWithUsers }) => {
+    const canEdit = canEditAssignment(assignment);
+    const canTransition = canTransitionAssignment(assignment);
+
+    return (
+    <Card
       className={cn(
         'transition-shadow duration-200 hover:shadow-md',
         {'border-emerald-500/20 bg-emerald-500/[0.06] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
@@ -252,6 +266,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                     checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                     onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
                     aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
+                    disabled={!canTransition}
                     className="touch-manipulation"
                   />
                   <span>{getTranslation(currentLang, 'UploadedToQ')}</span>
@@ -266,6 +281,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                       checked={assignment.status === 'COMPLETED'}
                       onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
                       aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
+                      disabled={!canTransition}
                       className="touch-manipulation"
                     />
                     <span>{getTranslation(currentLang, 'AssignmentTableDone')}</span>
@@ -273,30 +289,34 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                 )}
               </div>
             </div>
-            {canManageAssignments && (
+            {(canEdit || canDeleteAssignments) && (
               <div className="flex items-center justify-between border-t border-border/60 pt-3">
                 <span className="text-xs font-medium text-muted-foreground">
                   {getTranslation(currentLang, 'AssignmentTableActions')}
                 </span>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(event) => handleEditClick(assignment, event)}
-                    className="min-h-11 gap-1.5 px-3"
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                    <span>{getTranslation(currentLang, 'Edit')}</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(event) => handleOpenDeleteConfirm(assignment.id, assignment.name, event)}
-                    className="min-h-11 gap-1.5 px-3 text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    <span>{getTranslation(currentLang, 'Delete')}</span>
-                  </Button>
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(event) => handleEditClick(assignment, event)}
+                      className="min-h-11 gap-1.5 px-3"
+                    >
+                      <Edit className="h-3.5 w-3.5" />
+                      <span>{getTranslation(currentLang, 'Edit')}</span>
+                    </Button>
+                  )}
+                  {canDeleteAssignments && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(event) => handleOpenDeleteConfirm(assignment.id, assignment.name, event)}
+                      className="min-h-11 gap-1.5 px-3 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>{getTranslation(currentLang, 'Delete')}</span>
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
@@ -304,7 +324,8 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
         </div>
       </CardContent>
     </Card>
-  );
+    );
+  };
 
 
   if (!assignments || assignments.length === 0) {
@@ -327,13 +348,17 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
               {canCompleteAssignments && (
                 <TableHead className="w-[7%] text-center">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>
               )}
-              {canManageAssignments && (
+              {showActionsColumn && (
                 <TableHead className="w-[12%] border-l text-center">{getTranslation(currentLang, 'AssignmentTableActions')}</TableHead>
               )}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {assignments.map((assignment) => (
+            {assignments.map((assignment) => {
+              const canEdit = canEditAssignment(assignment);
+              const canTransition = canTransitionAssignment(assignment);
+
+              return (
               <TableRow
                 key={assignment.id}
                 className={cn(
@@ -370,6 +395,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                       checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                       onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
                       aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
+                      disabled={!canTransition}
                       className="touch-manipulation"
                     />
                   </div>
@@ -381,39 +407,45 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                         checked={assignment.status === 'COMPLETED'}
                         onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
                         aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
+                        disabled={!canTransition}
                         className="touch-manipulation"
                       />
                     </div>
                   </TableCell>
                 )}
-                {canManageAssignments && (
+                {showActionsColumn && (
                   <TableCell onClick={(event) => event.stopPropagation()} className="border-l p-1">
                     <div className="flex min-h-10 items-center justify-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(event) => handleEditClick(assignment, event)}
-                        aria-label={getTranslation(currentLang, 'Edit')}
-                        title={getTranslation(currentLang, 'Edit')}
-                        className="h-9 w-9"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(event) => handleOpenDeleteConfirm(assignment.id, assignment.name, event)}
-                        aria-label={getTranslation(currentLang, 'Delete')}
-                        title={getTranslation(currentLang, 'Delete')}
-                        className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(event) => handleEditClick(assignment, event)}
+                          aria-label={getTranslation(currentLang, 'Edit')}
+                          title={getTranslation(currentLang, 'Edit')}
+                          className="h-9 w-9"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDeleteAssignments && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(event) => handleOpenDeleteConfirm(assignment.id, assignment.name, event)}
+                          aria-label={getTranslation(currentLang, 'Delete')}
+                          title={getTranslation(currentLang, 'Delete')}
+                          className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 )}
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -429,6 +461,10 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
           assignment={selectedAssignmentForDetail}
+          onCommentSaved={(updatedAssignment) => {
+            setSelectedAssignmentForDetail(updatedAssignment);
+            onAssignmentUpdated(updatedAssignment);
+          }}
         />
       )}
       {assignmentToDelete && (

@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN', 'PRODUCER']);
+    const auth = await requireUser(['ADMIN', 'PRODUCER', 'CONTRIBUTOR']);
     if (auth.response) return auth.response;
     const data = CreateAssignmentSchema.parse(await request.json());
     const dueDate = new Date(data.dueDate);
@@ -158,7 +158,7 @@ export async function PUT(request: NextRequest) {
       (data.assignedToId ?? null) !== existing.assignedToId ||
       (data.sourceLocation ?? null) !== existing.sourceLocation;
 
-    if (detailsChanged && !canManageAssignmentDetails(auth.user)) {
+    if (detailsChanged && !canManageAssignmentDetails(auth.user, existing)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     if (data.status && data.status !== existing.status && !canTransitionAssignment(auth.user, existing)) {

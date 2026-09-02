@@ -356,6 +356,15 @@ export default function AssignmentsPage() {
     setIsAssignmentModalOpen(true);
   }, []);
 
+  const handleAssignmentUpdated = useCallback((updatedAssignment: AssignmentWithUsers) => {
+    setAllAssignments((current) => current.map((assignment) =>
+      assignment.id === updatedAssignment.id ? updatedAssignment : assignment
+    ));
+    setCalendarAssignments((current) => current.map((assignment) =>
+      assignment.id === updatedAssignment.id ? updatedAssignment : assignment
+    ));
+  }, []);
+
   const handleDeleteAssignment = useCallback(async (assignmentId: string, assignmentName: string) => {
     try {
       await api.deleteAssignment(assignmentId);
@@ -562,7 +571,7 @@ export default function AssignmentsPage() {
                   <CardTitle className="text-lg sm:text-xl md:text-2xl">{workAssignmentsTitle}</CardTitle>
                   <CardDescription className="text-sm">{workAssignmentsDescription}</CardDescription>
                 </div>
-                {(session.user.role === 'PRODUCER' || session.user.role === 'ADMIN') && (
+                {(session.user.role === 'PRODUCER' || session.user.role === 'CONTRIBUTOR' || session.user.role === 'ADMIN') && (
                   <Button 
                     onClick={() => { setEditingAssignment(null); setIsAssignmentModalOpen(true); }} 
                     size="default"
@@ -604,6 +613,7 @@ export default function AssignmentsPage() {
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
                   onToggleUploadedToQ={handleToggleUploadedToQ}
+                  onAssignmentUpdated={handleAssignmentUpdated}
                 />
               ) : (
                 <div className="text-center py-10">
@@ -613,7 +623,7 @@ export default function AssignmentsPage() {
                       ? getTranslation(currentLang, 'NoAssignmentsFoundSearch')
                       : getTranslation(currentLang, 'NoAssignmentsForDay')}
                   </p>
-                  {searchTerm.trim() === '' && (session.user.role === 'PRODUCER' || session.user.role === 'ADMIN') && (
+                  {searchTerm.trim() === '' && (session.user.role === 'PRODUCER' || session.user.role === 'CONTRIBUTOR' || session.user.role === 'ADMIN') && (
                     <p className="text-muted-foreground">
                       {getTranslation(currentLang, 'ProducersCanAddNewAssignments')}
                     </p>

@@ -1,4 +1,4 @@
-import { Assignment, User } from '@prisma/client';
+import { Assignment, User, type UserRole } from '@prisma/client';
 
 export interface AssignmentWithUsers extends Assignment {
   assignedTo?: Pick<User, 'id' | 'name' | 'email'>;
@@ -27,14 +27,14 @@ export interface CreateUserData {
   name: string;
   email: string;
   password: string;
-  role: 'ADMIN' | 'PRODUCER' | 'OPERATOR';
+  role: UserRole;
 }
 
 export interface UpdateUserData {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'PRODUCER' | 'OPERATOR';
+  role: UserRole;
   password?: string;
 }
 
@@ -87,6 +87,13 @@ class ApiClient {
     return this.request<AssignmentWithUsers>('/assignments', {
       method: 'PUT',
       body: JSON.stringify(data),
+    });
+  }
+
+  async updateAssignmentComment(id: string, comment: string) {
+    return this.request<AssignmentWithUsers>(`/assignments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ comment }),
     });
   }
 

@@ -25,25 +25,25 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { PlusCircle, Edit, Trash2, Loader2, Key, Copy, Check } from 'lucide-react';
 import { EditUserModal } from './edit-user-modal'; // Import the new modal
+import type { UserRole } from '@prisma/client';
+import { USER_ROLES } from '@/lib/roles';
 
 
 interface User {
   id: string;
   name: string;
   email: string;
-  role: 'ADMIN' | 'PRODUCER' | 'OPERATOR';
+  role: UserRole;
   createdAt?: string;
   updatedAt?: string;
 }
-
-const userRoles = ['ADMIN', 'PRODUCER', 'OPERATOR'] as const;
 
 // Define Zod schema dynamically for translations
 const getUserFormSchema = (currentLang: string) => z.object({
   name: z.string().min(1, { message: getTranslation(currentLang, 'ZodUserNameRequired') }),
   email: z.string().email({ message: getTranslation(currentLang, 'ZodEmailInvalid') })
            .min(1, { message: getTranslation(currentLang, 'ZodUserEmailRequired') }),
-  role: z.enum(userRoles, { 
+  role: z.enum(USER_ROLES, {
     required_error: getTranslation(currentLang, 'ZodUserRoleRequired'),
   }),
 });
@@ -165,7 +165,7 @@ export function UserManagementDashboard() {
     setEditingUser(null);
   };
 
-  const handleSaveUserUpdates = async (updatedData: { name: string; email: string; role: 'ADMIN' | 'PRODUCER' | 'OPERATOR' }) => {
+  const handleSaveUserUpdates = async (updatedData: { name: string; email: string; role: UserRole }) => {
     if (!editingUser) return; // Should not happen
 
     try {
@@ -364,7 +364,7 @@ export function UserManagementDashboard() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {userRoles.map(role => (
+                          {USER_ROLES.map(role => (
                             <SelectItem key={role} value={role}>
                               {getTranslation(currentLang, role)}
                             </SelectItem>

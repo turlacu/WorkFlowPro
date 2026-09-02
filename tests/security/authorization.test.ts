@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  canDeleteAssignment,
   canManageAssignmentDetails,
   canTransitionAssignment,
   canUpdateUser,
@@ -25,12 +26,30 @@ test('admins may update users while producers cannot change user accounts', () =
   );
 });
 
-test('only managers can modify details while the assigned operator can transition an assignment', () => {
+test('managers can modify all details while operators only transition assigned work', () => {
   const assignment = { assignedToId: 'operator-1', createdById: 'producer-1' };
 
-  assert.equal(canManageAssignmentDetails({ id: 'operator-1', role: 'OPERATOR' }), false);
+  assert.equal(canManageAssignmentDetails({ id: 'operator-1', role: 'OPERATOR' }, assignment), false);
   assert.equal(canTransitionAssignment({ id: 'operator-1', role: 'OPERATOR' }, assignment), true);
   assert.equal(canTransitionAssignment({ id: 'operator-2', role: 'OPERATOR' }, assignment), false);
   assert.equal(canTransitionAssignment({ id: 'producer-2', role: 'PRODUCER' }, assignment), true);
-  assert.equal(canManageAssignmentDetails({ id: 'admin-1', role: 'ADMIN' }), true);
+  assert.equal(canManageAssignmentDetails({ id: 'admin-1', role: 'ADMIN' }, assignment), true);
+});
+
+test('contributors manage and transition only assignments they created and never delete', () => {
+  const ownAssignment = { assignedToId: 'operator-1', createdById: 'contributor-1' };
+  const otherAssignment = { assignedToId: 'operator-1', createdById: 'producer-1' };
+  const contributor = { id: 'contributor-1', role: 'CONTRIBUTOR' as const };
+
+  assert.equal(canManageAssignmentDetails(contributor, ownAssignment), true);
+  assert.equal(canManageAssignmentDetails(contributor, otherAssignment), false);
+  assert.equal(canTransitionAssignment(contributor, ownAssignment), true);
+  assert.equal(canTransitionAssignment(contributor, otherAssignment), false);
+  assert.equal(
+    canTransitionAssignment(contributor, { assignedToId: contributor.id, createdById: 'producer-1' }),
+    false,
+  );
+  assert.equal(canDeleteAssignment(contributor), false);
+  assert.equal(canDeleteAssignment({ role: 'PRODUCER' }), true);
+  assert.equal(canDeleteAssignment({ role: 'ADMIN' }), true);
 });

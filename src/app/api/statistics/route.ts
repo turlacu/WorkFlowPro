@@ -96,7 +96,11 @@ export async function POST(request: NextRequest) {
     const producerStatsMap = new Map<string, { name: string; count: number }>();
     
     assignments.forEach(assignment => {
-      if (assignment.createdBy.role === 'PRODUCER' || assignment.createdBy.role === 'ADMIN') {
+      if (
+        assignment.createdBy.role === 'PRODUCER'
+        || assignment.createdBy.role === 'ADMIN'
+        || assignment.createdBy.role === 'CONTRIBUTOR'
+      ) {
         const producerId = assignment.createdBy.id;
         const producerName = assignment.createdBy.name || assignment.createdBy.id;
         

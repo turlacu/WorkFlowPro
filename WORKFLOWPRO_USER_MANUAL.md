@@ -1,3 +1,6 @@
+> [!WARNING]
+> This is a legacy document and no longer represents the current application workflow. Use the current Romanian role manuals: [Operator](./MANUAL_UTILIZATOR_OPERATOR.md) and [Editor / Producer](./MANUAL_UTILIZATOR_EDITOR.md).
+
 # WorkFlowPro User Manual
 ## Complete Guide to Team Scheduling and Assignment Management
 

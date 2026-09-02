@@ -17,7 +17,8 @@ const encoder = new TextEncoder();
 const roleOrder: Record<PresenceRole, number> = {
   ADMIN: 0,
   PRODUCER: 1,
-  OPERATOR: 2,
+  CONTRIBUTOR: 2,
+  OPERATOR: 3,
 };
 
 function event(name: string, data: unknown) {

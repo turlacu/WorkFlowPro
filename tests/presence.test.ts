@@ -23,6 +23,7 @@ test('presence events accept all application roles and reject malformed users', 
       users: [
         { id: 'admin-1', name: 'Admin', role: 'ADMIN' },
         { id: 'producer-1', name: 'Producer', role: 'PRODUCER' },
+        { id: 'contributor-1', name: 'Contributor', role: 'CONTRIBUTOR' },
         { id: 'operator-1', name: 'Operator', role: 'OPERATOR' },
       ],
     }),

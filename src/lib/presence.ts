@@ -2,7 +2,7 @@ export const PRESENCE_REFRESH_INTERVAL_MS = 15_000;
 export const PRESENCE_ONLINE_WINDOW_MS = 45_000;
 export const PRESENCE_CLIENT_STALE_MS = 40_000;
 
-export type PresenceRole = 'ADMIN' | 'PRODUCER' | 'OPERATOR';
+export type PresenceRole = 'ADMIN' | 'PRODUCER' | 'CONTRIBUTOR' | 'OPERATOR';
 
 export interface OnlineUser {
   id: string;
@@ -35,7 +35,7 @@ export function isPresenceEvent(value: unknown): value is PresenceEvent {
         Boolean(user) &&
         typeof user.id === 'string' &&
         typeof user.name === 'string' &&
-        (user.role === 'ADMIN' || user.role === 'PRODUCER' || user.role === 'OPERATOR'),
+        (user.role === 'ADMIN' || user.role === 'PRODUCER' || user.role === 'CONTRIBUTOR' || user.role === 'OPERATOR'),
     )
   );
 }

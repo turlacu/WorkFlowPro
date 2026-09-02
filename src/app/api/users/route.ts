@@ -2,21 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
-import { canUpdateUser } from '@/lib/roles';
+import { canUpdateUser, USER_ROLES } from '@/lib/roles';
 import type { Prisma } from '@prisma/client';
 import { generateTemporaryPassword, hashPassword } from '@/lib/password';
 
 const CreateUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
-  role: z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']).default('OPERATOR'),
+  role: z.enum(USER_ROLES).default('OPERATOR'),
 });
 
 const UpdateUserSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email('Invalid email format'),
-  role: z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']),
+  role: z.enum(USER_ROLES),
 });
 
 export async function GET(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const requestedRole = searchParams.get('role');
     const role = requestedRole
-      ? z.enum(['ADMIN', 'PRODUCER', 'OPERATOR']).safeParse(requestedRole)
+      ? z.enum(USER_ROLES).safeParse(requestedRole)
       : null;
     if (role && !role.success) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 });

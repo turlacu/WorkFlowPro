@@ -253,7 +253,7 @@ export default function SettingsPage() {
               <CardHeader className="pb-4 sm:pb-6">
                 <CardTitle className="text-lg sm:text-xl">{t('UserStatistics')}</CardTitle>
                 <CardDescription className="text-sm">
-                  {session.user.role === 'PRODUCER' 
+                  {session.user.role === 'PRODUCER' || session.user.role === 'CONTRIBUTOR'
                     ? t('ProducerStatisticsDescription')
                     : t('OperatorStatisticsDescription')
                   }
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                   <p role="status" className="text-muted-foreground">{t('LoadingStatistics')}</p>
                 ) : userStats ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {session.user.role === 'PRODUCER' ? (
+                    {session.user.role === 'PRODUCER' || session.user.role === 'CONTRIBUTOR' ? (
                       <>
                         <div className="space-y-2">
                           <Label>{t('UserTotalAssignmentsCreated')}</Label>
