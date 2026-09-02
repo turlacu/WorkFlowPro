@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Edit, Trash2, AlertTriangle, Calendar } from 'lucide-react';
+import { Edit, Trash2, AlertTriangle, Calendar, MessageSquare } from 'lucide-react';
 import { AssignmentDetailModal } from './assignment-detail-modal';
 import { cn } from '@/lib/utils';
 import { format as formatDate } from 'date-fns';
@@ -43,9 +43,10 @@ interface AssignmentTableProps {
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
+  onCommentCountChanged: (assignmentId: string, count: number) => void;
 }
 
-export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onCommentCountChanged }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
@@ -197,11 +198,22 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
           <CardTitle className="pr-2 text-lg font-semibold leading-tight">
             <button
               type="button"
-              className="line-clamp-2 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex items-start gap-1.5 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => handleViewDetails(assignment)}
               aria-label={`${getTranslation(currentLang, 'View')} ${assignment.name}`}
             >
-              {assignment.name}
+              {(assignment.commentCount || 0) > 0 && (
+                <span
+                  className="mt-0.5 shrink-0 text-primary"
+                  title={getTranslation(currentLang, 'AssignmentCommentsCount', { count: String(assignment.commentCount) })}
+                >
+                  <MessageSquare className="h-4 w-4 fill-primary/15" aria-hidden="true" />
+                  <span className="sr-only">
+                    {getTranslation(currentLang, 'AssignmentCommentsCount', { count: String(assignment.commentCount) })}
+                  </span>
+                </span>
+              )}
+              <span className="line-clamp-2">{assignment.name}</span>
             </button>
           </CardTitle>
           <div className="flex flex-col gap-1 items-end flex-shrink-0">
@@ -368,11 +380,22 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                 <TableCell className="font-medium leading-5">
                   <button
                     type="button"
-                    className="line-clamp-2 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex items-start gap-1.5 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => handleViewDetails(assignment)}
                     title={assignment.name}
                   >
-                    {assignment.name}
+                    {(assignment.commentCount || 0) > 0 && (
+                      <span
+                        className="mt-0.5 shrink-0 text-primary"
+                        title={getTranslation(currentLang, 'AssignmentCommentsCount', { count: String(assignment.commentCount) })}
+                      >
+                        <MessageSquare className="h-4 w-4 fill-primary/15" aria-hidden="true" />
+                        <span className="sr-only">
+                          {getTranslation(currentLang, 'AssignmentCommentsCount', { count: String(assignment.commentCount) })}
+                        </span>
+                      </span>
+                    )}
+                    <span className="line-clamp-2">{assignment.name}</span>
                   </button>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
@@ -460,6 +483,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
           assignment={selectedAssignmentForDetail}
+          onCommentCountChanged={(count) => onCommentCountChanged(selectedAssignmentForDetail.id, count)}
         />
       )}
       {assignmentToDelete && (

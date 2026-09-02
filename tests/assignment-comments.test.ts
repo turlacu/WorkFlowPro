@@ -22,6 +22,8 @@ test('assignment comments are append-only records with authors and replies', () 
 
 test('the assignment dialog renders comment authors and supports replies without overwriting', () => {
   const detailModal = read('src/components/app/assignment-detail-modal.tsx');
+  const assignmentTable = read('src/components/app/assignment-table.tsx');
+  const assignmentsRoute = read('src/app/api/assignments/route.ts');
   const api = read('src/lib/api.ts');
 
   assert.match(api, /getAssignmentComments/);
@@ -30,6 +32,9 @@ test('the assignment dialog renders comment authors and supports replies without
   assert.match(detailModal, /setReplyingTo/);
   assert.match(detailModal, /persistedComments/);
   assert.doesNotMatch(detailModal, /updateAssignmentComment/);
+  assert.match(assignmentsRoute, /commentCount/);
+  assert.match(assignmentTable, /assignment\.commentCount/);
+  assert.match(assignmentTable, /MessageSquare/);
 });
 
 test('backup and restore include threaded assignment comments', () => {

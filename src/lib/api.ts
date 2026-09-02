@@ -5,6 +5,7 @@ export interface AssignmentWithUsers extends Assignment {
   createdBy: Pick<User, 'id' | 'name' | 'email'>;
   lastUpdatedBy: Pick<User, 'id' | 'name' | 'email'>;
   completedBy?: Pick<User, 'id' | 'name' | 'email'>;
+  commentCount?: number;
 }
 
 export interface AssignmentCommentWithAuthor {

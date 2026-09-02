@@ -356,6 +356,13 @@ export default function AssignmentsPage() {
     setIsAssignmentModalOpen(true);
   }, []);
 
+  const handleCommentCountChanged = useCallback((assignmentId: string, commentCount: number) => {
+    const updateCount = (assignment: AssignmentWithUsers) =>
+      assignment.id === assignmentId ? { ...assignment, commentCount } : assignment;
+    setAllAssignments((current) => current.map(updateCount));
+    setCalendarAssignments((current) => current.map(updateCount));
+  }, []);
+
   const handleDeleteAssignment = useCallback(async (assignmentId: string, assignmentName: string) => {
     try {
       await api.deleteAssignment(assignmentId);
@@ -604,6 +611,7 @@ export default function AssignmentsPage() {
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
                   onToggleUploadedToQ={handleToggleUploadedToQ}
+                  onCommentCountChanged={handleCommentCountChanged}
                 />
               ) : (
                 <div className="text-center py-10">

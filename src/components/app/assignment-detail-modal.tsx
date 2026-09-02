@@ -42,9 +42,10 @@ interface AssignmentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   assignment: AssignmentWithUsers | null;
+  onCommentCountChanged?: (count: number) => void;
 }
 
-export function AssignmentDetailModal({ isOpen, onClose, assignment }: AssignmentDetailModalProps) {
+export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCountChanged }: AssignmentDetailModalProps) {
   const [comment, setComment] = React.useState('');
   const [comments, setComments] = React.useState<AssignmentCommentWithAuthor[]>([]);
   const [replyingTo, setReplyingTo] = React.useState<{ id: string; authorName: string } | null>(null);
@@ -98,6 +99,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment }: Assignmen
         throw new Error(getTranslation(currentLang, 'AssignmentCommentVerificationError'));
       }
       setComments(persistedComments);
+      onCommentCountChanged?.(persistedComments.length);
       setComment('');
       setReplyingTo(null);
       toast({

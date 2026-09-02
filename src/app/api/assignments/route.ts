@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
@@ -56,7 +57,21 @@ export async function GET(request: NextRequest) {
       include: assignmentInclude,
       orderBy: { dueDate: 'asc' },
     });
-    return NextResponse.json(assignments);
+    const commentCounts = assignments.length > 0
+      ? await prisma.$queryRaw<Array<{ assignmentId: string; commentCount: bigint }>>`
+          SELECT "assignmentId", COUNT(*) AS "commentCount"
+          FROM "assignment_comments"
+          WHERE "assignmentId" IN (${Prisma.join(assignments.map((assignment) => assignment.id))})
+          GROUP BY "assignmentId"
+        `
+      : [];
+    const commentCountByAssignment = new Map(
+      commentCounts.map((item) => [item.assignmentId, Number(item.commentCount)]),
+    );
+    return NextResponse.json(assignments.map((assignment) => ({
+      ...assignment,
+      commentCount: commentCountByAssignment.get(assignment.id) || 0,
+    })));
   } catch (error) {
     console.error('Error fetching assignments:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
