@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   canDeleteAssignment,
   canManageAssignmentDetails,
+  canStartAssignment,
   canTransitionAssignment,
   canUpdateUser,
 } from '../../src/lib/roles';
@@ -34,6 +35,18 @@ test('managers can modify all details while operators only transition assigned w
   assert.equal(canTransitionAssignment({ id: 'operator-2', role: 'OPERATOR' }, assignment), false);
   assert.equal(canTransitionAssignment({ id: 'producer-2', role: 'PRODUCER' }, assignment), true);
   assert.equal(canManageAssignmentDetails({ id: 'admin-1', role: 'ADMIN' }, assignment), true);
+});
+
+test('operators can claim unassigned work by starting it but cannot complete it before assignment', () => {
+  const operator = { id: 'operator-1', role: 'OPERATOR' as const };
+  const unassigned = { assignedToId: null, createdById: 'producer-1' };
+
+  assert.equal(canStartAssignment(operator, unassigned), true);
+  assert.equal(canTransitionAssignment(operator, unassigned), false);
+  assert.equal(
+    canStartAssignment(operator, { ...unassigned, assignedToId: 'operator-2' }),
+    false,
+  );
 });
 
 test('contributors manage and transition only assignments they created and never delete', () => {

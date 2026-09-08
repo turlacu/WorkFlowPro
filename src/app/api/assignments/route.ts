@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
-import { canManageAssignmentDetails, canTransitionAssignment } from '@/lib/roles';
+import { canManageAssignmentDetails, canStartAssignment, canTransitionAssignment } from '@/lib/roles';
 import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
 import { parseDateOnly } from '@/lib/date-only';
 import { getAssignmentDuplicateKey } from '@/lib/assignment-duplicates';
@@ -205,8 +205,18 @@ export async function PUT(request: NextRequest) {
     if (detailsChanged && !canManageAssignmentDetails(auth.user, existing)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    if (data.status && data.status !== existing.status && !canTransitionAssignment(auth.user, existing)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const operatorClaimingUnassignedTask =
+      auth.user.role === 'OPERATOR' &&
+      existing.assignedToId === null &&
+      existing.status === 'PENDING' &&
+      data.status === 'IN_PROGRESS';
+    if (data.status && data.status !== existing.status) {
+      const allowed = operatorClaimingUnassignedTask
+        ? canStartAssignment(auth.user, existing)
+        : canTransitionAssignment(auth.user, existing);
+      if (!allowed) {
+        return NextResponse.json({ error: 'You cannot update the status of this assignment' }, { status: 403 });
+      }
     }
 
     if (data.assignedToId && data.assignedToId !== existing.assignedToId) {
@@ -234,6 +244,7 @@ export async function PUT(request: NextRequest) {
           ...(dueDateChanged ? { dueDate } : {}),
           ...(data.priority !== undefined ? { priority: data.priority } : {}),
           ...(data.assignedToId !== undefined ? { assignedToId: data.assignedToId } : {}),
+          ...(operatorClaimingUnassignedTask ? { assignedToId: auth.user.id } : {}),
           ...(data.sourceLocation !== undefined ? { sourceLocation: data.sourceLocation } : {}),
           status: nextStatus,
           lastUpdatedById: auth.user.id,

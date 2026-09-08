@@ -445,8 +445,8 @@ export default function AssignmentsPage() {
     } catch (error) {
       console.error('Error toggling assignment completion:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update assignment status. Please try again.',
+        title: getTranslation(currentLang, 'Error'),
+        description: error instanceof Error ? error.message : getTranslation(currentLang, 'AssignmentUpdateFailed'),
         variant: 'destructive',
       });
     }
@@ -492,8 +492,8 @@ export default function AssignmentsPage() {
     } catch (error) {
       console.error('Error toggling uploaded to Q status:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update assignment status. Please try again.',
+        title: getTranslation(currentLang, 'Error'),
+        description: error instanceof Error ? error.message : getTranslation(currentLang, 'AssignmentUpdateFailed'),
         variant: 'destructive',
       });
     }

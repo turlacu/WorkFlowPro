@@ -22,7 +22,8 @@ test('contributor assignment controls are ownership-aware and retired schedule n
   const mobileMenu = read('src/components/app/mobile-menu.tsx');
 
   assert.match(table, /assignment\.createdBy\.id === session\?\.user\?\.id/);
-  assert.match(table, /disabled=\{!canTransition\}/);
+  assert.match(table, /disabled=\{!canStart\}/);
+  assert.match(table, /disabled=\{!canComplete\}/);
   assert.match(assignmentsPage, /session\.user\.role === 'CONTRIBUTOR'/);
   assert.doesNotMatch(header, /todays-schedule/);
   assert.doesNotMatch(mobileMenu, /todays-schedule/);

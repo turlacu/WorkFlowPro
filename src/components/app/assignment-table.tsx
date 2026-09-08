@@ -27,6 +27,7 @@ import { useSession } from 'next-auth/react';
 import type { AssignmentWithUsers } from '@/lib/api';
 import type { User } from '@prisma/client';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
+import { canStartAssignment, canTransitionAssignment } from '@/lib/roles';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,10 +69,20 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
   const canEditAssignment = (assignment: AssignmentWithUsers) =>
     isAssignmentManager || (isContributor && assignment.createdBy.id === session?.user?.id);
   const canDeleteAssignments = isAssignmentManager;
-  const canTransitionAssignment = (assignment: AssignmentWithUsers) =>
-    isAssignmentManager ||
-    (currentUserRole === 'OPERATOR' && assignment.assignedToId === session?.user?.id) ||
-    (isContributor && assignment.createdBy.id === session?.user?.id);
+  const getTransitionPermissions = (assignment: AssignmentWithUsers) => {
+    if (!session?.user) return { canStart: false, canComplete: false };
+
+    const permissionAssignment = {
+      assignedToId: assignment.assignedToId ?? assignment.assignedTo?.id ?? null,
+      createdById: assignment.createdById ?? assignment.createdBy.id,
+    };
+    const actor = { id: session.user.id, role: session.user.role };
+
+    return {
+      canStart: canStartAssignment(actor, permissionAssignment),
+      canComplete: canTransitionAssignment(actor, permissionAssignment),
+    };
+  };
 
   const handleViewDetails = (assignment: AssignmentWithUsers) => {
     setSelectedAssignmentForDetail(assignment);
@@ -198,7 +209,7 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
 
   const AssignmentCard = ({ assignment }: { assignment: AssignmentWithUsers }) => {
     const canEdit = canEditAssignment(assignment);
-    const canTransition = canTransitionAssignment(assignment);
+    const { canStart, canComplete } = getTransitionPermissions(assignment);
 
     return (
     <Card
@@ -309,7 +320,7 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
                     checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                     onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
                     aria-label={getTranslation(currentLang, 'MarkAssignmentStarted', { name: assignment.name })}
-                    disabled={!canTransition}
+                    disabled={!canStart}
                     className="touch-manipulation"
                   />
                   <span>{getTranslation(currentLang, 'AssignmentStartWork')}</span>
@@ -324,7 +335,7 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
                       checked={assignment.status === 'COMPLETED'}
                       onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
                       aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
-                      disabled={!canTransition}
+                      disabled={!canComplete}
                       className="touch-manipulation"
                     />
                     <span>{getTranslation(currentLang, 'AssignmentTableDone')}</span>
@@ -399,7 +410,7 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
           <TableBody>
             {assignments.map((assignment) => {
               const canEdit = canEditAssignment(assignment);
-              const canTransition = canTransitionAssignment(assignment);
+              const { canStart, canComplete } = getTransitionPermissions(assignment);
 
               return (
               <TableRow
@@ -465,7 +476,7 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
                       checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                       onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
                       aria-label={getTranslation(currentLang, 'MarkAssignmentStarted', { name: assignment.name })}
-                      disabled={!canTransition}
+                      disabled={!canStart}
                       className="touch-manipulation"
                     />
                   </div>
@@ -477,7 +488,7 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
                         checked={assignment.status === 'COMPLETED'}
                         onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
                         aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
-                        disabled={!canTransition}
+                        disabled={!canComplete}
                         className="touch-manipulation"
                       />
                     </div>

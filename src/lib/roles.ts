@@ -29,6 +29,14 @@ export function canTransitionAssignment(
     (actor.role === 'CONTRIBUTOR' && assignment.createdById === actor.id);
 }
 
+export function canStartAssignment(
+  actor: { id: string; role: UserRole },
+  assignment: { assignedToId: string | null; createdById: string },
+): boolean {
+  return canTransitionAssignment(actor, assignment) ||
+    (actor.role === 'OPERATOR' && assignment.assignedToId === null);
+}
+
 export function canDeleteAssignment(actor: { role: UserRole }): boolean {
   return actor.role === 'ADMIN' || actor.role === 'PRODUCER';
 }
