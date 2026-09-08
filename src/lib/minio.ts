@@ -1,5 +1,4 @@
 import { Client } from 'minio';
-import { randomUUID } from 'node:crypto';
 
 let minioClient: Client | undefined;
 
@@ -44,28 +43,6 @@ export async function ensureBucketExists() {
   }
 }
 
-export async function uploadFile(
-  fileName: string,
-  fileBuffer: Buffer,
-  contentType: string
-): Promise<string> {
-  try {
-    await ensureBucketExists();
-    
-    const extension = fileName.toLowerCase().match(/\.[a-z0-9]+$/)?.[0] || '';
-    const objectName = `schedules/${randomUUID()}${extension}`;
-    
-    await getMinioClient().putObject(bucketName, objectName, fileBuffer, fileBuffer.length, {
-      'Content-Type': contentType,
-    });
-    
-    return objectName;
-  } catch (error) {
-    console.error('Error uploading file:', error);
-    throw new Error('Failed to upload file');
-  }
-}
-
 export async function putObject(objectName: string, data: Buffer, contentType: string): Promise<void> {
   await ensureBucketExists();
   await getMinioClient().putObject(bucketName, objectName, data, data.length, { 'Content-Type': contentType });
@@ -96,15 +73,6 @@ export async function getFile(objectName: string) {
     getMinioClient().statObject(bucketName, objectName),
   ]);
   return { stream, stat };
-}
-
-export async function getFileUrl(objectName: string): Promise<string> {
-  try {
-    return await getMinioClient().presignedGetObject(bucketName, objectName, 24 * 60 * 60); // 24 hours
-  } catch (error) {
-    console.error('Error getting file URL:', error);
-    throw new Error('Failed to get file URL');
-  }
 }
 
 export async function deleteFile(objectName: string): Promise<void> {

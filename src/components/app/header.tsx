@@ -31,9 +31,6 @@ export default function AppHeader() {
   const initials = user.name.split(' ').map((name) => name[0]).join('').slice(0, 2).toUpperCase();
   const links = [
     { href: '/assignments', label: getTranslation(currentLang, 'GoToAssignments'), icon: ClipboardList },
-    ...(session?.user?.role !== 'CONTRIBUTOR'
-      ? [{ href: '/todays-schedule', label: getTranslation(currentLang, 'TodaysScheduleButton'), icon: CalendarClock }]
-      : []),
     ...(session?.user?.role === 'ADMIN'
       ? [{ href: '/dashboard/scheduling/manual', label: getTranslation(currentLang, 'GoToAdminPanel'), icon: ShieldCheck }]
       : []),

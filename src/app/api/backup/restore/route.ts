@@ -16,7 +16,7 @@ const priority = z.enum(['LOW', 'NORMAL', 'URGENT']);
 
 const BackupSchema = z.object({
   metadata: z.object({
-    schemaVersion: z.union([z.literal(2), z.literal(3)]),
+    schemaVersion: z.union([z.literal(2), z.literal(3), z.literal(4)]),
     exportedAt: date,
     exportedBy: z.object({ id: z.string(), email: z.string().email() }),
   }),
@@ -58,11 +58,6 @@ const BackupSchema = z.object({
       id: z.string(), configurationId: z.string(), filename: z.string(), uploadedBy: z.string(),
       entriesCount: z.number().int(), successCount: z.number().int(), errorCount: z.number().int(), createdAt: date,
     })).max(100_000),
-    dailySchedules: z.array(z.object({
-      id: z.string(), date, title: z.string(), content: z.string().nullable(), fileName: z.string().nullable(),
-      fileSize: z.number().int().nullable(), mimeType: z.string().nullable(), filePath: z.string().nullable(),
-      uploadedBy: z.string(), createdAt: date, updatedAt: date,
-    })).max(10_000),
   }),
 });
 
@@ -111,7 +106,6 @@ export async function POST(request: NextRequest) {
 
     await prisma.$transaction(async (tx) => {
       await tx.uploadConfigurationLog.deleteMany();
-      await tx.dailySchedule.deleteMany();
       await tx.assignment.deleteMany();
       await tx.teamSchedule.deleteMany();
       await tx.shiftColorLegend.deleteMany();
@@ -197,12 +191,6 @@ export async function POST(request: NextRequest) {
       if (backup.data.teamSchedules.length) {
         await tx.teamSchedule.createMany({ data: backup.data.teamSchedules.map((item) => ({
           ...item, userId: remapUserId(item.userId)!, date: new Date(item.date),
-          createdAt: new Date(item.createdAt), updatedAt: new Date(item.updatedAt),
-        })) });
-      }
-      if (backup.data.dailySchedules.length) {
-        await tx.dailySchedule.createMany({ data: backup.data.dailySchedules.map((item) => ({
-          ...item, uploadedBy: remapUserId(item.uploadedBy)!, date: new Date(item.date),
           createdAt: new Date(item.createdAt), updatedAt: new Date(item.updatedAt),
         })) });
       }

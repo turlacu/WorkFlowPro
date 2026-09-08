@@ -91,7 +91,6 @@ The dashboard provides different views based on your user role:
 ### Main Navigation
 - **Dashboard** - Overview and quick actions
 - **Assignments** - Task management
-- **Today's Schedule** - Current day's schedule
 - **Statistics** - Reports and analytics
 - **Settings** - User preferences and system settings
 
@@ -103,7 +102,6 @@ The dashboard provides different views based on your user role:
 
 ### Dashboard Widgets
 - **Recent Assignments** - Latest tasks and their status
-- **Today's Schedule** - Current day's scheduling information
 - **Quick Stats** - Key metrics and numbers
 - **Interactive Calendar** - Visual schedule overview
 
@@ -153,11 +151,6 @@ Click on any assignment to view:
 - **User Assignment** - Shows which team members are scheduled
 - **Shift Types** - Different categories of work (day, night, overtime, etc.)
 - **Color Legend** - Understanding the color-coding system
-
-### Today's Schedule Page
-- **Current Day Focus** - Dedicated view for today's assignments
-- **Real-time Updates** - Reflects current status changes
-- **Quick Actions** - Fast access to common tasks
 
 ## Excel Schedule Import
 

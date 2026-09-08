@@ -30,8 +30,9 @@ export interface CreateAssignmentData {
   sourceLocation?: string;
 }
 
-export interface UpdateAssignmentData extends CreateAssignmentData {
+export interface UpdateAssignmentData extends Partial<Omit<CreateAssignmentData, 'assignedToId'>> {
   id: string;
+  assignedToId?: string | null;
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
 }
 
@@ -55,6 +56,17 @@ export interface TeamScheduleData {
   userIds: string[];
 }
 
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 class ApiClient {
   private async request<T>(
     endpoint: string,
@@ -72,7 +84,7 @@ class ApiClient {
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.error || 'An error occurred');
+      throw new ApiError(data.error || 'An error occurred', response.status, data.code);
     }
 
     return data;

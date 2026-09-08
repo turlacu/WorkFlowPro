@@ -13,6 +13,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Edit, Trash2, AlertTriangle, Calendar, MessageSquare } from 'lucide-react';
@@ -24,6 +25,7 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSession } from 'next-auth/react';
 import type { AssignmentWithUsers } from '@/lib/api';
+import type { User } from '@prisma/client';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
 import {
   AlertDialog,
@@ -38,19 +40,22 @@ import {
 
 interface AssignmentTableProps {
   assignments: AssignmentWithUsers[];
+  operators: Pick<User, 'id' | 'name'>[];
   openAssignmentId?: string | null;
   onEditAssignment: (assignment: AssignmentWithUsers) => void;
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
   onCommentCountChanged: (assignmentId: string, count: number) => void;
+  onAssignOperator: (assignmentId: string, operatorId: string | null) => Promise<void>;
 }
 
-export function AssignmentTable({ assignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onCommentCountChanged }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, operators, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onCommentCountChanged, onAssignOperator }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = React.useState<{id: string, name: string} | null>(null);
+  const [assigningAssignmentId, setAssigningAssignmentId] = React.useState<string | null>(null);
   const { currentLang } = useLanguage();
   const locale = currentLang === 'ro' ? ro : enUS;
   const openedAssignmentId = React.useRef<string | null>(null);
@@ -98,6 +103,15 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
     event.stopPropagation(); // Prevent row click when clicking edit button
     onEditAssignment(assignment);
   }
+
+  const handleAssigneeChange = async (assignmentId: string, value: string) => {
+    setAssigningAssignmentId(assignmentId);
+    try {
+      await onAssignOperator(assignmentId, value === 'unassigned' ? null : value);
+    } finally {
+      setAssigningAssignmentId(null);
+    }
+  };
 
   const getStatusBadgeVariant = (status: AssignmentWithUsers['status']) => {
     switch (status) {
@@ -230,10 +244,28 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                 {getAssignedUserInitials(assignment.assignedTo?.name || null)}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                {assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}
-              </p>
+            <div className="min-w-0 flex-1">
+              {canEdit ? (
+                <Select
+                  value={assignment.assignedToId || 'unassigned'}
+                  onValueChange={(value) => void handleAssigneeChange(assignment.id, value)}
+                  disabled={assigningAssignmentId === assignment.id}
+                >
+                  <SelectTrigger className="h-10" aria-label={getTranslation(currentLang, 'AssignmentAssigneeLabel')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">{getTranslation(currentLang, 'AssignmentUnassigned')}</SelectItem>
+                    {operators.map((operator) => (
+                      <SelectItem key={operator.id} value={operator.id}>{operator.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm font-medium text-foreground">
+                  {assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 {getTranslation(currentLang, 'AssignmentTableAssignedTo')}
               </p>
@@ -276,11 +308,11 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                     id={`mobile-uploaded-${assignment.id}`}
                     checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                     onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
-                    aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
+                    aria-label={getTranslation(currentLang, 'MarkAssignmentStarted', { name: assignment.name })}
                     disabled={!canTransition}
                     className="touch-manipulation"
                   />
-                  <span>{getTranslation(currentLang, 'UploadedToQ')}</span>
+                  <span>{getTranslation(currentLang, 'AssignmentStartWork')}</span>
                 </label>
                 {canCompleteAssignments && (
                   <label
@@ -355,7 +387,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
               <TableHead className="w-[13%]">{getTranslation(currentLang, 'AssignmentTableAssignedTo')}</TableHead>
               <TableHead className="w-[12%]">{getTranslation(currentLang, 'AssignmentTableStatus')}</TableHead>
               <TableHead className="w-[9%]">{getTranslation(currentLang, 'AssignmentTablePriority')}</TableHead>
-              <TableHead className="w-[12%] text-center leading-4">{getTranslation(currentLang, 'UploadedToQ')}</TableHead>
+              <TableHead className="w-[12%] text-center leading-4">{getTranslation(currentLang, 'AssignmentStarted')}</TableHead>
               {canCompleteAssignments && (
                 <TableHead className="w-[7%] text-center">{getTranslation(currentLang, 'AssignmentTableDone')}</TableHead>
               )}
@@ -399,12 +431,28 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                   </button>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
-                <TableCell className="truncate">
-                  <span title={assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}>
-                    {!assignment.assignedTo
-                      ? getTranslation(currentLang, 'AssignmentUnassigned')
-                      : assignment.assignedTo.name}
-                  </span>
+                <TableCell className="truncate" onClick={(event) => event.stopPropagation()}>
+                  {canEdit ? (
+                    <Select
+                      value={assignment.assignedToId || 'unassigned'}
+                      onValueChange={(value) => void handleAssigneeChange(assignment.id, value)}
+                      disabled={assigningAssignmentId === assignment.id}
+                    >
+                      <SelectTrigger className="h-9 border-0 px-2 shadow-none" aria-label={getTranslation(currentLang, 'AssignmentAssigneeLabel')}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">{getTranslation(currentLang, 'AssignmentUnassigned')}</SelectItem>
+                        {operators.map((operator) => (
+                          <SelectItem key={operator.id} value={operator.id}>{operator.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span title={assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}>
+                      {assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}
+                    </span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(assignment.status)}
@@ -416,7 +464,7 @@ export function AssignmentTable({ assignments, openAssignmentId, onEditAssignmen
                     <Checkbox
                       checked={assignment.status === 'IN_PROGRESS' || assignment.status === 'COMPLETED'}
                       onCheckedChange={(checked) => onToggleUploadedToQ(assignment.id, !!checked)}
-                      aria-label={getTranslation(currentLang, 'MarkUploadedToQ', { name: assignment.name })}
+                      aria-label={getTranslation(currentLang, 'MarkAssignmentStarted', { name: assignment.name })}
                       disabled={!canTransition}
                       className="touch-manipulation"
                     />

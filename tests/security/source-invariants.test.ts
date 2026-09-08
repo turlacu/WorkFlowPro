@@ -107,13 +107,30 @@ test('production responses are hardened and health checks use supported routes',
   assert.doesNotMatch(`${dockerfile}\n${compose}`, /\/api\/health\/ready/);
 });
 
-test('migration history includes the missing daily schedules table and security fields', () => {
+test('migration history preserves security fields and removes the retired daily schedule feature', () => {
+  const schema = read('prisma/schema.prisma');
+  const backup = read('src/app/api/backup/route.ts');
+  const restore = read('src/app/api/backup/restore/route.ts');
   const migration = read(
     'prisma/migrations/20260722000000_harden_schema_and_add_daily_schedules/migration.sql',
   );
-  assert.match(migration, /CREATE TABLE "daily_schedules"/);
+  const removal = read(
+    'prisma/migrations/20260908000000_remove_daily_schedules/migration.sql',
+  );
   assert.match(migration, /"sessionVersion"/);
   assert.match(migration, /"passwordResetRequired"/);
+  assert.match(removal, /DROP TABLE IF EXISTS "daily_schedules"/);
+  assert.doesNotMatch(schema, /model DailySchedule/);
+  assert.doesNotMatch(`${backup}\n${restore}`, /dailySchedule/);
+  for (const path of [
+    'src/app/(app)/todays-schedule/page.tsx',
+    'src/app/api/daily-schedules/route.ts',
+    'src/app/api/daily-schedules/upload/route.ts',
+    'src/app/api/files/[...path]/route.ts',
+    'src/components/app/todays-schedule-dashboard.tsx',
+  ]) {
+    assert.equal(existsSync(path), false, `${path} must stay retired`);
+  }
 });
 
 test('assignment notifications are persistent, recipient-scoped, and commit-aware', () => {

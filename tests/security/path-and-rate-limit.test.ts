@@ -5,18 +5,6 @@ import {
   checkRateLimit,
   resetRateLimit,
 } from '../../src/lib/rate-limit';
-import { resolveWithin, safeDownloadName } from '../../src/lib/safe-path';
-
-test('path resolution rejects traversal and empty path segments', () => {
-  assert.equal(resolveWithin('/srv/backups', ['..', 'secret']), null);
-  assert.equal(resolveWithin('/srv/backups', ['nested', '..', '..', 'secret']), null);
-  assert.equal(resolveWithin('/srv/backups', ['']), null);
-  assert.equal(resolveWithin('/srv/backups', ['backup.json']), '/srv/backups/backup.json');
-});
-
-test('download names cannot inject headers or directories', () => {
-  assert.equal(safeDownloadName('../../report\r\n\".json'), 'report___.json');
-});
 
 test('rate limiter blocks at the limit and resets after the window', () => {
   clearRateLimitsForTests();

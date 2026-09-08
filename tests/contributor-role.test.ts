@@ -15,7 +15,7 @@ test('contributor role is migrated and accepted for assignment creation', () => 
   assert.match(assignmentsRoute, /canManageAssignmentDetails\(auth\.user, existing\)/);
 });
 
-test('contributor assignment controls are ownership-aware and schedule navigation is hidden', () => {
+test('contributor assignment controls are ownership-aware and retired schedule navigation is absent', () => {
   const table = read('src/components/app/assignment-table.tsx');
   const assignmentsPage = read('src/app/(app)/assignments/page.tsx');
   const header = read('src/components/app/header.tsx');
@@ -24,6 +24,6 @@ test('contributor assignment controls are ownership-aware and schedule navigatio
   assert.match(table, /assignment\.createdBy\.id === session\?\.user\?\.id/);
   assert.match(table, /disabled=\{!canTransition\}/);
   assert.match(assignmentsPage, /session\.user\.role === 'CONTRIBUTOR'/);
-  assert.match(header, /role !== 'CONTRIBUTOR'/);
-  assert.match(mobileMenu, /role !== 'CONTRIBUTOR'/);
+  assert.doesNotMatch(header, /todays-schedule/);
+  assert.doesNotMatch(mobileMenu, /todays-schedule/);
 });

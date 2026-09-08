@@ -3,7 +3,6 @@ import { expect, test } from '@playwright/test';
 
 const authenticatedRoutes = [
   '/assignments',
-  '/todays-schedule',
   '/settings',
   '/dashboard/scheduling/manual',
   '/dashboard/scheduling/import',

@@ -93,7 +93,6 @@ WorkFlowPro/
 │   │   │   ├── dashboard/     # Main dashboard
 │   │   │   ├── settings/      # User settings and admin panel
 │   │   │   ├── statistics/    # Analytics and reporting
-│   │   │   └── todays-schedule/ # Daily schedule view
 │   │   ├── actions/           # Server actions
 │   │   ├── api/               # API routes (detailed below)
 │   │   ├── login/             # Authentication pages
@@ -195,7 +194,7 @@ src/app/api/
 - **Dual relationship**: Assigned user vs. creator tracking
 
 #### TeamSchedule Entity
-- **Date-based scheduling**: Daily schedule entries
+- **Date-based scheduling**: Team shift entries
 - **Time range storage**: Flexible time period representation
 - **Color coding integration**: Links to shift color legends
 

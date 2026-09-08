@@ -12,7 +12,7 @@ export async function POST() {
     const limit = checkRateLimit(`backup:${auth.user.id}`, { limit: 5, windowMs: 60 * 60_000 });
     if (!limit.allowed) return NextResponse.json({ error: 'Too many backup requests' }, { status: 429 });
 
-    const [users, assignments, assignmentComments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules] =
+    const [users, assignments, assignmentComments, teamSchedules, shiftColorLegends, configurations, configurationLogs] =
       await prisma.$transaction(async (tx) => Promise.all([
         tx.user.findMany({
           select: {
@@ -29,16 +29,15 @@ export async function POST() {
         tx.shiftColorLegend.findMany(),
         tx.excelUploadConfiguration.findMany(),
         tx.uploadConfigurationLog.findMany(),
-        tx.dailySchedule.findMany(),
       ]), { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 120_000 });
 
     const data = {
       metadata: {
-        schemaVersion: 3,
+        schemaVersion: 4,
         exportedAt: new Date().toISOString(),
         exportedBy: { id: auth.user.id, email: auth.user.email },
       },
-      data: { users, assignments, assignmentComments, teamSchedules, shiftColorLegends, configurations, configurationLogs, dailySchedules },
+      data: { users, assignments, assignmentComments, teamSchedules, shiftColorLegends, configurations, configurationLogs },
     };
     const id = `backup-${randomUUID()}`;
     const fileName = `${id}.json`;

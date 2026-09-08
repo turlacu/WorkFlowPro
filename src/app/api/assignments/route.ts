@@ -6,6 +6,7 @@ import { requireUser } from '@/lib/server-auth';
 import { canManageAssignmentDetails, canTransitionAssignment } from '@/lib/roles';
 import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
 import { parseDateOnly } from '@/lib/date-only';
+import { getAssignmentDuplicateKey } from '@/lib/assignment-duplicates';
 import {
   getCalendarDateKey,
   validateDueDateForCreate,
@@ -23,8 +24,9 @@ const CreateAssignmentSchema = z.object({
   sourceLocation: z.string().max(2_000).optional(),
 });
 
-const UpdateAssignmentSchema = CreateAssignmentSchema.extend({
+const UpdateAssignmentSchema = CreateAssignmentSchema.partial().extend({
   id: z.string().cuid(),
+  assignedToId: z.string().cuid().nullable().optional(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
 });
 
@@ -34,6 +36,8 @@ const assignmentInclude = {
   lastUpdatedBy: { select: { id: true, name: true, email: true } },
   completedBy: { select: { id: true, name: true, email: true } },
 } as const;
+
+class DuplicateAssignmentError extends Error {}
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,6 +104,23 @@ export async function POST(request: NextRequest) {
     }
 
     const assignment = await prisma.$transaction(async (transaction) => {
+      const dueDateKey = getCalendarDateKey(dueDate);
+      const duplicateRange = zonedDateRange(dueDateKey, dueDateKey);
+      const duplicateLockKey = getAssignmentDuplicateKey(data.name, dueDate);
+
+      // Serialize identical creations so rapid double submissions cannot both pass the check.
+      await transaction.$queryRaw`
+        SELECT pg_advisory_xact_lock(hashtextextended(${duplicateLockKey}, 0))
+      `;
+      const duplicate = await transaction.assignment.findFirst({
+        where: {
+          name: { equals: data.name, mode: 'insensitive' },
+          dueDate: { gte: duplicateRange.start, lt: duplicateRange.end },
+        },
+        select: { id: true },
+      });
+      if (duplicate) throw new DuplicateAssignmentError();
+
       const createdAssignment = await transaction.assignment.create({
         data: {
           ...data,
@@ -133,6 +154,12 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json(assignment, { status: 201 });
   } catch (error) {
+    if (error instanceof DuplicateAssignmentError) {
+      return NextResponse.json(
+        { error: 'An assignment with this title already exists for the selected date.', code: 'DUPLICATE_ASSIGNMENT' },
+        { status: 409 },
+      );
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
     }
@@ -150,27 +177,30 @@ export async function PUT(request: NextRequest) {
     const existing = await prisma.assignment.findUnique({ where: { id: data.id } });
     if (!existing) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
 
-    const dueDate = new Date(data.dueDate);
-    const dueDateValidation = validateDueDateForUpdate({
-      existingDueDate: existing.dueDate,
-      requestedDueDate: dueDate,
-      existingStatus: existing.status,
-    });
-    if (dueDateValidation === 'COMPLETED_DUE_DATE_LOCKED') {
-      return NextResponse.json({ error: 'The due date is locked after an assignment is completed' }, { status: 400 });
+    const dueDate = data.dueDate ? new Date(data.dueDate) : existing.dueDate;
+    const dueDateChanged = data.dueDate !== undefined &&
+      getCalendarDateKey(dueDate) !== getCalendarDateKey(existing.dueDate);
+    if (dueDateChanged) {
+      const dueDateValidation = validateDueDateForUpdate({
+        existingDueDate: existing.dueDate,
+        requestedDueDate: dueDate,
+        existingStatus: existing.status,
+      });
+      if (dueDateValidation === 'COMPLETED_DUE_DATE_LOCKED') {
+        return NextResponse.json({ error: 'The due date is locked after an assignment is completed' }, { status: 400 });
+      }
+      if (dueDateValidation === 'PAST_DUE_DATE') {
+        return NextResponse.json({ error: 'Assignment due date cannot be before today' }, { status: 400 });
+      }
     }
-    if (dueDateValidation === 'PAST_DUE_DATE') {
-      return NextResponse.json({ error: 'Assignment due date cannot be before today' }, { status: 400 });
-    }
-    const dueDateChanged = getCalendarDateKey(dueDate) !== getCalendarDateKey(existing.dueDate);
     const detailsChanged =
-      data.name !== existing.name ||
-      (data.description ?? null) !== existing.description ||
-      (data.author ?? null) !== existing.author ||
+      (data.name !== undefined && data.name !== existing.name) ||
+      (data.description !== undefined && data.description !== existing.description) ||
+      (data.author !== undefined && data.author !== existing.author) ||
       dueDateChanged ||
-      data.priority !== existing.priority ||
-      (data.assignedToId ?? null) !== existing.assignedToId ||
-      (data.sourceLocation ?? null) !== existing.sourceLocation;
+      (data.priority !== undefined && data.priority !== existing.priority) ||
+      (data.assignedToId !== undefined && data.assignedToId !== existing.assignedToId) ||
+      (data.sourceLocation !== undefined && data.sourceLocation !== existing.sourceLocation);
 
     if (detailsChanged && !canManageAssignmentDetails(auth.user, existing)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -198,13 +228,13 @@ export async function PUT(request: NextRequest) {
       const updatedAssignment = await transaction.assignment.update({
         where: { id: data.id },
         data: {
-          name: data.name,
-          description: data.description,
-          author: data.author,
-          dueDate: dueDateChanged ? dueDate : existing.dueDate,
-          priority: data.priority,
-          assignedToId: data.assignedToId,
-          sourceLocation: data.sourceLocation,
+          ...(data.name !== undefined ? { name: data.name } : {}),
+          ...(data.description !== undefined ? { description: data.description } : {}),
+          ...(data.author !== undefined ? { author: data.author } : {}),
+          ...(dueDateChanged ? { dueDate } : {}),
+          ...(data.priority !== undefined ? { priority: data.priority } : {}),
+          ...(data.assignedToId !== undefined ? { assignedToId: data.assignedToId } : {}),
+          ...(data.sourceLocation !== undefined ? { sourceLocation: data.sourceLocation } : {}),
           status: nextStatus,
           lastUpdatedById: auth.user.id,
           ...(enteringCompleted ? { completedAt: new Date(), completedById: auth.user.id } : {}),

@@ -126,7 +126,7 @@ The WorkFlowPro dashboard adapts to your role, showing only the information and 
 
 **Header Section:**
 - **Logo & Title** - WorkFlowPro branding and current page indicator
-- **Navigation Menu** - Main sections (Dashboard, Assignments, Today's Schedule, etc.)
+- **Navigation Menu** - Main sections such as Assignments and Settings
 - **User Info** - Your name, role, and profile picture
 - **Settings** - Theme toggle, language selection, logout
 
@@ -156,12 +156,6 @@ The WorkFlowPro dashboard adapts to your role, showing only the information and 
 - Create, edit, and track assignments
 - Filter and search capabilities
 - Assignment status updates
-
-**📅 Today's Schedule**
-- Current day focus
-- Upload and view daily schedules
-- PDF document management
-- Real-time schedule updates
 
 **📊 Statistics**
 - Personal and team analytics
@@ -219,7 +213,6 @@ As an **Operator**, you're the backbone of daily operations. Your focus is on co
 - View daily and monthly team schedules
 - Check who's working when
 - See your own scheduled shifts
-- Access today's detailed schedule documents
 
 **📊 Personal Statistics:**
 - Track your completion rates
@@ -231,9 +224,8 @@ As an **Operator**, you're the backbone of daily operations. Your focus is on co
 
 **Morning Routine:**
 1. **Login** to WorkFlowPro
-2. **Check** Today's Schedule for current assignments
-3. **Review** any new assignments in your queue
-4. **Update** yesterday's completed work if needed
+2. **Review** any new assignments in your queue
+3. **Update** yesterday's completed work if needed
 
 **During Work:**
 1. **Mark** assignments as "In Progress" when you start
@@ -275,12 +267,6 @@ As an **Operator**, you're the backbone of daily operations. Your focus is on co
 
 ### Viewing Schedules
 
-**Today's Schedule:**
-- Shows PDF documents with detailed daily plans
-- Download schedules for offline reference
-- View in fullscreen for better readability
-- Check for any last-minute updates
-
 **Calendar View:**
 - See monthly overview of team schedules
 - Different colors represent different shift types
@@ -294,7 +280,6 @@ As an **Operator**, you're the backbone of daily operations. Your focus is on co
 - Update status as you work, not just at the end
 - Add comments when you encounter issues
 - Mark work complete as soon as it's done
-- Download today's schedule for offline access
 
 **⚡ Productivity Tips:**
 - Use the search function to find assignments quickly
@@ -320,7 +305,6 @@ As a **Producer**, you're responsible for planning work, creating assignments, a
 - Set priorities and deadlines
 
 **📅 Schedule Management:**
-- Upload daily schedules (PDF format)
 - Import team schedules from Excel files
 - Manage shift color legends
 - View and edit all team schedules
@@ -373,13 +357,6 @@ As a **Producer**, you're responsible for planning work, creating assignments, a
 
 ### Schedule Management
 
-**Uploading Daily Schedules:**
-1. Go to **"Today's Schedule"**
-2. Click **"Upload Schedule"**
-3. Select PDF file (up to 10MB)
-4. Add descriptive title
-5. Click **"Upload Schedule"**
-
 **Excel Schedule Import:**
 1. Navigate to **Settings** → **Excel Schedule Uploader**
 2. Choose your Excel file
@@ -415,7 +392,6 @@ As a **Producer**, you're responsible for planning work, creating assignments, a
 - Review team statistics weekly
 - Create assignments with realistic timeframes
 - Maintain up-to-date color legends
-- Keep daily schedules current
 - Communicate changes promptly
 
 **⚡ Efficiency Tips:**
@@ -630,17 +606,6 @@ As an **Administrator**, you have complete system access and are responsible for
 4. **Name Matching** - Link Excel names to system users
 5. **Validation** - Review detected data for accuracy
 6. **Import Execution** - Create schedule entries in system
-
-### Today's Schedule Management
-
-**PDF Document Features:**
-- **Upload daily schedules** in PDF format
-- **Fullscreen viewing** for better readability
-- **Download capability** for offline access
-- **Version control** with upload timestamps
-- **Access control** based on user permissions
-
-**[Insert screenshot placeholder: Today's Schedule PDF viewer with fullscreen option]**
 
 ### Smart Notifications and Status Updates
 
@@ -903,14 +868,6 @@ As an **Administrator**, you have complete system access and are responsible for
 4. **Check color legend** - Ensure color coding is properly configured
 5. **Contact admin** - Report missing schedule data
 
-**Issue:** Today's Schedule PDF won't open
-**Solutions:**
-1. **Check file exists** - Verify schedule has been uploaded for today
-2. **Try download** - Use download button instead of viewing online
-3. **Update browser** - Ensure browser supports PDF viewing
-4. **Disable popup blockers** - Allow popups for WorkFlowPro domain
-5. **Contact uploader** - Verify file was uploaded correctly
-
 **❌ Excel Import Problems**
 
 **Issue:** Excel file won't import or gives errors
@@ -1052,9 +1009,8 @@ Your organization's system administrator is your primary support contact for:
 - Stores temporary data for better performance
 
 **File Access:**
-- Upload schedule documents and Excel files
+- Upload Excel schedule files
 - Download backups and reports
-- Access PDF schedules for viewing
 
 **Network Access:**
 - Communicate with WorkFlowPro servers
@@ -1107,14 +1063,12 @@ Your organization's system administrator is your primary support contact for:
 2. **Update task status** - Click assignment → Update status
 3. **Add progress comment** - Assignment details → Add comment
 4. **Mark work complete** - Check "Done" and "Uploaded to Q"
-5. **View today's schedule** - Today's Schedule → View PDF
 
 **Producers:**
 1. **Create new assignment** - Assignments → New Assignment
-2. **Upload daily schedule** - Today's Schedule → Upload Schedule
-3. **Import Excel schedule** - Settings → Excel Schedule Uploader
-4. **View team statistics** - Statistics → Team Overview
-5. **Manage color legends** - Settings → Shift Color Legend
+2. **Import Excel schedule** - Settings → Excel Schedule Uploader
+3. **View team statistics** - Statistics → Team Overview
+4. **Manage color legends** - Settings → Shift Color Legend
 
 **Administrators:**
 1. **Create user account** - Settings → User Management → Add User
@@ -1167,16 +1121,15 @@ Your organization's system administrator is your primary support contact for:
 
 ### Top 10 Daily Tips
 
-1. **Start each day** by checking your assignments and today's schedule
+1. **Start each day** by checking your assignments
 2. **Update assignment status** as you work, not just when finished
 3. **Use meaningful comments** to communicate with your team
-4. **Save important schedules** by downloading PDFs for offline access
-5. **Keep your profile current** with accurate contact information
-6. **Use search and filters** to find information quickly
-7. **Check statistics regularly** to monitor your productivity
-8. **Report issues immediately** to prevent them from affecting others
-9. **Learn keyboard shortcuts** for faster navigation
-10. **Log out properly** when finished to protect your account
+4. **Keep your profile current** with accurate contact information
+5. **Use search and filters** to find information quickly
+6. **Check statistics regularly** to monitor your productivity
+7. **Report issues immediately** to prevent them from affecting others
+8. **Learn keyboard shortcuts** for faster navigation
+9. **Log out properly** when finished to protect your account
 
 ### Contact Quick Reference
 

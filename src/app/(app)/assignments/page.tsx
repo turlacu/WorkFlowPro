@@ -18,7 +18,7 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePresence } from '@/contexts/PresenceContext';
 import { useToast } from "@/hooks/use-toast";
-import { api, type AssignmentWithUsers } from '@/lib/api';
+import { api, ApiError, type AssignmentWithUsers } from '@/lib/api';
 import { calendarDateToAssignmentTimestamp } from '@/lib/assignment-timing';
 import {
   filterAssignmentsBySummary,
@@ -306,7 +306,7 @@ export default function AssignmentsPage() {
           dueDate: calendarDateToAssignmentTimestamp(data.dueDate),
           status: data.status as 'PENDING' | 'IN_PROGRESS' | 'COMPLETED',
           priority: data.priority as 'LOW' | 'NORMAL' | 'URGENT',
-          assignedToId: data.assignedTo === 'unassigned' ? undefined : data.assignedTo,
+          assignedToId: data.assignedTo === 'unassigned' ? null : data.assignedTo,
           description: data.description || '',
           author: data.author || '',
           sourceLocation: data.sourceLocation || '',
@@ -343,9 +343,12 @@ export default function AssignmentsPage() {
       ]);
     } catch (error) {
       console.error('Error saving assignment:', error);
+      const isDuplicate = error instanceof ApiError && error.code === 'DUPLICATE_ASSIGNMENT';
       toast({
-        title: getTranslation(currentLang, 'Error'),
-        description: error instanceof Error ? error.message : 'Failed to save assignment. Please try again.',
+        title: getTranslation(currentLang, isDuplicate ? 'AssignmentDuplicateTitle' : 'Error'),
+        description: isDuplicate
+          ? getTranslation(currentLang, 'AssignmentDuplicateDescription', { assignmentName: data.title })
+          : error instanceof Error ? error.message : getTranslation(currentLang, 'AssignmentUpdateFailed'),
         variant: 'destructive',
       });
     }
@@ -355,6 +358,23 @@ export default function AssignmentsPage() {
     setEditingAssignment(assignment);
     setIsAssignmentModalOpen(true);
   }, []);
+
+  const handleAssignOperator = useCallback(async (assignmentId: string, operatorId: string | null) => {
+    try {
+      await api.updateAssignment({ id: assignmentId, assignedToId: operatorId });
+      await Promise.all([fetchAssignments(), fetchCalendarAssignments()]);
+      toast({
+        title: getTranslation(currentLang, 'AssignmentUpdatedSuccessTitle'),
+        description: getTranslation(currentLang, 'AssignmentAssigneeUpdatedDescription'),
+      });
+    } catch (error) {
+      toast({
+        title: getTranslation(currentLang, 'Error'),
+        description: error instanceof Error ? error.message : getTranslation(currentLang, 'AssignmentUpdateFailed'),
+        variant: 'destructive',
+      });
+    }
+  }, [currentLang, fetchAssignments, fetchCalendarAssignments, toast]);
 
   const handleCommentCountChanged = useCallback((assignmentId: string, commentCount: number) => {
     const updateCount = (assignment: AssignmentWithUsers) =>
@@ -404,35 +424,20 @@ export default function AssignmentsPage() {
         return;
       }
 
-      // If trying to check "Done" but "Uploaded to Q" is not checked, show warning
+      // Work must be started before it can be completed.
       if (completed && assignment.status !== 'IN_PROGRESS') {
         toast({
-          title: 'Cannot mark as Done',
-          description: 'The assignment must be "Uploaded to Q" first before it can be marked as Done.',
+          title: getTranslation(currentLang, 'AssignmentCannotCompleteTitle'),
+          description: getTranslation(currentLang, 'AssignmentMustBeStartedDescription'),
           variant: 'destructive',
         });
         return;
       }
 
-      // When toggling "Done" checkbox:
-      // - If checking "Done": can only do this if already IN_PROGRESS, then go to COMPLETED  
-      // - If unchecking "Done": go back to IN_PROGRESS (keep "Uploaded to Q" checked)
+      // Completing moves IN_PROGRESS to COMPLETED; reopening returns it to IN_PROGRESS.
       const newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = completed ? 'COMPLETED' : 'IN_PROGRESS';
 
-      const updateData = {
-        id: assignmentId,
-        name: assignment.name,
-        dueDate: new Date(assignment.dueDate).toISOString(),
-        status: newStatus,
-        priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
-        assignedToId: assignment.assignedToId || undefined,
-        description: assignment.description || '',
-        author: assignment.author || '',
-        sourceLocation: assignment.sourceLocation || '',
-        // Track who marked it as completed
-      };
-
-      await api.updateAssignment(updateData);
+      await api.updateAssignment({ id: assignmentId, status: newStatus });
       await Promise.all([
         fetchAssignments(), // Refresh filtered assignments
         fetchCalendarAssignments() // Refresh calendar assignments for colors
@@ -445,7 +450,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, calendarAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
+  }, [allAssignments, calendarAssignments, currentLang, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
 
   const handleToggleUploadedToQ = useCallback(async (assignmentId: string, uploaded: boolean) => {
     try {
@@ -456,39 +461,30 @@ export default function AssignmentsPage() {
         return;
       }
 
-      // Only ADMIN can uncheck "Uploaded to Q" once it's been checked
+      // Only ADMIN can return started work to pending.
       if (!uploaded && assignment.status === 'IN_PROGRESS' && session?.user?.role !== 'ADMIN') {
         toast({
-          title: 'Access Denied',
-          description: 'Only Admin users can uncheck "Uploaded to Q" once it has been marked.',
+          title: getTranslation(currentLang, 'AccessDenied'),
+          description: getTranslation(currentLang, 'AssignmentOnlyAdminCanUndoStart'),
           variant: 'destructive',
         });
         return;
       }
 
-      // If unchecking "Uploaded to Q" but assignment is completed, prevent action
+      // Completed work must be reopened before it can return to pending.
       if (!uploaded && assignment.status === 'COMPLETED') {
         toast({
-          title: 'Cannot change status',
-          description: 'Cannot uncheck "Uploaded to Q" for completed assignments. Please uncheck "Done" first.',
+          title: getTranslation(currentLang, 'AssignmentCannotChangeStatusTitle'),
+          description: getTranslation(currentLang, 'AssignmentReopenBeforePendingDescription'),
           variant: 'destructive',
         });
         return;
       }
 
-      const updateData = {
+      await api.updateAssignment({
         id: assignmentId,
-        name: assignment.name,
-        dueDate: new Date(assignment.dueDate).toISOString(),
-        status: uploaded ? 'IN_PROGRESS' as const : 'PENDING' as const,
-        priority: assignment.priority as 'LOW' | 'NORMAL' | 'URGENT',
-        assignedToId: assignment.assignedToId || undefined,
-        description: assignment.description || '',
-        author: assignment.author || '',
-        sourceLocation: assignment.sourceLocation || '',
-      };
-
-      await api.updateAssignment(updateData);
+        status: uploaded ? 'IN_PROGRESS' : 'PENDING',
+      });
       await Promise.all([
         fetchAssignments(), // Refresh filtered assignments
         fetchCalendarAssignments() // Refresh calendar assignments for colors
@@ -501,7 +497,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, calendarAssignments, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
+  }, [allAssignments, calendarAssignments, currentLang, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
 
   const displaySelectedDateString = selectedDate ? format(selectedDate, 'PPP', { locale: dateLocale }) : getTranslation(currentLang, 'None');
 
@@ -606,12 +602,14 @@ export default function AssignmentsPage() {
               ) : assignmentsToDisplay.length > 0 ? (
                 <AssignmentTable
                   assignments={assignmentsToDisplay}
+                  operators={operators}
                   openAssignmentId={requestedAssignmentId}
                   onEditAssignment={handleOpenEditModal}
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
                   onToggleUploadedToQ={handleToggleUploadedToQ}
                   onCommentCountChanged={handleCommentCountChanged}
+                  onAssignOperator={handleAssignOperator}
                 />
               ) : (
                 <div className="text-center py-10">

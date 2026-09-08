@@ -2,7 +2,7 @@
 
 ## Scopul manualului
 
-Acest manual explică modul de lucru al unui **Editor**. În aplicația WorkSmart, contul Editorului are rolul tehnic **PRODUCER**. Editorul creează și organizează sarcinile, le alocă Operatorilor, urmărește progresul echipei și publică programul zilnic în format PDF.
+Acest manual explică modul de lucru al unui **Editor**. În aplicația WorkSmart, contul Editorului are rolul tehnic **PRODUCER**. Editorul creează și organizează sarcinile, le alocă Operatorilor și urmărește progresul echipei.
 
 Funcțiile de administrare a utilizatorilor, configurare avansată, ștergere a programelor, statistici generale și copii de siguranță aparțin Administratorului și nu fac parte din acest manual.
 
@@ -18,12 +18,10 @@ Funcțiile de administrare a utilizatorilor, configurare avansată, ștergere a 
 8. [Ștergerea unei sarcini](#8-ștergerea-unei-sarcini)
 9. [Monitorizarea progresului și întârzierilor](#9-monitorizarea-progresului-și-întârzierilor)
 10. [Programul echipei și utilizatorii online](#10-programul-echipei-și-utilizatorii-online)
-11. [Publicarea Programului de Azi](#11-publicarea-programului-de-azi)
-12. [Înlocuirea documentului și modificarea titlului](#12-înlocuirea-documentului-și-modificarea-titlului)
-13. [Profilul, statisticile și schimbarea parolei](#13-profilul-statisticile-și-schimbarea-parolei)
-14. [Deconectarea](#14-deconectarea)
-15. [Probleme frecvente](#15-probleme-frecvente)
-16. [Listă rapidă pentru fiecare zi](#16-listă-rapidă-pentru-fiecare-zi)
+11. [Profilul, statisticile și schimbarea parolei](#11-profilul-statisticile-și-schimbarea-parolei)
+12. [Deconectarea](#12-deconectarea)
+13. [Probleme frecvente](#13-probleme-frecvente)
+14. [Listă rapidă pentru fiecare zi](#14-listă-rapidă-pentru-fiecare-zi)
 
 ---
 
@@ -66,7 +64,6 @@ Funcțiile de administrare a utilizatorilor, configurare avansată, ștergere a 
 În antet sunt disponibile:
 
 - **Sarcini** — creare, editare, căutare și monitorizare;
-- **Programul de Azi** — încărcarea și consultarea documentelor PDF zilnice;
 - selectorul de limbă;
 - selectorul pentru tema luminoasă sau întunecată;
 - meniul utilizatorului — profil, setări și deconectare.
@@ -93,7 +90,6 @@ Pe telefon, folosește pictograma de meniu din stânga sus.
 4. Verifică sarcinile nealocate.
 5. Selectează data curentă în calendar.
 6. Consultă **Program Echipă** și utilizatorii afișați ca fiind online.
-7. Verifică documentul din **Programul de Azi**.
 
 ### În timpul programului
 
@@ -102,14 +98,12 @@ Pe telefon, folosește pictograma de meniu din stânga sus.
 3. Verifică dacă sarcina apare în listă după salvare.
 4. Urmărește trecerea sarcinilor din **În așteptare** în **În desfășurare** și apoi în **Completată**.
 5. Corectează detaliile sau realocă sarcina când este necesar.
-6. Publică sau actualizează documentul PDF pentru programul zilnic.
 
 ### La finalul programului
 
 1. Verifică sarcinile încă active pentru ziua curentă.
 2. Verifică sarcinile finalizate cu întârziere.
 3. Confirmă pregătirea sarcinilor pentru ziua următoare.
-4. Verifică dacă programul PDF pentru ziua următoare a fost publicat, dacă este necesar.
 
 ## 5. Pagina Sarcini și indicatorii echipei
 
@@ -296,64 +290,7 @@ Persoanele aflate în concediu sau configurate cu intervalul `00:00–00:00` nu 
 
 *Programul demonstrativ al echipei și utilizatorii online.*
 
-## 11. Publicarea Programului de Azi
-
-Editorul poate publica un document PDF pentru orice dată selectată.
-
-### Cerințele fișierului
-
-- format PDF valid;
-- extensia `.pdf`;
-- dimensiune maximă de 10 MB;
-- un titlu de maximum 200 de caractere.
-
-### Încărcarea documentului
-
-1. Deschide **Programul de Azi**.
-2. Selectează data pentru care publici programul.
-3. Apasă **Încarcă program**.
-4. Introdu un titlu clar.
-5. Apasă câmpul pentru fișier și selectează documentul PDF.
-6. Verifică numele și dimensiunea fișierului afișat.
-7. Apasă **Încarcă program** în fereastra de confirmare.
-8. Așteaptă mesajul de succes.
-9. Verifică documentul în vizualizator.
-
-![Încărcarea programului zilnic](docs/manual/screenshots/editor/16-incarcare-program-zilnic.png)
-
-*Fereastra de încărcare completată cu un document PDF demonstrativ.*
-
-![Program zilnic publicat](docs/manual/screenshots/editor/17-program-publicat.png)
-
-*Programul demonstrativ publicat și vizualizatorul PDF.*
-
-## 12. Înlocuirea documentului și modificarea titlului
-
-### Înlocuirea PDF-ului pentru aceeași dată
-
-1. Selectează data care are deja un program publicat.
-2. Apasă **Încarcă program**.
-3. Introdu titlul dorit.
-4. Selectează noul PDF.
-5. Confirmă încărcarea.
-6. Noul document înlocuiește documentul anterior pentru data respectivă.
-7. Verifică numele fișierului și data ultimei actualizări.
-
-### Modificarea numai a titlului
-
-1. Selectează data programului.
-2. Apasă **Editează titlul**.
-3. Introdu titlul corect.
-4. Apasă **Salvează**.
-5. Verifică titlul actualizat.
-
-Editorul nu poate șterge programul zilnic din această pagină. Pentru ștergere, contactează Administratorul.
-
-![Editarea titlului programului](docs/manual/screenshots/editor/18-editare-titlu-program.png)
-
-*Fereastra pentru modificarea titlului unui program existent.*
-
-## 13. Profilul, statisticile și schimbarea parolei
+## 11. Profilul, statisticile și schimbarea parolei
 
 ### Profilul
 
@@ -380,7 +317,7 @@ Editorul nu poate șterge programul zilnic din această pagină. Pentru șterger
 
 *Fila „Statistici” a Editorului, cu valori demonstrative.*
 
-## 14. Deconectarea
+## 12. Deconectarea
 
 1. Apasă avatarul din dreapta sus sau deschide meniul mobil.
 2. Apasă **Deconectare**.
@@ -388,7 +325,7 @@ Editorul nu poate șterge programul zilnic din această pagină. Pentru șterger
 
 Deconectează-te întotdeauna de pe un calculator folosit de mai multe persoane.
 
-## 15. Probleme frecvente
+## 13. Probleme frecvente
 
 ### Nu pot selecta data dorită pentru o sarcină nouă
 
@@ -412,19 +349,7 @@ Data este blocată pentru a păstra corectitudinea istoricului și statisticilor
 - Dezactivează filtrul curent prin selectarea din nou sau schimbarea datei.
 - Verifică dacă sarcina a fost ștearsă de un utilizator autorizat.
 
-### Fișierul programului nu se încarcă
-
-- Verifică dacă fișierul este un PDF valid.
-- Verifică extensia `.pdf`.
-- Verifică dacă dimensiunea este de cel mult 10 MB.
-- Completează titlul programului.
-- Reîncarcă pagina și încearcă din nou.
-
-### Am publicat PDF-ul pentru data greșită
-
-Nu încărca un alt document până când nu verifici data corectă. Contactează Administratorul pentru ștergerea programului publicat greșit, apoi publică documentul pe data corectă.
-
-## 16. Listă rapidă pentru fiecare zi
+## 14. Listă rapidă pentru fiecare zi
 
 - [ ] Am verificat sarcinile echipei pentru astăzi.
 - [ ] Am verificat sarcinile restante și nealocate.
@@ -433,6 +358,5 @@ Nu încărca un alt document până când nu verifici data corectă. Contacteaz�
 - [ ] Am alocat fiecare sarcină Operatorului potrivit.
 - [ ] Am verificat progresul sarcinilor active.
 - [ ] Am verificat sarcinile finalizate cu întârziere.
-- [ ] Am publicat sau verificat documentul din Programul de Azi.
 - [ ] Am pregătit sarcinile pentru ziua următoare.
 - [ ] M-am deconectat de pe calculatorul comun.

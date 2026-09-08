@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { CalendarClock, ClipboardList, LogOut, Menu, Settings, ShieldCheck } from 'lucide-react';
+import { ClipboardList, LogOut, Menu, Settings, ShieldCheck } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 
@@ -31,9 +31,6 @@ export default function MobileMenu() {
 
   const links = [
     { href: '/assignments', label: getTranslation(currentLang, 'GoToAssignments'), icon: ClipboardList },
-    ...(session?.user?.role !== 'CONTRIBUTOR'
-      ? [{ href: '/todays-schedule', label: getTranslation(currentLang, 'TodaysScheduleButton'), icon: CalendarClock }]
-      : []),
     ...(session?.user?.role === 'ADMIN'
       ? [{ href: '/dashboard/scheduling/manual', label: getTranslation(currentLang, 'GoToAdminPanel'), icon: ShieldCheck }]
       : []),

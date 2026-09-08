@@ -15,11 +15,10 @@ Acest manual explică, pas cu pas, modul de lucru al unui utilizator cu rolul **
 7. [Finalizarea corectă a unei sarcini](#7-finalizarea-corectă-a-unei-sarcini)
 8. [Sarcinile finalizate cu întârziere](#8-sarcinile-finalizate-cu-întârziere)
 9. [Programul echipei și utilizatorii online](#9-programul-echipei-și-utilizatorii-online)
-10. [Programul de Azi](#10-programul-de-azi)
-11. [Profilul, statisticile și schimbarea parolei](#11-profilul-statisticile-și-schimbarea-parolei)
-12. [Deconectarea](#12-deconectarea)
-13. [Probleme frecvente](#13-probleme-frecvente)
-14. [Listă rapidă pentru fiecare zi](#14-listă-rapidă-pentru-fiecare-zi)
+10. [Profilul, statisticile și schimbarea parolei](#10-profilul-statisticile-și-schimbarea-parolei)
+11. [Deconectarea](#11-deconectarea)
+12. [Probleme frecvente](#12-probleme-frecvente)
+13. [Listă rapidă pentru fiecare zi](#13-listă-rapidă-pentru-fiecare-zi)
 
 ---
 
@@ -66,7 +65,6 @@ O parolă emisă de administrator este temporară. Până când o schimbi, aplic
 În partea de sus sunt disponibile principalele zone de lucru:
 
 - **Sarcini** — lista sarcinilor, calendarul și programul echipei;
-- **Programul de Azi** — documentul PDF publicat pentru o anumită zi;
 - **Notificări** — pictograma clopoțel, disponibilă Operatorilor;
 - selectorul de limbă;
 - selectorul pentru tema luminoasă sau întunecată;
@@ -92,7 +90,6 @@ Pe telefon, apasă pictograma de meniu din stânga sus pentru a afișa navigarea
 4. Verifică indicatorul **Sarcinile mele restante**.
 5. Selectează data curentă în calendar.
 6. Consultă secțiunea **Program Echipă** pentru a vedea colegii programați și intervalele lor de lucru.
-7. Deschide **Programul de Azi** și consultă documentul PDF, dacă există.
 
 ### În timpul programului
 
@@ -262,22 +259,7 @@ Persoanele cu program de tip concediu sau cu intervalul `00:00–00:00` nu sunt 
 
 *Programul demonstrativ al echipei și utilizatorii online.*
 
-## 10. Programul de Azi
-
-Pagina **Programul de Azi** permite consultarea documentelor PDF publicate pentru programul zilnic.
-
-1. Deschide **Programul de Azi** din meniul principal.
-2. Selectează data dorită din calendar.
-3. Zilele care conțin un document sunt evidențiate.
-4. Dacă există un document, verifică titlul, numele fișierului și data ultimei actualizări.
-5. Consultă documentul în vizualizatorul PDF.
-6. Folosește comenzile vizualizatorului pentru citire sau descărcare, dacă sunt disponibile în navigatorul web.
-
-![Pagina Programul de Azi](docs/manual/screenshots/operator/13-programul-de-azi.png)
-
-*Calendarul programelor publicate și vizualizatorul documentului PDF demonstrativ.*
-
-## 11. Profilul, statisticile și schimbarea parolei
+## 10. Profilul, statisticile și schimbarea parolei
 
 ### Profilul
 
@@ -304,7 +286,7 @@ Pagina **Programul de Azi** permite consultarea documentelor PDF publicate pentr
 
 *Fila „Statistici” din Setările Operatorului.*
 
-## 12. Deconectarea
+## 11. Deconectarea
 
 1. Apasă avatarul din dreapta sus sau deschide meniul de pe telefon.
 2. Apasă **Deconectare**.
@@ -312,7 +294,7 @@ Pagina **Programul de Azi** permite consultarea documentelor PDF publicate pentr
 
 Deconectează-te întotdeauna când folosești un calculator comun.
 
-## 13. Probleme frecvente
+## 12. Probleme frecvente
 
 ### Nu văd sarcina așteptată
 
@@ -339,19 +321,12 @@ Operatorul nu poate anula singur o etapă confirmată. Contactează Administrato
 - Verifică pictograma clopoțel; notificarea poate exista deja în listă.
 - Verifică legătura la internet.
 
-### Programul PDF nu se încarcă
-
-- Verifică dacă data selectată conține un document.
-- Reîncarcă pagina.
-- Încearcă un navigator web actualizat.
-- Dacă problema persistă, contactează Editorul sau Administratorul.
-
-## 14. Listă rapidă pentru fiecare zi
+## 13. Listă rapidă pentru fiecare zi
 
 - [ ] M-am autentificat cu propriul cont.
 - [ ] Am verificat notificările noi.
 - [ ] Am verificat sarcinile de astăzi și sarcinile restante.
-- [ ] Am consultat programul echipei și documentul zilnic.
+- [ ] Am consultat programul echipei.
 - [ ] Am citit detaliile înainte de a începe fiecare sarcină.
 - [ ] Am bifat **Încărcat în Q** numai după încărcarea materialului.
 - [ ] Am bifat **Gata** numai după finalizarea completă.

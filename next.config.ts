@@ -12,7 +12,7 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https://placehold.co",
   "font-src 'self' data:",
   "connect-src 'self' https: wss:",
-  "frame-src 'self' blob: https://view.officeapps.live.com",
+  "frame-src 'none'",
   "media-src 'self' blob:",
   "worker-src 'self' blob:",
   'upgrade-insecure-requests',
