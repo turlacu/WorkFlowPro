@@ -17,3 +17,7 @@ test('duplicate assignment keys allow the same assignment title on another date'
     getAssignmentDuplicateKey('Prepare Report', '2026-09-09T12:00:00.000Z'),
   );
 });
+
+test('duplicate lock keys contain no PostgreSQL-incompatible null bytes', () => {
+  assert.equal(getAssignmentDuplicateKey('Title', '2026-09-08T12:00:00Z').includes('\u0000'), false);
+});

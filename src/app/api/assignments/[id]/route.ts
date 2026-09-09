@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
 import { requireUser } from '@/lib/server-auth';
 import { canDeleteAssignment } from '@/lib/roles';
 
@@ -32,8 +33,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    await prisma.assignment.delete({
-      where: { id },
+    await prisma.$transaction(async (tx) => {
+      await tx.assignment.delete({ where: { id } });
+      await publishAssignmentEvent(tx, { type: 'deleted', assignmentId: id });
     });
 
     return NextResponse.json({ message: 'Assignment deleted successfully' });

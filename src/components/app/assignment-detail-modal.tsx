@@ -54,14 +54,21 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCo
   const { currentLang } = useLanguage();
   const { toast } = useToast();
   const locale = currentLang === 'ro' ? ro : enUS;
+  const assignmentId = assignment?.id;
+  const assignmentRevision = assignment?.updatedAt;
+  const commentCount = assignment?.commentCount;
 
   React.useEffect(() => {
-    if (!isOpen || !assignment) return;
-    let cancelled = false;
     setComment('');
     setReplyingTo(null);
+    setComments([]);
+  }, [assignmentId, isOpen]);
+
+  React.useEffect(() => {
+    if (!isOpen || !assignmentId) return;
+    let cancelled = false;
     setIsLoadingComments(true);
-    void api.getAssignmentComments(assignment.id)
+    void api.getAssignmentComments(assignmentId)
       .then((result) => {
         if (!cancelled) setComments(result);
       })
@@ -82,7 +89,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCo
     return () => {
       cancelled = true;
     };
-  }, [assignment, currentLang, isOpen, toast]);
+  }, [assignmentId, assignmentRevision, commentCount, currentLang, isOpen, toast]);
 
   if (!assignment) {
     return null;

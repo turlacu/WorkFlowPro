@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
 import { requireUser } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { USER_ROLES } from '@/lib/roles';
@@ -199,6 +200,7 @@ export async function POST(request: NextRequest) {
           ...item, uploadedBy: remapUserId(item.uploadedBy)!, createdAt: new Date(item.createdAt),
         })) });
       }
+      await publishAssignmentEvent(tx, { type: 'reset' });
     }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 120_000 });
 
     return NextResponse.json({

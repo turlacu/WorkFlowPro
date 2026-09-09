@@ -28,6 +28,7 @@ import type { AssignmentWithUsers } from '@/lib/api';
 import type { User } from '@prisma/client';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
 import { canStartAssignment, canTransitionAssignment } from '@/lib/roles';
+import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +42,7 @@ import {
 
 interface AssignmentTableProps {
   assignments: AssignmentWithUsers[];
+  detailAssignments: AssignmentWithUsers[];
   operators: Pick<User, 'id' | 'name'>[];
   openAssignmentId?: string | null;
   onEditAssignment: (assignment: AssignmentWithUsers) => void;
@@ -51,7 +53,7 @@ interface AssignmentTableProps {
   onAssignOperator: (assignmentId: string, operatorId: string | null) => Promise<void>;
 }
 
-export function AssignmentTable({ assignments, operators, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onCommentCountChanged, onAssignOperator }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, detailAssignments, operators, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onCommentCountChanged, onAssignOperator }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
@@ -60,6 +62,21 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
   const { currentLang } = useLanguage();
   const locale = currentLang === 'ro' ? ro : enUS;
   const openedAssignmentId = React.useRef<string | null>(null);
+  const { toast } = useToast();
+  const previousDetails = React.useRef(detailAssignments);
+  React.useEffect(() => {
+    if (previousDetails.current === detailAssignments) return;
+    previousDetails.current = detailAssignments;
+    if (!isDetailModalOpen || !selectedAssignmentForDetail) return;
+    const latest = detailAssignments.find((item) => item.id === selectedAssignmentForDetail.id);
+    if (latest) setSelectedAssignmentForDetail(latest);
+    else {
+      setIsDetailModalOpen(false);
+      setSelectedAssignmentForDetail(null);
+      toast({ title: getTranslation(currentLang, 'AssignmentDeletedSuccessTitle'),
+        description: getTranslation(currentLang, 'AssignmentDeletedSuccessDescription', { assignmentName: selectedAssignmentForDetail.name }) });
+    }
+  }, [detailAssignments, isDetailModalOpen, selectedAssignmentForDetail, currentLang, toast]);
 
   const currentUserRole = session?.user?.role;
   const isAssignmentManager = currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN';
@@ -382,14 +399,10 @@ export function AssignmentTable({ assignments, operators, openAssignmentId, onEd
   };
 
 
-  if (!assignments || assignments.length === 0) {
-    return <p className="text-center text-muted-foreground py-8">{getTranslation(currentLang, 'AssignmentTableNoAssignments')}</p>;
-  }
-
   return (
     <>
       {/* Desktop Table - Hidden on mobile, visible md and up */}
-      <div className="hidden overflow-x-hidden md:block">
+      <div className={cn('hidden overflow-x-hidden', assignments.length > 0 && 'md:block')}>
         <Table className="table-fixed [&_td]:px-2 [&_td]:py-3 [&_th]:px-2">
           <TableHeader className="sticky top-0 z-10 bg-card">
             <TableRow>

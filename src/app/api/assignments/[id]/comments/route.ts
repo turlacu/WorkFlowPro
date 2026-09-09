@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
+import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
 import { requireUser } from '@/lib/server-auth';
 
 const CreateCommentSchema = z.object({
@@ -123,6 +124,7 @@ export async function POST(
         where: { id: assignmentId },
         data: { lastUpdatedById: auth.user.id },
       });
+      await publishAssignmentEvent(transaction, { type: 'comments', assignmentId });
       return serializeComment(created[0]);
     });
 

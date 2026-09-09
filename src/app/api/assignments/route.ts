@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
 import { requireUser } from '@/lib/server-auth';
 import { canManageAssignmentDetails, canStartAssignment, canTransitionAssignment } from '@/lib/roles';
 import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
@@ -109,7 +110,7 @@ export async function POST(request: NextRequest) {
       const duplicateLockKey = getAssignmentDuplicateKey(data.name, dueDate);
 
       // Serialize identical creations so rapid double submissions cannot both pass the check.
-      await transaction.$queryRaw`
+      await transaction.$executeRaw`
         SELECT pg_advisory_xact_lock(hashtextextended(${duplicateLockKey}, 0))
       `;
       const duplicate = await transaction.assignment.findFirst({
@@ -150,6 +151,7 @@ export async function POST(request: NextRequest) {
         `;
       }
 
+      await publishAssignmentEvent(transaction, { type: 'created', assignmentId: createdAssignment.id });
       return createdAssignment;
     });
     return NextResponse.json(assignment, { status: 201 });
@@ -273,6 +275,7 @@ export async function PUT(request: NextRequest) {
         `;
       }
 
+      await publishAssignmentEvent(transaction, { type: 'updated', assignmentId: updatedAssignment.id });
       return updatedAssignment;
     });
     return NextResponse.json(assignment);

@@ -18,6 +18,7 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { usePresence } from '@/contexts/PresenceContext';
 import { useToast } from "@/hooks/use-toast";
+import { useAssignmentStream } from '@/hooks/use-assignment-stream';
 import { api, ApiError, type AssignmentWithUsers } from '@/lib/api';
 import { calendarDateToAssignmentTimestamp } from '@/lib/assignment-timing';
 import {
@@ -50,6 +51,11 @@ export default function AssignmentsPage() {
   const [summaryFilter, setSummaryFilter] = useState<AssignmentSummaryFilter | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
   const [summaryError, setSummaryError] = useState(false);
+  const listRequest = React.useRef(0);
+  const calendarRequest = React.useRef(0);
+  const activeQuery = React.useRef('');
+  const queryKey = `${selectedDate?.getTime()}:${searchTerm}`;
+  activeQuery.current = queryKey;
 
   const [teamForSelectedDay, setTeamForSelectedDay] = useState<{ producers: ScheduledUser[], operators: ScheduledUser[] }>({ producers: [], operators: [] });
   const [formattedSelectedDateString, setFormattedSelectedDateString] = useState<string>('');
@@ -119,9 +125,10 @@ export default function AssignmentsPage() {
     }
   }, [session, initialDataLoaded, selectedDate, toast]); // Only run once when session is available
 
-  const fetchAssignments = useCallback(async () => {
+  const fetchAssignments = useCallback(async (background = false) => {
+    const requestId = ++listRequest.current;
     try {
-      setLoadError(false);
+      if (!background) setLoadError(false);
       const params: { date?: string; search?: string } = {};
       
       // Include date filter when a date is selected and no search is active
@@ -135,8 +142,11 @@ export default function AssignmentsPage() {
       }
 
       const assignments = await api.getAssignments(params);
+      if (requestId !== listRequest.current || queryKey !== activeQuery.current) return;
       setAllAssignments(assignments || []);
+      setLoadError(false);
     } catch (error) {
+      if (requestId !== listRequest.current || queryKey !== activeQuery.current || background) return;
       console.error('Error fetching assignments:', error);
       // Set empty array on error to prevent UI issues
       setAllAssignments([]);
@@ -147,22 +157,29 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [selectedDate, searchTerm, toast]);
+  }, [selectedDate, searchTerm, toast, queryKey]);
 
   // Fetch all assignments for calendar colors (no date filter)
-  const fetchCalendarAssignments = useCallback(async () => {
-    setSummaryLoading(true);
-    setSummaryError(false);
+  const fetchCalendarAssignments = useCallback(async (background = false) => {
+    const requestId = ++calendarRequest.current;
+    if (!background) setSummaryLoading(true);
     try {
       const assignments = await api.getAssignments(); // No filters - get all assignments
+      if (requestId !== calendarRequest.current) return;
       setCalendarAssignments(assignments);
+      setSummaryError(false);
     } catch (error) {
+      if (requestId !== calendarRequest.current) return;
       console.error('Error fetching calendar assignments:', error);
       setSummaryError(true);
     } finally {
-      setSummaryLoading(false);
+      if (requestId === calendarRequest.current) setSummaryLoading(false);
     }
   }, []);
+
+  useAssignmentStream(initialDataLoaded ? session?.user.id : undefined, async () => {
+    await Promise.all([fetchAssignments(true), fetchCalendarAssignments(true)]);
+  });
 
   // Fetch team schedule for the selected date
   const fetchTeamScheduleForDate = useCallback(async (date: Date) => {
@@ -599,9 +616,11 @@ export default function AssignmentsPage() {
                     {getTranslation(currentLang, 'Retry')}
                   </Button>
                 </div>
-              ) : assignmentsToDisplay.length > 0 ? (
+              ) : (
+                <>
                 <AssignmentTable
                   assignments={assignmentsToDisplay}
+                  detailAssignments={calendarAssignments}
                   operators={operators}
                   openAssignmentId={requestedAssignmentId}
                   onEditAssignment={handleOpenEditModal}
@@ -611,7 +630,7 @@ export default function AssignmentsPage() {
                   onCommentCountChanged={handleCommentCountChanged}
                   onAssignOperator={handleAssignOperator}
                 />
-              ) : (
+              {assignmentsToDisplay.length === 0 && (
                 <div className="text-center py-10">
                   <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground" />
                   <p className="mt-4 text-lg font-semibold text-foreground">
@@ -625,6 +644,8 @@ export default function AssignmentsPage() {
                     </p>
                   )}
                 </div>
+              )}
+                </>
               )}
             </CardContent>
           </Card>
