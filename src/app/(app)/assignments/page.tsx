@@ -376,23 +376,6 @@ export default function AssignmentsPage() {
     setIsAssignmentModalOpen(true);
   }, []);
 
-  const handleAssignOperator = useCallback(async (assignmentId: string, operatorId: string | null) => {
-    try {
-      await api.updateAssignment({ id: assignmentId, assignedToId: operatorId });
-      await Promise.all([fetchAssignments(), fetchCalendarAssignments()]);
-      toast({
-        title: getTranslation(currentLang, 'AssignmentUpdatedSuccessTitle'),
-        description: getTranslation(currentLang, 'AssignmentAssigneeUpdatedDescription'),
-      });
-    } catch (error) {
-      toast({
-        title: getTranslation(currentLang, 'Error'),
-        description: error instanceof Error ? error.message : getTranslation(currentLang, 'AssignmentUpdateFailed'),
-        variant: 'destructive',
-      });
-    }
-  }, [currentLang, fetchAssignments, fetchCalendarAssignments, toast]);
-
   const handleCommentCountChanged = useCallback((assignmentId: string, commentCount: number) => {
     const updateCount = (assignment: AssignmentWithUsers) =>
       assignment.id === assignmentId ? { ...assignment, commentCount } : assignment;
@@ -621,14 +604,12 @@ export default function AssignmentsPage() {
                 <AssignmentTable
                   assignments={assignmentsToDisplay}
                   detailAssignments={calendarAssignments}
-                  operators={operators}
                   openAssignmentId={requestedAssignmentId}
                   onEditAssignment={handleOpenEditModal}
                   onDeleteAssignment={handleDeleteAssignment}
                   onToggleComplete={handleToggleComplete}
                   onToggleUploadedToQ={handleToggleUploadedToQ}
                   onCommentCountChanged={handleCommentCountChanged}
-                  onAssignOperator={handleAssignOperator}
                 />
               {assignmentsToDisplay.length === 0 && (
                 <div className="text-center py-10">

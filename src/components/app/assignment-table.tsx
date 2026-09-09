@@ -13,7 +13,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Edit, Trash2, AlertTriangle, Calendar, MessageSquare } from 'lucide-react';
@@ -25,7 +24,6 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useSession } from 'next-auth/react';
 import type { AssignmentWithUsers } from '@/lib/api';
-import type { User } from '@prisma/client';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
 import { canStartAssignment, canTransitionAssignment } from '@/lib/roles';
 import { useToast } from '@/hooks/use-toast';
@@ -43,22 +41,19 @@ import {
 interface AssignmentTableProps {
   assignments: AssignmentWithUsers[];
   detailAssignments: AssignmentWithUsers[];
-  operators: Pick<User, 'id' | 'name'>[];
   openAssignmentId?: string | null;
   onEditAssignment: (assignment: AssignmentWithUsers) => void;
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
   onCommentCountChanged: (assignmentId: string, count: number) => void;
-  onAssignOperator: (assignmentId: string, operatorId: string | null) => Promise<void>;
 }
 
-export function AssignmentTable({ assignments, detailAssignments, operators, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onCommentCountChanged, onAssignOperator }: AssignmentTableProps) {
+export function AssignmentTable({ assignments, detailAssignments, openAssignmentId, onEditAssignment, onDeleteAssignment, onToggleComplete, onToggleUploadedToQ, onCommentCountChanged }: AssignmentTableProps) {
   const { data: session } = useSession();
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = React.useState<{id: string, name: string} | null>(null);
-  const [assigningAssignmentId, setAssigningAssignmentId] = React.useState<string | null>(null);
   const { currentLang } = useLanguage();
   const locale = currentLang === 'ro' ? ro : enUS;
   const openedAssignmentId = React.useRef<string | null>(null);
@@ -132,15 +127,6 @@ export function AssignmentTable({ assignments, detailAssignments, operators, ope
     onEditAssignment(assignment);
   }
 
-  const handleAssigneeChange = async (assignmentId: string, value: string) => {
-    setAssigningAssignmentId(assignmentId);
-    try {
-      await onAssignOperator(assignmentId, value === 'unassigned' ? null : value);
-    } finally {
-      setAssigningAssignmentId(null);
-    }
-  };
-
   const getStatusBadgeVariant = (status: AssignmentWithUsers['status']) => {
     switch (status) {
       case 'COMPLETED':
@@ -187,7 +173,7 @@ export function AssignmentTable({ assignments, detailAssignments, operators, ope
     const text = getTranslation(currentLang, `AssignmentStatus${status.replace(' ', '')}`);
 
     return (
-      <Badge variant={variant} className={cn(className, "capitalize")}>
+      <Badge variant={variant} className={cn(className, "inline-flex w-24 justify-center whitespace-nowrap capitalize")}>
         {text}
       </Badge>
     );
@@ -233,6 +219,7 @@ export function AssignmentTable({ assignments, detailAssignments, operators, ope
       className={cn(
         'transition-shadow duration-200 hover:shadow-md',
         {'border-emerald-500/20 bg-emerald-500/[0.06] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
+        {'border-amber-500/20 bg-amber-500/[0.06] dark:bg-amber-500/10': assignment.status === 'PENDING'},
       )}
     >
       <CardHeader className="pb-3">
@@ -273,27 +260,9 @@ export function AssignmentTable({ assignments, detailAssignments, operators, ope
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              {canEdit ? (
-                <Select
-                  value={assignment.assignedToId || 'unassigned'}
-                  onValueChange={(value) => void handleAssigneeChange(assignment.id, value)}
-                  disabled={assigningAssignmentId === assignment.id}
-                >
-                  <SelectTrigger className="h-10" aria-label={getTranslation(currentLang, 'AssignmentAssigneeLabel')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unassigned">{getTranslation(currentLang, 'AssignmentUnassigned')}</SelectItem>
-                    {operators.map((operator) => (
-                      <SelectItem key={operator.id} value={operator.id}>{operator.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-sm font-medium text-foreground">
-                  {assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}
-                </p>
-              )}
+              <p className="truncate text-sm font-medium text-foreground" title={assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}>
+                {assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {getTranslation(currentLang, 'AssignmentTableAssignedTo')}
               </p>
@@ -429,8 +398,9 @@ export function AssignmentTable({ assignments, detailAssignments, operators, ope
               <TableRow
                 key={assignment.id}
                 className={cn(
-                  'hover:bg-muted/50',
+                  'transition-colors hover:bg-muted/50',
                   {'bg-emerald-500/[0.07] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
+                  {'bg-amber-500/[0.07] dark:bg-amber-500/10': assignment.status === 'PENDING'},
                 )}
               >
                 <TableCell className="font-medium leading-5">
@@ -455,30 +425,12 @@ export function AssignmentTable({ assignments, detailAssignments, operators, ope
                   </button>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
-                <TableCell className="truncate" onClick={(event) => event.stopPropagation()}>
-                  {canEdit ? (
-                    <Select
-                      value={assignment.assignedToId || 'unassigned'}
-                      onValueChange={(value) => void handleAssigneeChange(assignment.id, value)}
-                      disabled={assigningAssignmentId === assignment.id}
-                    >
-                      <SelectTrigger className="h-9 border-0 px-2 shadow-none" aria-label={getTranslation(currentLang, 'AssignmentAssigneeLabel')}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">{getTranslation(currentLang, 'AssignmentUnassigned')}</SelectItem>
-                        {operators.map((operator) => (
-                          <SelectItem key={operator.id} value={operator.id}>{operator.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <span title={assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}>
-                      {assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}
-                    </span>
-                  )}
+                <TableCell className="truncate">
+                  <span className="block truncate" title={assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}>
+                    {assignment.assignedTo?.name || getTranslation(currentLang, 'AssignmentUnassigned')}
+                  </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="align-middle">
                   {getStatusBadge(assignment.status)}
                   {getLateCompletionNote(assignment)}
                 </TableCell>
