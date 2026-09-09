@@ -391,13 +391,15 @@ export function StatisticsDashboard() {
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
+                    variant="outline"
+                    size="sm"
                     className={cn(
-                      "w-[200px] justify-start text-left font-normal h-9 text-xs border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+                      "w-[200px] justify-start text-left text-xs font-normal",
                       !userActivityDate && "text-muted-foreground"
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {userActivityDate ? format(userActivityDate, "PPP") : <span>{getTranslation(currentLang, 'PickDatePlaceholder')}</span>}
+                    {userActivityDate ? format(userActivityDate, "PPP", { locale }) : <span>{getTranslation(currentLang, 'PickDatePlaceholder')}</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0">
@@ -410,14 +412,18 @@ export function StatisticsDashboard() {
                 </PopoverContent>
               </Popover>
               <Button 
+                variant="outline"
+                size="sm"
                 onClick={() => handleRefreshStats('day')}
-                className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                className="min-h-11 text-xs md:min-h-9"
               >
                 {getTranslation(currentLang, 'StatisticsDayViewButton')}
               </Button>
               <Button 
+                variant="outline"
+                size="sm"
                 onClick={() => handleRefreshStats('month')}
-                className="h-9 text-xs min-h-[44px] md:min-h-[36px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                className="min-h-11 text-xs md:min-h-9"
               >
                 {getTranslation(currentLang, 'StatisticsMonthViewButton')}
               </Button>
@@ -549,16 +555,20 @@ export function StatisticsDashboard() {
             </div>
             <div className="flex items-center gap-1">
               <Button
-                className="h-8 w-8 min-h-[44px] min-w-[44px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground md:min-h-[32px] md:min-w-[32px]"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 md:h-8 md:w-8"
                 onClick={handlePrevMonth}
                 aria-label={getTranslation(currentLang, 'StatisticsPreviousMonth')}
                 title={getTranslation(currentLang, 'StatisticsPreviousMonth')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium w-28 text-center">{format(trendChartMonth, 'MMMM yyyy')}</span>
+              <span className="w-28 text-center text-sm font-medium">{format(trendChartMonth, 'MMMM yyyy', { locale })}</span>
               <Button
-                className="h-8 w-8 min-h-[44px] min-w-[44px] touch-manipulation border border-input bg-background hover:bg-accent hover:text-accent-foreground md:min-h-[32px] md:min-w-[32px]"
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 md:h-8 md:w-8"
                 onClick={handleNextMonth}
                 aria-label={getTranslation(currentLang, 'StatisticsNextMonth')}
                 title={getTranslation(currentLang, 'StatisticsNextMonth')}

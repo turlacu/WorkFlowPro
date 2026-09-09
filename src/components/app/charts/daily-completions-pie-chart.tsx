@@ -18,8 +18,8 @@ export function DailyCompletionsPieChart({ data }: DailyCompletionsPieChartProps
   const chartSummary = chartData.map((item) => `${item.name}: ${item.value}`).join(', ');
 
   return (
-    <div role="img" aria-label={`${getTranslation(currentLang, 'StatisticsDailyCompletionsTitle')}: ${chartSummary}`}>
-      <div aria-hidden="true">
+    <div className="w-full min-w-0" role="img" aria-label={`${getTranslation(currentLang, 'StatisticsDailyCompletionsTitle')}: ${chartSummary}`}>
+      <div className="w-full min-w-0" aria-hidden="true">
         <ResponsiveContainer width="100%" height={250}>
           <PieChart>
             <Pie
