@@ -20,15 +20,15 @@ export function DailyCompletionsPieChart({ data }: DailyCompletionsPieChartProps
   return (
     <div className="w-full min-w-0" role="img" aria-label={`${getTranslation(currentLang, 'StatisticsDailyCompletionsTitle')}: ${chartSummary}`}>
       <div className="w-full min-w-0" aria-hidden="true">
-        <ResponsiveContainer width="100%" height={250}>
+        <ResponsiveContainer width="100%" height={330}>
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
               cy="50%"
               labelLine={false}
-              outerRadius={80}
-              innerRadius={50}
+              outerRadius={115}
+              innerRadius={70}
               fill="#8884d8"
               dataKey="value"
             >
@@ -41,7 +41,10 @@ export function DailyCompletionsPieChart({ data }: DailyCompletionsPieChartProps
                 backgroundColor: 'hsl(var(--background))',
                 borderColor: 'hsl(var(--border))',
                 borderRadius: 'var(--radius)',
+                color: 'hsl(var(--foreground))',
               }}
+              labelStyle={{ color: 'hsl(var(--foreground))' }}
+              itemStyle={{ color: 'hsl(var(--foreground))' }}
               formatter={(value: number, name: string) => [`${value} ${getTranslation(currentLang, 'assignments')}`, name]}
             />
           </PieChart>

@@ -219,7 +219,7 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
       className={cn(
         'transition-shadow duration-200 hover:shadow-md',
         {'border-emerald-500/20 bg-emerald-500/[0.06] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
-        {'border-amber-500/20 bg-amber-500/[0.06] dark:bg-amber-500/10': assignment.status === 'PENDING'},
+        {'border-amber-500/20 bg-amber-500/[0.06] dark:bg-amber-500/10': assignment.status === 'IN_PROGRESS'},
       )}
     >
       <CardHeader className="pb-3">
@@ -400,7 +400,7 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
                 className={cn(
                   'transition-colors hover:bg-muted/50',
                   {'bg-emerald-500/[0.07] dark:bg-emerald-500/10': assignment.status === 'COMPLETED'},
-                  {'bg-amber-500/[0.07] dark:bg-amber-500/10': assignment.status === 'PENDING'},
+                  {'bg-amber-500/[0.07] dark:bg-amber-500/10': assignment.status === 'IN_PROGRESS'},
                 )}
               >
                 <TableCell className="font-medium leading-5">
