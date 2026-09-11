@@ -8,6 +8,7 @@ import {
   isPresenceEvent,
   type OnlineUser,
 } from '@/lib/presence';
+import { getAppSessionId } from '@/lib/client-app-session';
 
 interface PresenceContextValue {
   onlineUsers: OnlineUser[];
@@ -36,7 +37,7 @@ export function PresenceProvider({ children }: { children: React.ReactNode }) {
 
     setConnecting(true);
     lastEventAt.current = Date.now();
-    const source = new EventSource('/api/presence/stream');
+    const source = new EventSource(`/api/presence/stream?sessionId=${encodeURIComponent(getAppSessionId())}`);
     const handlePresence = (message: MessageEvent<string>) => {
       try {
         const payload: unknown = JSON.parse(message.data);

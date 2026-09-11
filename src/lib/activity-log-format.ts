@@ -4,7 +4,7 @@ export type ActivityLanguage = 'en' | 'ro';
 
 const eventLabels: Record<ActivityLanguage, Record<ActivityEventType, string>> = {
   en: {
-    AUTH_LOGIN: 'Signed in', AUTH_LOGOUT: 'Signed out', PASSWORD_CHANGED: 'Changed password',
+    AUTH_LOGIN: 'Signed in', AUTH_LOGOUT: 'Signed out', APP_OPENED: 'Opened the app', APP_CLOSED: 'Closed the app', PASSWORD_CHANGED: 'Changed password',
     ASSIGNMENT_CREATED: 'Created assignment', ASSIGNMENT_UPDATED: 'Modified assignment',
     ASSIGNMENT_ASSIGNED: 'Assigned work', ASSIGNMENT_STARTED: 'Started assignment',
     ASSIGNMENT_RETURNED_PENDING: 'Returned assignment to pending', ASSIGNMENT_COMPLETED: 'Completed assignment',
@@ -20,7 +20,7 @@ const eventLabels: Record<ActivityLanguage, Record<ActivityEventType, string>> =
     ROLE_PERMISSIONS_UPDATED: 'Updated role permissions',
   },
   ro: {
-    AUTH_LOGIN: 'S-a autentificat', AUTH_LOGOUT: 'S-a deconectat', PASSWORD_CHANGED: 'Și-a schimbat parola',
+    AUTH_LOGIN: 'S-a autentificat', AUTH_LOGOUT: 'S-a deconectat', APP_OPENED: 'A deschis aplicația', APP_CLOSED: 'A închis aplicația', PASSWORD_CHANGED: 'Și-a schimbat parola',
     ASSIGNMENT_CREATED: 'A creat sarcina', ASSIGNMENT_UPDATED: 'A modificat sarcina',
     ASSIGNMENT_ASSIGNED: 'A alocat sarcina', ASSIGNMENT_STARTED: 'A început sarcina',
     ASSIGNMENT_RETURNED_PENDING: 'A readus sarcina în așteptare', ASSIGNMENT_COMPLETED: 'A finalizat sarcina',
@@ -41,7 +41,17 @@ export function activityEventLabel(eventType: ActivityEventType, language: Activ
   return eventLabels[language][eventType];
 }
 
-export function formatActivitySentence(event: ActivityLogRecord, language: ActivityLanguage): string {
+export type ActivitySentenceParts = {
+  date: string;
+  time: string;
+  role: string;
+  user: string;
+  action: string;
+  target: string;
+  extra: string;
+};
+
+export function formatActivityParts(event: ActivityLogRecord, language: ActivityLanguage): ActivitySentenceParts {
   const action = activityEventLabel(event.eventType, language).toLocaleLowerCase(language);
   const locale = language === 'ro' ? 'ro-RO' : 'en-GB';
   const timestamp = new Date(event.occurredAt);
@@ -75,7 +85,12 @@ export function formatActivitySentence(event: ActivityLogRecord, language: Activ
         ? (language === 'ro' ? ` (${count} înregistrări)` : ` (${count} records)`)
         : '';
 
+  return { date: eventDate, time: eventTime, role: roles[event.actorRole], user: event.actorName, action, target, extra };
+}
+
+export function formatActivitySentence(event: ActivityLogRecord, language: ActivityLanguage): string {
+  const parts = formatActivityParts(event, language);
   return language === 'ro'
-    ? `La ${eventDate}, ora ${eventTime}, ${roles[event.actorRole]} ${event.actorName} ${action}${target}${extra}.`
-    : `On ${eventDate} at ${eventTime}, ${roles[event.actorRole]} ${event.actorName} ${action}${target}${extra}.`;
+    ? `La ${parts.date}, ora ${parts.time}, ${parts.role} ${parts.user} ${parts.action}${parts.target}${parts.extra}.`
+    : `On ${parts.date} at ${parts.time}, ${parts.role} ${parts.user} ${parts.action}${parts.target}${parts.extra}.`;
 }

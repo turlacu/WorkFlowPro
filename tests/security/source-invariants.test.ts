@@ -172,7 +172,7 @@ test('presence is authenticated, persistent, role-inclusive, and non-buffered', 
   assert.match(streamRoute, /text\/event-stream/);
   assert.match(streamRoute, /X-Accel-Buffering.*no/);
   assert.doesNotMatch(streamRoute, /requireUser\(\['OPERATOR'\]\)/);
-  assert.match(provider, /new EventSource\('\/api\/presence\/stream'\)/);
+  assert.match(provider, /new EventSource\(`\/api\/presence\/stream\?sessionId=/);
   assert.match(provider, /PRESENCE_CLIENT_STALE_MS/);
   assert.match(assignments, /OnlineNow/);
   assert.match(assignments, /onlineUsers\.map/);

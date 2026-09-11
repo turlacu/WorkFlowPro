@@ -7,14 +7,28 @@ import type { UserRole } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
 import { ACTIVITY_EVENT_TYPES, type ActivityLogRecord } from '@/lib/activity-log-types';
-import { activityEventLabel, formatActivitySentence } from '@/lib/activity-log-format';
+import { activityEventLabel, formatActivityParts } from '@/lib/activity-log-format';
 import { USER_ROLES } from '@/lib/roles';
 
 type UserOption = { id: string; name: string; role: UserRole };
+
+const roleClassName: Record<UserRole, string> = {
+  ADMIN: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+  PRODUCER: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
+  CONTRIBUTOR: 'bg-amber-500/10 text-amber-800 dark:text-amber-300',
+  OPERATOR: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+};
+
+function actionClassName(eventType: ActivityLogRecord['eventType']): string {
+  if (eventType.includes('DELETED')) return 'text-red-700 dark:text-red-400';
+  if (eventType.includes('CREATED') || eventType === 'APP_OPENED' || eventType === 'AUTH_LOGIN') return 'text-emerald-700 dark:text-emerald-400';
+  if (eventType === 'APP_CLOSED' || eventType === 'AUTH_LOGOUT') return 'text-slate-600 dark:text-slate-300';
+  if (eventType.includes('COMPLETED') || eventType.includes('IMPORTED')) return 'text-blue-700 dark:text-blue-400';
+  return 'text-amber-700 dark:text-amber-400';
+}
 
 export function ActivityLogDashboard() {
   const { currentLang } = useLanguage();
@@ -31,10 +45,12 @@ export function ActivityLogDashboard() {
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [error, setError] = React.useState(false);
 
-  const loadEvents = React.useCallback(async (cursor?: string) => {
-    if (cursor) setLoadingMore(true);
-    else setLoading(true);
-    setError(false);
+  const loadEvents = React.useCallback(async (cursor?: string, quiet = false) => {
+    if (!quiet) {
+      if (cursor) setLoadingMore(true);
+      else setLoading(true);
+      setError(false);
+    }
     try {
       const params = new URLSearchParams({ date, limit: '50' });
       if (actorId !== 'ALL') params.set('actorId', actorId);
@@ -48,14 +64,20 @@ export function ActivityLogDashboard() {
       setNextCursor(data.nextCursor);
       setRetentionDays(data.retentionDays);
     } catch {
-      setError(true);
+      if (!quiet) setError(true);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (!quiet) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, [actorId, date, eventType, role]);
 
   React.useEffect(() => { loadEvents(); }, [loadEvents]);
+  React.useEffect(() => {
+    const interval = window.setInterval(() => void loadEvents(undefined, true), 15_000);
+    return () => window.clearInterval(interval);
+  }, [loadEvents]);
   React.useEffect(() => {
     fetch('/api/users')
       .then((response) => response.ok ? response.json() : [])
@@ -123,12 +145,25 @@ export function ActivityLogDashboard() {
         <p className="py-12 text-center text-sm text-muted-foreground">{getTranslation(currentLang, 'ActivityEmpty')}</p>
       ) : (
         <div className="divide-y" aria-live="polite">
-          {events.map((event) => (
-            <article key={event.id} className="group grid gap-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-              <p className="min-w-0 text-sm leading-6 text-foreground">{formatActivitySentence(event, language)}</p>
-              <Badge variant="outline" className="w-fit text-[11px] font-normal">{getTranslation(currentLang, event.actorRole)}</Badge>
-            </article>
-          ))}
+          {events.map((event) => {
+            const parts = formatActivityParts(event, language);
+            return (
+              <article key={event.id} className="py-4">
+                <p className="min-w-0 text-sm leading-7 text-foreground">
+                  {language === 'ro' ? 'La ' : 'On '}
+                  <span className="font-semibold text-sky-700 dark:text-sky-300">{parts.date}</span>
+                  {language === 'ro' ? ', ora ' : ' at '}
+                  <span className="font-semibold text-violet-700 dark:text-violet-300">{parts.time}</span>
+                  {', '}
+                  <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-semibold ${roleClassName[event.actorRole]}`}>{parts.role}</span>{' '}
+                  <span className="font-semibold">{parts.user}</span>{' '}
+                  <span className={`font-medium ${actionClassName(event.eventType)}`}>{parts.action}</span>
+                  {parts.target && <span className="font-semibold">{parts.target}</span>}
+                  {parts.extra}<span aria-hidden="true">.</span>
+                </p>
+              </article>
+            );
+          })}
         </div>
       )}
 

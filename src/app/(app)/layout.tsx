@@ -7,6 +7,7 @@ import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext'; 
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { PresenceProvider } from '@/contexts/PresenceContext';
+import { ActivitySessionTracker } from '@/components/app/activity-session-tracker';
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { currentLang } = useLanguage();
@@ -16,6 +17,7 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <PresenceProvider>
       <NotificationProvider>
+        <ActivitySessionTracker />
         <div className="flex min-h-screen min-w-0 flex-col overflow-x-clip bg-background">
           <AppHeader />
           <main className="mx-auto w-full min-w-0 max-w-7xl flex-grow px-3 py-4 sm:px-4 sm:py-6 lg:px-6 lg:py-8">

@@ -9,6 +9,8 @@ import {
   type PresenceRole,
 } from '@/lib/presence';
 import { requirePermission } from '@/lib/server-auth';
+import { recordAppSessionActivity } from '@/lib/app-session-activity';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -57,6 +59,15 @@ async function readOnlineUsers(now: Date): Promise<OnlineUser[]> {
 export async function GET(request: NextRequest) {
   const auth = await requirePermission('PRESENCE_USE', true);
   if (auth.response) return auth.response;
+  const parsedSessionId = z.string().uuid().safeParse(request.nextUrl.searchParams.get('sessionId'));
+  const appSessionId = parsedSessionId.success ? parsedSessionId.data : null;
+  if (appSessionId) {
+    try {
+      await recordAppSessionActivity(auth.user, 'OPEN', appSessionId);
+    } catch (error) {
+      console.error('Failed to record online activity:', error);
+    }
+  }
 
   let cleanup: (() => void) | undefined;
   const stream = new ReadableStream<Uint8Array>({
@@ -107,6 +118,21 @@ export async function GET(request: NextRequest) {
         active = false;
         clearInterval(interval);
         request.signal.removeEventListener('abort', handleAbort);
+        if (appSessionId) {
+          setTimeout(async () => {
+            try {
+              const rows = await prisma.$queryRaw<Array<{ lastSeenAt: Date }>>`
+                SELECT "lastSeenAt" FROM "user_presence" WHERE "userId" = ${auth.user.id} LIMIT 1
+              `;
+              const lastSeenAt = rows[0]?.lastSeenAt.getTime() ?? 0;
+              if (Date.now() - lastSeenAt >= PRESENCE_ONLINE_WINDOW_MS) {
+                await recordAppSessionActivity(auth.user, 'CLOSE', appSessionId);
+              }
+            } catch (error) {
+              console.error('Failed to record offline activity:', error);
+            }
+          }, PRESENCE_ONLINE_WINDOW_MS + 1_000);
+        }
       };
 
       void publishPresence();

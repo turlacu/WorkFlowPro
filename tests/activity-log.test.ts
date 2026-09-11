@@ -73,3 +73,19 @@ test('sensitive content is not part of the activity log schema', () => {
   const activityModel = schema.match(/model ActivityLog \{[\s\S]*?\n\}/)?.[0] || '';
   assert.doesNotMatch(activityModel, /password|token|requestBody|commentContent|description/);
 });
+
+test('app open and close activity uses beacon delivery with presence fallback', () => {
+  const eventTypes = readFileSync('src/lib/activity-log-types.ts', 'utf8');
+  const tracker = readFileSync('src/components/app/activity-session-tracker.tsx', 'utf8');
+  const endpoint = readFileSync('src/app/api/activity/session/route.ts', 'utf8');
+  const presence = readFileSync('src/app/api/presence/stream/route.ts', 'utf8');
+  const dashboard = readFileSync('src/components/app/activity-log-dashboard.tsx', 'utf8');
+
+  assert.match(eventTypes, /'APP_OPENED'/);
+  assert.match(eventTypes, /'APP_CLOSED'/);
+  assert.match(tracker, /navigator\.sendBeacon/);
+  assert.match(endpoint, /recordAppSessionActivity/);
+  assert.match(presence, /PRESENCE_ONLINE_WINDOW_MS \+ 1_000/);
+  assert.match(dashboard, /formatActivityParts/);
+  assert.match(dashboard, /15_000/);
+});
