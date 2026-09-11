@@ -8,6 +8,7 @@ import { requireUser } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { USER_ROLES } from '@/lib/roles';
 import { Prisma } from '@prisma/client';
+import { recordActivity } from '@/lib/activity-log';
 
 const date = z.string().datetime();
 const nullableDate = date.nullable();
@@ -200,6 +201,15 @@ export async function POST(request: NextRequest) {
           ...item, uploadedBy: remapUserId(item.uploadedBy)!, createdAt: new Date(item.createdAt),
         })) });
       }
+      await recordActivity({
+        eventType: 'BACKUP_RESTORED', actor: auth.user, targetType: 'backup',
+        targetName: file.name,
+        metadata: {
+          users: backup.data.users.length,
+          assignments: backup.data.assignments.length,
+          schedules: backup.data.teamSchedules.length,
+        },
+      }, tx);
       await publishAssignmentEvent(tx, { type: 'reset' });
     }, { isolationLevel: 'Serializable', maxWait: 10_000, timeout: 120_000 });
 

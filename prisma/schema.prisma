@@ -84,8 +84,28 @@ model User {
   sentNotifications       Notification[]             @relation("NotificationActor")
   assignmentComments      AssignmentComment[]
   presence                UserPresence?
+  activityLogs            ActivityLog[]
 
   @@map("users")
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  occurredAt DateTime @default(now())
+  eventType  String
+  actorId    String?
+  actorName  String
+  actorRole  UserRole
+  targetType String?
+  targetId   String?
+  targetName String?
+  metadata   Json     @default("{}")
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt])
+  @@index([actorId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@map("activity_logs")
 }
 
 model UserPresence {

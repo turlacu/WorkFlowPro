@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { listObjects, putObject } from '@/lib/minio';
 import { requireUser } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { recordActivity } from '@/lib/activity-log';
 
 export async function POST() {
   try {
@@ -44,6 +45,11 @@ export async function POST() {
     const objectName = `backups/${fileName}`;
     const buffer = Buffer.from(JSON.stringify(data));
     await putObject(objectName, buffer, 'application/json');
+    await recordActivity({
+      eventType: 'BACKUP_CREATED', actor: auth.user, targetType: 'backup',
+      targetId: id, targetName: fileName,
+      metadata: { recordCount: Object.values(data.data).reduce((sum, records) => sum + records.length, 0) },
+    });
 
     return NextResponse.json({
       id,

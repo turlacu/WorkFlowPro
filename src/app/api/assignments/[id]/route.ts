@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
 import { requireUser } from '@/lib/server-auth';
 import { canDeleteAssignment } from '@/lib/roles';
+import { recordActivity } from '@/lib/activity-log';
 
 const assignmentInclude = {
   assignedTo: { select: { id: true, name: true, email: true } },
@@ -35,6 +36,13 @@ export async function DELETE(
 
     await prisma.$transaction(async (tx) => {
       await tx.assignment.delete({ where: { id } });
+      await recordActivity({
+        eventType: 'ASSIGNMENT_DELETED',
+        actor: auth.user,
+        targetType: 'assignment',
+        targetId: assignment.id,
+        targetName: assignment.name,
+      }, tx);
       await publishAssignmentEvent(tx, { type: 'deleted', assignmentId: id });
     });
 

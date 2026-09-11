@@ -5,6 +5,7 @@ import { requireUser } from '@/lib/server-auth';
 import { canUpdateUser, USER_ROLES } from '@/lib/roles';
 import type { Prisma } from '@prisma/client';
 import { generateTemporaryPassword, hashPassword } from '@/lib/password';
+import { recordActivity } from '@/lib/activity-log';
 
 const CreateUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -77,22 +78,23 @@ export async function POST(request: NextRequest) {
     const temporaryPassword = generateTemporaryPassword();
     const hashedPassword = await hashPassword(temporaryPassword);
 
-    const user = await prisma.user.create({
-      data: {
-        name: validatedData.name,
-        email: validatedData.email.toLowerCase(),
-        password: hashedPassword,
-        role: validatedData.role,
-        passwordResetRequired: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          name: validatedData.name,
+          email: validatedData.email.toLowerCase(),
+          password: hashedPassword,
+          role: validatedData.role,
+          passwordResetRequired: true,
+        },
+        select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
+      });
+      await recordActivity({
+        eventType: 'USER_CREATED', actor: auth.user, targetType: 'user',
+        targetId: created.id, targetName: created.name || created.email,
+        metadata: { role: created.role },
+      }, tx);
+      return created;
     });
 
     const response = NextResponse.json({ ...user, temporaryPassword }, { status: 201 });
@@ -123,24 +125,32 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const user = await prisma.user.update({
-      where: { id: validatedData.id },
-      data: {
-        name: validatedData.name,
-        email: validatedData.email.toLowerCase(),
-        ...(auth.user.role === 'ADMIN' ? { role: validatedData.role } : {}),
-        ...(auth.user.role === 'ADMIN' && validatedData.id !== auth.user.id
-          ? { sessionVersion: { increment: 1 } }
-          : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    const existing = await prisma.user.findUnique({ where: { id: validatedData.id }, select: { name: true, email: true, role: true } });
+    if (!existing) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const changedFields = [
+      existing.name !== validatedData.name ? 'name' : null,
+      existing.email !== validatedData.email.toLowerCase() ? 'email' : null,
+      auth.user.role === 'ADMIN' && existing.role !== validatedData.role ? 'role' : null,
+    ].filter((field): field is string => Boolean(field));
+    const user = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: validatedData.id },
+        data: {
+          name: validatedData.name,
+          email: validatedData.email.toLowerCase(),
+          ...(auth.user.role === 'ADMIN' ? { role: validatedData.role } : {}),
+          ...(auth.user.role === 'ADMIN' && validatedData.id !== auth.user.id
+            ? { sessionVersion: { increment: 1 } }
+            : {}),
+        },
+        select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
+      });
+      await recordActivity({
+        eventType: 'USER_UPDATED', actor: auth.user, targetType: 'user',
+        targetId: updated.id, targetName: updated.name || updated.email,
+        metadata: { changedFields },
+      }, tx);
+      return updated;
     });
 
     return NextResponse.json(user);

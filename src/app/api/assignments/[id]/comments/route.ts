@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
 import { requireUser } from '@/lib/server-auth';
+import { recordActivity } from '@/lib/activity-log';
 
 const CreateCommentSchema = z.object({
   content: z.string().trim().min(1).max(10_000),
@@ -51,7 +52,7 @@ export async function GET(
     const { id: assignmentId } = await params;
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!assignment) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
@@ -90,7 +91,7 @@ export async function POST(
     const data = CreateCommentSchema.parse(await request.json());
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     if (!assignment) {
       return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
@@ -124,6 +125,14 @@ export async function POST(
         where: { id: assignmentId },
         data: { lastUpdatedById: auth.user.id },
       });
+      await recordActivity({
+        eventType: 'ASSIGNMENT_COMMENTED',
+        actor: auth.user,
+        targetType: 'assignment',
+        targetId: assignment.id,
+        targetName: assignment.name,
+        metadata: { reply: Boolean(data.parentId) },
+      }, transaction);
       await publishAssignmentEvent(transaction, { type: 'comments', assignmentId });
       return serializeComment(created[0]);
     });

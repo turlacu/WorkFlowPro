@@ -8,6 +8,7 @@ import { canManageAssignmentDetails, canStartAssignment, canTransitionAssignment
 import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
 import { parseDateOnly } from '@/lib/date-only';
 import { getAssignmentDuplicateKey } from '@/lib/assignment-duplicates';
+import { recordActivity } from '@/lib/activity-log';
 import {
   getCalendarDateKey,
   validateDueDateForCreate,
@@ -151,6 +152,14 @@ export async function POST(request: NextRequest) {
         `;
       }
 
+      await recordActivity({
+        eventType: 'ASSIGNMENT_CREATED',
+        actor: auth.user,
+        targetType: 'assignment',
+        targetId: createdAssignment.id,
+        targetName: createdAssignment.name,
+        metadata: { assigned: Boolean(createdAssignment.assignedToId) },
+      }, transaction);
       await publishAssignmentEvent(transaction, { type: 'created', assignmentId: createdAssignment.id });
       return createdAssignment;
     });
@@ -236,6 +245,16 @@ export async function PUT(request: NextRequest) {
     const leavingCompleted = nextStatus !== 'COMPLETED' && existing.status === 'COMPLETED';
 
     const recipientId = notificationRecipient(existing.assignedToId, data.assignedToId);
+    const changedFields = [
+      data.name !== undefined && data.name !== existing.name ? 'name' : null,
+      data.description !== undefined && data.description !== existing.description ? 'description' : null,
+      data.author !== undefined && data.author !== existing.author ? 'author' : null,
+      dueDateChanged ? 'dueDate' : null,
+      data.priority !== undefined && data.priority !== existing.priority ? 'priority' : null,
+      data.assignedToId !== undefined && data.assignedToId !== existing.assignedToId ? 'assignedTo' : null,
+      data.sourceLocation !== undefined && data.sourceLocation !== existing.sourceLocation ? 'sourceLocation' : null,
+      data.status !== undefined && data.status !== existing.status ? 'status' : null,
+    ].filter((field): field is string => Boolean(field));
     const assignment = await prisma.$transaction(async (transaction) => {
       const updatedAssignment = await transaction.assignment.update({
         where: { id: data.id },
@@ -275,6 +294,28 @@ export async function PUT(request: NextRequest) {
         `;
       }
 
+      const activityEvent = nextStatus !== existing.status
+        ? nextStatus === 'IN_PROGRESS'
+          ? 'ASSIGNMENT_STARTED'
+          : nextStatus === 'COMPLETED'
+            ? 'ASSIGNMENT_COMPLETED'
+            : existing.status === 'COMPLETED'
+              ? 'ASSIGNMENT_REOPENED'
+              : 'ASSIGNMENT_RETURNED_PENDING'
+        : data.assignedToId !== undefined && data.assignedToId !== existing.assignedToId
+          ? 'ASSIGNMENT_ASSIGNED'
+          : 'ASSIGNMENT_UPDATED';
+      await recordActivity({
+        eventType: activityEvent,
+        actor: auth.user,
+        targetType: 'assignment',
+        targetId: updatedAssignment.id,
+        targetName: updatedAssignment.name,
+        metadata: {
+          changedFields,
+          ...(updatedAssignment.assignedTo?.name ? { assigneeName: updatedAssignment.assignedTo.name } : {}),
+        },
+      }, transaction);
       await publishAssignmentEvent(transaction, { type: 'updated', assignmentId: updatedAssignment.id });
       return updatedAssignment;
     });

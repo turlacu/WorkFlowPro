@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { parseDateOnly, utcDayRange } from '@/lib/date-only';
 import { shouldHideFromMainSchedule } from '@/lib/shift-color-legend';
+import { recordActivity } from '@/lib/activity-log';
 
 const CreateTeamScheduleSchema = z.object({
   date: z.string(),
@@ -131,6 +132,11 @@ export async function POST(request: NextRequest) {
       await tx.teamSchedule.createMany({
         data: uniqueUserIds.map((userId) => ({ date, userId })),
       });
+      await recordActivity({
+        eventType: 'SCHEDULE_UPDATED', actor: auth.user, targetType: 'schedule-day',
+        targetId: validatedData.date, targetName: validatedData.date,
+        metadata: { count: uniqueUserIds.length },
+      }, tx);
     });
 
     // Fetch created schedules with user data

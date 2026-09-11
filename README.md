@@ -5,7 +5,7 @@ A comprehensive work assignment and team scheduling application built with Next.
 ## 🚀 Features
 
 ### Core Functionality
-- **User Authentication** - Secure login with role-based access (Admin, Producer, Operator)
+- **User Authentication** - Secure login with role-based access (Administrator, Producer, Contributor, Operator)
 - **Assignment Management** - Create, assign, and track work assignments with status updates
 - **Team Scheduling** - Interactive calendar with color-coded shift management
 - **Excel Integration** - Advanced Excel import with color detection and fuzzy name matching
@@ -13,14 +13,16 @@ A comprehensive work assignment and team scheduling application built with Next.
 - **Data Backup & Restore** - Complete system backup and restoration capabilities
 
 ### User Roles
-- **👑 Admin** - Full system access, user management, and system configuration
-- **🏭 Producer** - Assignment and schedule management, Excel imports
+- **👑 Administrator** - Full system access, user management, and system configuration
+- **🏭 Producer** - Creates, edits, reassigns, and deletes work assignments
+- **🤝 Contributor** - Creates assignments and manages the assignments they created
 - **👷 Operator** - Task completion, status updates, and personal statistics
 
 ### Advanced Features
 - **Interactive Calendar** - Visual schedule overview with color-coded shifts
 - **Excel Schedule Import** - Bulk import with automatic color legend detection
 - **Real-time Updates** - Dynamic status tracking and notifications
+- **Admin Activity Log** - Searchable bilingual history of meaningful user and administrative actions
 - **Multi-language Support** - English and Romanian language options
 - **Dark/Light Theme** - User preference theme switching
 - **Responsive Design** - Mobile-friendly interface
@@ -38,6 +40,7 @@ A comprehensive work assignment and team scheduling application built with Next.
 
 ## 📚 Documentation
 
+- **[User Role Permissions](./docs/role-permissions.md)** - Current permissions matrix for all user types
 - **[Manual utilizator — Operator](./MANUAL_UTILIZATOR_OPERATOR.md)** - Fluxul de lucru actual pentru Operatori, în limba română
 - **[Manual utilizator — Editor / Producer](./MANUAL_UTILIZATOR_EDITOR.md)** - Fluxul de lucru actual pentru Editori, în limba română
 - **[API Documentation](./API.md)** - Complete API reference and endpoints

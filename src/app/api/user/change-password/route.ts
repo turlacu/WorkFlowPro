@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { hashPassword, verifyPassword } from '@/lib/password';
+import { recordActivity } from '@/lib/activity-log';
 
 const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(1),
@@ -35,13 +36,19 @@ export async function POST(request: NextRequest) {
     const hashedNewPassword = await hashPassword(newPassword);
 
     // Update password
-    await prisma.user.update({
-      where: { id: auth.user.id },
-      data: {
-        password: hashedNewPassword,
-        passwordResetRequired: false,
-        sessionVersion: { increment: 1 },
-      }
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: auth.user.id },
+        data: {
+          password: hashedNewPassword,
+          passwordResetRequired: false,
+          sessionVersion: { increment: 1 },
+        },
+      });
+      await recordActivity({
+        eventType: 'PASSWORD_CHANGED', actor: auth.user, targetType: 'user',
+        targetId: auth.user.id, targetName: auth.user.name,
+      }, tx);
     });
 
     return NextResponse.json({ success: true, message: 'Password updated successfully' });

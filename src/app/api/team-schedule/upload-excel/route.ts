@@ -9,6 +9,7 @@ import { extractExcelFillColor } from '@/lib/excel-colors';
 import { parseScheduleCell } from '@/lib/excel-schedule-cell';
 import { isVacationLegend } from '@/lib/shift-color-legend';
 import { parseExcelScheduleDay } from '@/lib/excel-schedule-day';
+import { recordActivity } from '@/lib/activity-log';
 
 const UploadMetadataSchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
@@ -979,6 +980,12 @@ export async function POST(request: NextRequest) {
         },
       });
       const created = await tx.teamSchedule.createMany({ data: scheduleRows, skipDuplicates: true });
+      await recordActivity({
+        eventType: 'SCHEDULE_IMPORTED', actor: auth.user, targetType: 'schedule-month',
+        targetId: `${year}-${String(month).padStart(2, '0')}`,
+        targetName: `${year}-${String(month).padStart(2, '0')}`,
+        metadata: { count: created.count, role, filename: file.name },
+      }, tx);
       return { deleted: deleted.count, created: created.count };
     });
     const createdCount = transactionResult.created;

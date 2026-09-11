@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { MAX_EXCEL_COLUMN_INDEX } from '@/lib/excel-columns';
+import { recordActivity } from '@/lib/activity-log';
 
 const ExcelColumnSchema = z.number().int().min(0).max(
   MAX_EXCEL_COLUMN_INDEX,
@@ -96,16 +97,16 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const configuration = await prisma.excelUploadConfiguration.create({
-      data: {
-        ...validatedData,
-        createdById: auth.user.id,
-      },
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true }
-        }
-      }
+    const configuration = await prisma.$transaction(async (tx) => {
+      const created = await tx.excelUploadConfiguration.create({
+        data: { ...validatedData, createdById: auth.user.id },
+        include: { createdBy: { select: { id: true, name: true, email: true } } },
+      });
+      await recordActivity({
+        eventType: 'EXCEL_CONFIG_CREATED', actor: auth.user, targetType: 'excel-configuration',
+        targetId: created.id, targetName: created.name, metadata: { role: created.role },
+      }, tx);
+      return created;
     });
 
     console.log('Created configuration:', configuration);
@@ -129,9 +130,10 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validatedData = UpdateConfigurationSchema.parse(body);
 
-    const configuration = await prisma.excelUploadConfiguration.update({
-      where: { id: validatedData.id },
-      data: {
+    const configuration = await prisma.$transaction(async (tx) => {
+      const updated = await tx.excelUploadConfiguration.update({
+        where: { id: validatedData.id },
+        data: {
         name: validatedData.name,
         role: validatedData.role,
         description: validatedData.description,
@@ -148,12 +150,14 @@ export async function PUT(request: NextRequest) {
         validPatterns: validatedData.validPatterns,
         colorDetection: validatedData.colorDetection,
         defaultShift: validatedData.defaultShift,
-      },
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true }
-        }
-      }
+        },
+        include: { createdBy: { select: { id: true, name: true, email: true } } },
+      });
+      await recordActivity({
+        eventType: 'EXCEL_CONFIG_UPDATED', actor: auth.user, targetType: 'excel-configuration',
+        targetId: updated.id, targetName: updated.name, metadata: { role: updated.role },
+      }, tx);
+      return updated;
     });
 
     return NextResponse.json(configuration);

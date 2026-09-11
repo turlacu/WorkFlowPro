@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
 import { generateTemporaryPassword, hashPassword } from '@/lib/password';
+import { recordActivity } from '@/lib/activity-log';
 
 const ResetPasswordSchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
@@ -37,13 +38,19 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(temporaryPassword);
 
     // Update user's password
-    await prisma.user.update({
-      where: { id: validatedData.userId },
-      data: {
-        password: hashedPassword,
-        passwordResetRequired: true,
-        sessionVersion: { increment: 1 },
-      }
+    await prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: validatedData.userId },
+        data: {
+          password: hashedPassword,
+          passwordResetRequired: true,
+          sessionVersion: { increment: 1 },
+        },
+      });
+      await recordActivity({
+        eventType: 'USER_PASSWORD_RESET', actor: auth.user, targetType: 'user',
+        targetId: targetUser.id, targetName: targetUser.name || targetUser.email,
+      }, tx);
     });
 
     const response = NextResponse.json({

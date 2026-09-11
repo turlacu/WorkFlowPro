@@ -24,6 +24,7 @@ import { MonthScheduleDeleter } from '@/components/app/month-schedule-deleter';
 import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { AdminNavigation } from '@/components/app/admin-navigation';
+import { ActivityLogDashboard } from '@/components/app/activity-log-dashboard';
 
 const ExcelConfigurationsPage = dynamic(() => import('@/app/(app)/admin/excel-configurations/page'), { ssr: false }); 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -103,6 +104,8 @@ export default function DashboardPage() {
   }, [pathname, router]);
   const primarySection = pathname.includes('/users')
     ? 'user-management'
+    : pathname.includes('/activity')
+      ? 'activity'
     : pathname.includes('/statistics')
       ? 'statistics'
       : pathname.includes('/backups')
@@ -311,6 +314,11 @@ export default function DashboardPage() {
         title: getTranslation(currentLang, 'UserManagementTab'),
         description: getTranslation(currentLang, 'UserManagementDescription'),
       }
+    : primarySection === 'activity'
+      ? {
+          title: getTranslation(currentLang, 'ActivityLogPageTitle'),
+          description: getTranslation(currentLang, 'ActivityLogPageDescription'),
+        }
     : primarySection === 'statistics'
       ? {
           title: getTranslation(currentLang, 'StatisticsPageTitle'),
@@ -566,6 +574,10 @@ export default function DashboardPage() {
             <ErrorBoundary>
               <StatisticsDashboard />
             </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="activity" className="mt-6">
+            <ActivityLogDashboard />
           </TabsContent>
 
           <TabsContent value="data-backup" className="mt-6">

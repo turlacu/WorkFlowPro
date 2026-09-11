@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
+import { recordActivity } from '@/lib/activity-log';
 
 const DeleteMonthScheduleSchema = z.object({
   month: z.number().min(1).max(12),
@@ -44,17 +45,24 @@ export async function DELETE(request: NextRequest) {
       };
     }
 
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+
     // Delete schedules matching the criteria
-    const deleteResult = await prisma.teamSchedule.deleteMany({
-      where: whereClause,
+    const deleteResult = await prisma.$transaction(async (tx) => {
+      const deleted = await tx.teamSchedule.deleteMany({ where: whereClause });
+      await recordActivity({
+        eventType: 'SCHEDULE_MONTH_DELETED', actor: auth.user, targetType: 'schedule-month',
+        targetId: `${year}-${String(month).padStart(2, '0')}`,
+        targetName: `${monthNames[month - 1]} ${year}`,
+        metadata: { count: deleted.count, role: userRole },
+      }, tx);
+      return deleted;
     });
     
     console.log('Deleted schedule entries:', deleteResult.count);
-
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
 
     return NextResponse.json({
       success: true,

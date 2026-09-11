@@ -73,6 +73,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
       MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-workflowpro-storage}
+      ACTIVITY_LOG_RETENTION_DAYS: ${ACTIVITY_LOG_RETENTION_DAYS:-30}
     depends_on:
       bootstrap:
         condition: service_completed_successfully

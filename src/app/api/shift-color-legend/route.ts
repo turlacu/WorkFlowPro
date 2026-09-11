@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { requireUser } from '@/lib/server-auth';
+import { recordActivity } from '@/lib/activity-log';
 
 const CreateShiftColorLegendSchema = z.object({
   colorCode: z.string().min(1, 'Color code is required'),
@@ -80,8 +81,15 @@ export async function POST(request: NextRequest) {
       startTime: validatedData.isVacation ? '00:00' : validatedData.startTime,
       endTime: validatedData.isVacation ? '00:00' : validatedData.endTime,
     };
-    const colorLegend = await prisma.shiftColorLegend.create({
-      data: normalizedData as unknown as Parameters<typeof prisma.shiftColorLegend.create>[0]['data'],
+    const colorLegend = await prisma.$transaction(async (tx) => {
+      const created = await tx.shiftColorLegend.create({
+        data: normalizedData as unknown as Parameters<typeof tx.shiftColorLegend.create>[0]['data'],
+      });
+      await recordActivity({
+        eventType: 'SHIFT_LEGEND_CREATED', actor: auth.user, targetType: 'shift-legend',
+        targetId: created.id, targetName: created.shiftName, metadata: { role: created.role },
+      }, tx);
+      return created;
     });
 
     console.log('Created color legend:', colorLegend);
@@ -124,9 +132,16 @@ export async function PUT(request: NextRequest) {
       description: validatedData.description,
       role: validatedData.role,
     };
-    const colorLegend = await prisma.shiftColorLegend.update({
-      where: { id: validatedData.id },
-      data: normalizedData as unknown as Parameters<typeof prisma.shiftColorLegend.update>[0]['data'],
+    const colorLegend = await prisma.$transaction(async (tx) => {
+      const updated = await tx.shiftColorLegend.update({
+        where: { id: validatedData.id },
+        data: normalizedData as unknown as Parameters<typeof tx.shiftColorLegend.update>[0]['data'],
+      });
+      await recordActivity({
+        eventType: 'SHIFT_LEGEND_UPDATED', actor: auth.user, targetType: 'shift-legend',
+        targetId: updated.id, targetName: updated.shiftName, metadata: { role: updated.role },
+      }, tx);
+      return updated;
     });
 
     return NextResponse.json(colorLegend);

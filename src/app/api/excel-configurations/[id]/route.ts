@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireUser } from '@/lib/server-auth';
+import { recordActivity } from '@/lib/activity-log';
 
 export async function GET(
   request: NextRequest,
@@ -69,8 +70,12 @@ export async function DELETE(
       console.log(`Deleting configuration ${configuration.name} that was used ${configuration._count.UploadConfigurationLog} times`);
     }
 
-    await prisma.excelUploadConfiguration.delete({
-      where: { id }
+    await prisma.$transaction(async (tx) => {
+      await tx.excelUploadConfiguration.delete({ where: { id } });
+      await recordActivity({
+        eventType: 'EXCEL_CONFIG_DELETED', actor: auth.user, targetType: 'excel-configuration',
+        targetId: configuration.id, targetName: configuration.name, metadata: { role: configuration.role },
+      }, tx);
     });
 
     return NextResponse.json({ message: 'Configuration deleted successfully' });

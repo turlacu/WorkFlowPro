@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from './prisma';
 import { checkRateLimit, resetRateLimit } from './rate-limit';
 import { verifyPassword } from './password';
+import { purgeExpiredActivityLogs, recordActivity } from './activity-log';
 
 export const authOptions: NextAuthOptions = {
   // Don't use PrismaAdapter with credentials provider and JWT strategy
@@ -81,6 +82,37 @@ export const authOptions: NextAuthOptions = {
         session.user.passwordResetRequired = token.passwordResetRequired;
       }
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      try {
+        await recordActivity({
+          eventType: 'AUTH_LOGIN',
+          actor: { id: user.id, name: user.name, role: user.role },
+          targetType: 'session',
+        });
+        await purgeExpiredActivityLogs();
+      } catch (error) {
+        console.error('Failed to record sign-in activity:', error);
+      }
+    },
+    async signOut(message) {
+      try {
+        const token = 'token' in message ? message.token : null;
+        if (!token?.sub || !token.role) return;
+        await recordActivity({
+          eventType: 'AUTH_LOGOUT',
+          actor: {
+            id: token.sub,
+            name: token.name || token.email || token.sub,
+            role: token.role,
+          },
+          targetType: 'session',
+        });
+      } catch (error) {
+        console.error('Failed to record sign-out activity:', error);
+      }
     },
   },
   pages: {

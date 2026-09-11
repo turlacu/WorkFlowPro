@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BarChart3, CalendarDays, DatabaseBackup, FileCog, Palette, Sheet, Trash2, Upload, Users } from 'lucide-react';
+import { BarChart3, CalendarDays, DatabaseBackup, FileCog, History, Palette, Sheet, Trash2, Upload, Users } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -12,6 +12,7 @@ const items = [
   { href: '/dashboard/scheduling/manual', key: 'AdminNavScheduling', icon: CalendarDays },
   { href: '/dashboard/users', key: 'AdminNavUsers', icon: Users },
   { href: '/dashboard/statistics', key: 'AdminNavStatistics', icon: BarChart3 },
+  { href: '/dashboard/activity', key: 'AdminNavActivity', icon: History },
   { href: '/dashboard/backups', key: 'AdminNavBackups', icon: DatabaseBackup },
 ];
 
