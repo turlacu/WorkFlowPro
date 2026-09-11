@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { ACTIVITY_EVENT_TYPES } from '@/lib/activity-log-types';
 import { activityRetentionDays, purgeExpiredActivityLogs } from '@/lib/activity-log';
 import { USER_ROLES } from '@/lib/roles';
@@ -20,7 +20,7 @@ const QuerySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('ACTIVITY_LOG_VIEW');
     if (auth.response) return auth.response;
 
     const parsed = QuerySchema.parse(Object.fromEntries(request.nextUrl.searchParams));

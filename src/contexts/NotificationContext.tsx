@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
 import type { AssignmentNotification, NotificationPage } from '@/lib/notification-types';
+import { hasPermission } from '@/lib/permissions';
 
 interface NotificationContextValue {
   notifications: AssignmentNotification[];
@@ -46,8 +47,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const knownIds = React.useRef(new Set<string>());
   const liveNotifications = React.useRef(new Map<string, AssignmentNotification>());
   const notificationsRef = React.useRef<AssignmentNotification[]>([]);
-  const isOperator =
-    session?.user?.role === 'OPERATOR' && !session.user.passwordResetRequired;
+  const isOperator = Boolean(
+    session?.user && hasPermission(session.user, 'ASSIGNMENT_NOTIFICATIONS') && !session.user.passwordResetRequired,
+  );
 
   React.useEffect(() => {
     notificationsRef.current = notifications;

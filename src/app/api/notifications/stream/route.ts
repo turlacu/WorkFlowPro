@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { notificationBroker } from '@/lib/notification-broker';
 import { serializeNotification } from '@/lib/notification-types';
 import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -15,7 +15,7 @@ function event(name: string, data: unknown) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireUser(['OPERATOR']);
+  const auth = await requirePermission('ASSIGNMENT_NOTIFICATIONS');
   if (auth.response) return auth.response;
   const recipientId = auth.user.id;
 
@@ -43,11 +43,10 @@ export async function GET(request: NextRequest) {
         try {
           const user = await prisma.user.findUnique({
             where: { id: recipientId },
-            select: { role: true, sessionVersion: true, passwordResetRequired: true },
+            select: { sessionVersion: true, passwordResetRequired: true },
           });
           if (
             !user ||
-            user.role !== 'OPERATOR' ||
             user.passwordResetRequired ||
             user.sessionVersion !== auth.user.sessionVersion
           ) {

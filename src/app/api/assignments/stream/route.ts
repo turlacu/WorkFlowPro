@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { assignmentBroker } from '@/lib/assignment-broker';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
-  const auth = await requireUser();
+  const auth = await requirePermission('ASSIGNMENT_VIEW');
   if (auth.response) return auth.response;
   const encoder = new TextEncoder();
   let cleanup = () => {};

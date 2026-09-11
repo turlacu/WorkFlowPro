@@ -25,6 +25,8 @@ import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import { AdminNavigation } from '@/components/app/admin-navigation';
 import { ActivityLogDashboard } from '@/components/app/activity-log-dashboard';
+import { RolePermissionsDashboard } from '@/components/app/role-permissions-dashboard';
+import { hasPermission, type PermissionKey } from '@/lib/permissions';
 
 const ExcelConfigurationsPage = dynamic(() => import('@/app/(app)/admin/excel-configurations/page'), { ssr: false }); 
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -100,10 +102,43 @@ export default function DashboardPage() {
   const pathname = usePathname();
   const router = useRouter();
   React.useEffect(() => {
-    if (pathname === '/dashboard') router.replace('/dashboard/scheduling/manual');
-  }, [pathname, router]);
+    if (pathname !== '/dashboard' || !session?.user) return;
+    const destination = hasPermission(session.user, 'TEAM_SCHEDULE_MANAGE')
+      ? '/dashboard/scheduling/manual'
+      : hasPermission(session.user, 'SCHEDULE_IMPORT')
+        ? '/dashboard/scheduling/import'
+        : hasPermission(session.user, 'EXCEL_CONFIG_MANAGE')
+          ? '/dashboard/scheduling/excel-configurations'
+          : hasPermission(session.user, 'SHIFT_LEGEND_MANAGE')
+            ? '/dashboard/scheduling/color-legend'
+            : '/dashboard/permissions';
+    router.replace(destination);
+  }, [pathname, router, session?.user]);
+  React.useEffect(() => {
+    if (!session?.user || session.user.role !== 'ADMIN' || pathname === '/dashboard' || pathname.includes('/permissions')) return;
+    const required: PermissionKey = pathname.includes('/users')
+      ? 'USER_DIRECTORY_VIEW'
+      : pathname.includes('/activity')
+        ? 'ACTIVITY_LOG_VIEW'
+        : pathname.includes('/statistics')
+          ? 'ORGANIZATION_STATS_VIEW'
+          : pathname.includes('/backups')
+            ? 'BACKUP_MANAGE'
+            : pathname.endsWith('/import')
+              ? 'SCHEDULE_IMPORT'
+              : pathname.endsWith('/excel-configurations')
+                ? 'EXCEL_CONFIG_MANAGE'
+                : pathname.endsWith('/color-legend')
+                  ? 'SHIFT_LEGEND_MANAGE'
+                  : pathname.endsWith('/manual') || pathname.endsWith('/delete')
+                    ? 'TEAM_SCHEDULE_MANAGE'
+                    : 'TEAM_SCHEDULE_VIEW';
+    if (!hasPermission(session.user, required)) router.replace('/dashboard/permissions');
+  }, [pathname, router, session?.user]);
   const primarySection = pathname.includes('/users')
     ? 'user-management'
+    : pathname.includes('/permissions')
+      ? 'permissions'
     : pathname.includes('/activity')
       ? 'activity'
     : pathname.includes('/statistics')
@@ -314,6 +349,11 @@ export default function DashboardPage() {
         title: getTranslation(currentLang, 'UserManagementTab'),
         description: getTranslation(currentLang, 'UserManagementDescription'),
       }
+    : primarySection === 'permissions'
+      ? {
+          title: currentLang === 'ro' ? 'Permisiuni roluri' : 'Role permissions',
+          description: currentLang === 'ro' ? 'Controlează capabilitățile acordate fiecărui rol.' : 'Control the capabilities granted to each role.',
+        }
     : primarySection === 'activity'
       ? {
           title: getTranslation(currentLang, 'ActivityLogPageTitle'),
@@ -578,6 +618,10 @@ export default function DashboardPage() {
 
           <TabsContent value="activity" className="mt-6">
             <ActivityLogDashboard />
+          </TabsContent>
+
+          <TabsContent value="permissions" className="mt-6">
+            <RolePermissionsDashboard />
           </TabsContent>
 
           <TabsContent value="data-backup" className="mt-6">

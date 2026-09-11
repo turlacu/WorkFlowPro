@@ -14,6 +14,7 @@ import { User, Lock, BarChart3, Settings as SettingsIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getTranslation } from '@/lib/translations';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { hasPermission } from '@/lib/permissions';
 
 interface UserStats {
   userRole: string;
@@ -146,7 +147,7 @@ export default function SettingsPage() {
       )}
 
       <Tabs defaultValue={session.user.passwordResetRequired ? 'security' : 'profile'} className="w-full">
-        <TabsList className={`grid w-full ${session.user.role === 'ADMIN' ? 'grid-cols-2' : 'grid-cols-3'}`}>
+        <TabsList className={`grid w-full ${hasPermission(session.user, 'PERSONAL_STATS_VIEW') ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <TabsTrigger value="profile" className="text-xs sm:text-sm">
             <User className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             {t('Profile')}
@@ -155,7 +156,7 @@ export default function SettingsPage() {
             <Lock className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
             {t('Security')}
           </TabsTrigger>
-          {session.user.role !== 'ADMIN' && (
+          {hasPermission(session.user, 'PERSONAL_STATS_VIEW') && (
             <TabsTrigger value="statistics" className="text-xs sm:text-sm">
               <BarChart3 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
               {t('AdminNavStatistics')}
@@ -247,7 +248,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
-        {session.user.role !== 'ADMIN' && (
+        {hasPermission(session.user, 'PERSONAL_STATS_VIEW') && (
           <TabsContent value="statistics" className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader className="pb-4 sm:pb-6">

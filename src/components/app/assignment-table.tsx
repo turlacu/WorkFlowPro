@@ -25,7 +25,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useSession } from 'next-auth/react';
 import type { AssignmentWithUsers } from '@/lib/api';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
-import { canStartAssignment, canTransitionAssignment } from '@/lib/roles';
+import { canManageAssignmentDetails, canStartAssignment, canTransitionAssignment } from '@/lib/roles';
+import { hasPermission } from '@/lib/permissions';
 import { useToast } from '@/hooks/use-toast';
 import {
   AlertDialog,
@@ -73,14 +74,19 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
     }
   }, [detailAssignments, isDetailModalOpen, selectedAssignmentForDetail, currentLang, toast]);
 
-  const currentUserRole = session?.user?.role;
-  const isAssignmentManager = currentUserRole === 'PRODUCER' || currentUserRole === 'ADMIN';
-  const isContributor = currentUserRole === 'CONTRIBUTOR';
-  const showActionsColumn = isAssignmentManager || isContributor;
-  const canCompleteAssignments = currentUserRole === 'OPERATOR' || currentUserRole === 'ADMIN';
-  const canEditAssignment = (assignment: AssignmentWithUsers) =>
-    isAssignmentManager || (isContributor && assignment.createdBy.id === session?.user?.id);
-  const canDeleteAssignments = isAssignmentManager;
+  const canDeleteAssignments = Boolean(session?.user && hasPermission(session.user, 'ASSIGNMENT_DELETE'));
+  const canCompleteAssignments = Boolean(session?.user && (
+    hasPermission(session.user, 'ASSIGNMENT_TRANSITION_ANY')
+    || hasPermission(session.user, 'ASSIGNMENT_TRANSITION_OWN')
+    || hasPermission(session.user, 'ASSIGNMENT_TRANSITION_ASSIGNED')
+    || hasPermission(session.user, 'ASSIGNMENT_CLAIM_UNASSIGNED')
+  ));
+  const canEditAssignment = (assignment: AssignmentWithUsers) => Boolean(session?.user && canManageAssignmentDetails(session.user, {
+    createdById: assignment.createdById ?? assignment.createdBy.id,
+  }));
+  const showActionsColumn = canDeleteAssignments || Boolean(session?.user && (
+    hasPermission(session.user, 'ASSIGNMENT_EDIT_ANY') || hasPermission(session.user, 'ASSIGNMENT_EDIT_OWN')
+  ));
   const getTransitionPermissions = (assignment: AssignmentWithUsers) => {
     if (!session?.user) return { canStart: false, canComplete: false };
 
@@ -88,11 +94,15 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
       assignedToId: assignment.assignedToId ?? assignment.assignedTo?.id ?? null,
       createdById: assignment.createdById ?? assignment.createdBy.id,
     };
-    const actor = { id: session.user.id, role: session.user.role };
+    const actor = session.user;
+    const canTransition = canTransitionAssignment(actor, permissionAssignment);
+    const canReverse = hasPermission(actor, 'ASSIGNMENT_REVERSE_STATUS');
 
     return {
-      canStart: canStartAssignment(actor, permissionAssignment),
-      canComplete: canTransitionAssignment(actor, permissionAssignment),
+      canStart: assignment.status === 'PENDING'
+        ? canStartAssignment(actor, permissionAssignment)
+        : assignment.status === 'IN_PROGRESS' && canTransition && canReverse,
+      canComplete: canTransition && (assignment.status !== 'COMPLETED' || canReverse),
     };
   };
 

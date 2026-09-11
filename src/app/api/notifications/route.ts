@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { serializeNotification } from '@/lib/notification-types';
 
 const NotificationQuerySchema = z.object({
@@ -12,7 +12,7 @@ const NotificationQuerySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireUser(['OPERATOR']);
+    const auth = await requirePermission('ASSIGNMENT_NOTIFICATIONS');
     if (auth.response) return auth.response;
 
     const query = NotificationQuerySchema.safeParse({

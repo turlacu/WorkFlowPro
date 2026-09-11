@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import * as XLSX from 'xlsx';
 import Fuse from 'fuse.js';
 import { z } from 'zod';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { extractExcelFillColor } from '@/lib/excel-colors';
 import { parseScheduleCell } from '@/lib/excel-schedule-cell';
@@ -752,7 +752,7 @@ async function parseExcelSchedule(
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('SCHEDULE_IMPORT');
     if (auth.response) return auth.response;
     const rateLimit = checkRateLimit(`excel:${auth.user.id}`, { limit: 20, windowMs: 60 * 60_000 });
     if (!rateLimit.allowed) {

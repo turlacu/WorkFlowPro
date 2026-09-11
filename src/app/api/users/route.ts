@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission, requireUser } from '@/lib/server-auth';
 import { canUpdateUser, USER_ROLES } from '@/lib/roles';
 import type { Prisma } from '@prisma/client';
 import { generateTemporaryPassword, hashPassword } from '@/lib/password';
 import { recordActivity } from '@/lib/activity-log';
+import { hasPermission } from '@/lib/permissions';
 
 const CreateUserSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -22,7 +23,7 @@ const UpdateUserSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireUser();
+    const auth = await requirePermission('USER_DIRECTORY_VIEW');
     if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
@@ -60,11 +61,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('USER_CREATE');
     if (auth.response) return auth.response;
 
     const body = await request.json();
     const validatedData = CreateUserSchema.parse(body);
+    if (validatedData.role !== 'OPERATOR' && !hasPermission(auth.user, 'USER_ASSIGN_ROLE')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -118,30 +122,34 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const validatedData = UpdateUserSchema.parse(body);
 
-    // Check if user has permission to update
-    const canUpdate = canUpdateUser(auth.user, validatedData.id, validatedData.role);
-    
-    if (!canUpdate) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const existing = await prisma.user.findUnique({ where: { id: validatedData.id }, select: { name: true, email: true, role: true } });
     if (!existing) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    const roleChanged = existing.role !== validatedData.role;
+    const detailsChanged = existing.name !== validatedData.name || existing.email !== validatedData.email.toLowerCase();
+    const selfUpdate = validatedData.id === auth.user.id;
+    const canUpdate = canUpdateUser(auth.user, validatedData.id, validatedData.role)
+      || (roleChanged && hasPermission(auth.user, 'USER_ASSIGN_ROLE'));
+    if (!canUpdate || (detailsChanged && !selfUpdate && !hasPermission(auth.user, 'USER_EDIT'))
+      || (roleChanged && !hasPermission(auth.user, 'USER_ASSIGN_ROLE'))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const changedFields = [
       existing.name !== validatedData.name ? 'name' : null,
       existing.email !== validatedData.email.toLowerCase() ? 'email' : null,
-      auth.user.role === 'ADMIN' && existing.role !== validatedData.role ? 'role' : null,
+      roleChanged ? 'role' : null,
     ].filter((field): field is string => Boolean(field));
     const user = await prisma.$transaction(async (tx) => {
+      if (roleChanged && existing.role === 'ADMIN') {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('admin-role-membership'))`;
+        const administrators = await tx.user.count({ where: { role: 'ADMIN' } });
+        if (administrators <= 1) throw new Error('LAST_ADMIN');
+      }
       const updated = await tx.user.update({
         where: { id: validatedData.id },
         data: {
           name: validatedData.name,
           email: validatedData.email.toLowerCase(),
-          ...(auth.user.role === 'ADMIN' ? { role: validatedData.role } : {}),
-          ...(auth.user.role === 'ADMIN' && validatedData.id !== auth.user.id
-            ? { sessionVersion: { increment: 1 } }
-            : {}),
+          ...(roleChanged ? { role: validatedData.role, sessionVersion: { increment: 1 } } : {}),
         },
         select: { id: true, name: true, email: true, role: true, createdAt: true, updatedAt: true },
       });
@@ -157,6 +165,9 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 });
+    }
+    if (error instanceof Error && error.message === 'LAST_ADMIN') {
+      return NextResponse.json({ error: 'The last administrator cannot be demoted' }, { status: 400 });
     }
     console.error('Error updating user:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

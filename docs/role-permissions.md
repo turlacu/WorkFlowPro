@@ -1,6 +1,6 @@
 # User Role Permissions
 
-WorkFlow Pro has four user types. This matrix describes the permissions currently enforced by the application.
+WorkFlow Pro has four fixed user types. This matrix describes the default permissions. Administrators can change the grants in **Admin panel → Permissions**; users receive the updated policy at their next sign-in.
 
 **Legend:** **Yes** = allowed, **Limited** = allowed only under the condition described below, **No** = not allowed.
 
@@ -14,7 +14,7 @@ WorkFlow Pro has four user types. This matrix describes the permissions currentl
 | Delete assignments | Yes | Yes | No | No |
 | Read and add assignment comments | Yes | Yes | Yes | Yes |
 | View the team schedule | Yes | Yes | Yes | Yes |
-| Manage the team schedule in the application | Yes | No | No | No |
+| Manage the team schedule through the API | Yes | Yes | No | No |
 | Import schedules from Excel | Yes | No | No | No |
 | Manage Excel import configurations and shift color legends | Yes | No | No | No |
 | Create users and change user roles | Yes | No | No | No |
@@ -27,13 +27,16 @@ WorkFlow Pro has four user types. This matrix describes the permissions currentl
 | Receive assignment notifications | No | No | No | Yes |
 | View personal profile information | Yes | Yes | Yes | Yes |
 | Change own password | Yes | Yes | Yes | Yes |
+| Manage role permissions | Yes | No | No | No |
+
+Profile access, changing one's own password, authenticated presence, and the user directory are core permissions and cannot be removed. Managing role permissions is protected: it cannot be removed from Administrator or granted to another role. Roles and permission names are fixed; the application does not support custom roles or per-user exceptions.
 
 ## Conditional permissions
 
 - A **Contributor** may edit and change the status of assignments they created. They cannot edit assignments created by someone else or delete assignments.
 - An **Operator** may change the status of work assigned to them. They may also claim a pending, unassigned assignment by starting it, but cannot complete unassigned work without first claiming it.
 - Only an **Administrator** may reverse progress by returning started work to pending or reopening completed work through the application.
-- The server accepts team-schedule updates from Administrators and Producers, but the schedule-management interface is currently restricted to Administrators. The matrix therefore records the user-facing capability as Administrator-only.
+- The Admin panel itself remains restricted to users whose role is Administrator. Individual API capabilities can still be granted to another role where the application exposes that action outside the Admin panel.
 - Administrators use the organization-wide statistics dashboard; the personal statistics tab is shown to the other three roles.
 - Administrators cannot delete their own account or reset their own password through user management. They must change their own password from Settings.
 

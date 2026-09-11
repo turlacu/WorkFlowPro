@@ -1,4 +1,5 @@
 import type { UserRole } from '@prisma/client';
+import type { PermissionKey } from '@/lib/permissions';
 
 declare module 'next-auth' {
   interface Session {
@@ -9,6 +10,7 @@ declare module 'next-auth' {
       role: UserRole;
       sessionVersion: number;
       passwordResetRequired: boolean;
+      permissions: PermissionKey[];
     };
   }
 
@@ -19,6 +21,7 @@ declare module 'next-auth' {
     role: UserRole;
     sessionVersion: number;
     passwordResetRequired: boolean;
+    permissions: PermissionKey[];
   }
 }
 
@@ -27,5 +30,6 @@ declare module 'next-auth/jwt' {
     role: UserRole;
     sessionVersion: number;
     passwordResetRequired: boolean;
+    permissions?: PermissionKey[];
   }
 }

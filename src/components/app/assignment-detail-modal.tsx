@@ -37,6 +37,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getAssignmentTiming } from '@/lib/assignment-timing';
+import { useSession } from 'next-auth/react';
+import { hasPermission } from '@/lib/permissions';
 
 interface AssignmentDetailModalProps {
   isOpen: boolean;
@@ -46,6 +48,7 @@ interface AssignmentDetailModalProps {
 }
 
 export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCountChanged }: AssignmentDetailModalProps) {
+  const { data: session } = useSession();
   const [comment, setComment] = React.useState('');
   const [comments, setComments] = React.useState<AssignmentCommentWithAuthor[]>([]);
   const [replyingTo, setReplyingTo] = React.useState<{ id: string; authorName: string } | null>(null);
@@ -57,6 +60,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCo
   const assignmentId = assignment?.id;
   const assignmentRevision = assignment?.updatedAt;
   const commentCount = assignment?.commentCount;
+  const canComment = Boolean(session?.user && hasPermission(session.user, 'ASSIGNMENT_COMMENT'));
 
   React.useEffect(() => {
     setComment('');
@@ -65,7 +69,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCo
   }, [assignmentId, isOpen]);
 
   React.useEffect(() => {
-    if (!isOpen || !assignmentId) return;
+    if (!isOpen || !assignmentId || !canComment) return;
     let cancelled = false;
     setIsLoadingComments(true);
     void api.getAssignmentComments(assignmentId)
@@ -89,7 +93,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCo
     return () => {
       cancelled = true;
     };
-  }, [assignmentId, assignmentRevision, commentCount, currentLang, isOpen, toast]);
+  }, [assignmentId, assignmentRevision, canComment, commentCount, currentLang, isOpen, toast]);
 
   if (!assignment) {
     return null;
@@ -282,7 +286,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCo
               </div>
             </div>
 
-            <div className="space-y-2">
+            {canComment && <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
@@ -347,7 +351,7 @@ export function AssignmentDetailModal({ isOpen, onClose, assignment, onCommentCo
                   )}
                 </Button>
               </div>
-            </div>
+            </div>}
 
             <div className="grid gap-4 border-t pt-3 text-sm sm:grid-cols-2 sm:gap-6">
               <div>

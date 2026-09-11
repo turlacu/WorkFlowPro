@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { format, eachDayOfInterval, startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 
 const GetDailyCompletionsSchema = z.object({
   month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     
     console.log('📊 Requested month:', month);
 
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('ORGANIZATION_STATS_VIEW');
     if (auth.response) return auth.response;
 
     // Parse the month (YYYY-MM format)

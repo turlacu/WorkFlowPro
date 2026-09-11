@@ -11,7 +11,7 @@ test('contributor role is migrated and accepted for assignment creation', () => 
 
   assert.match(schema, /enum UserRole[\s\S]*CONTRIBUTOR/);
   assert.match(migration, /ADD VALUE IF NOT EXISTS 'CONTRIBUTOR'/);
-  assert.match(assignmentsRoute, /requireUser\(\['ADMIN', 'PRODUCER', 'CONTRIBUTOR'\]\)/);
+  assert.match(assignmentsRoute, /requirePermission\('ASSIGNMENT_CREATE'\)/);
   assert.match(assignmentsRoute, /canManageAssignmentDetails\(auth\.user, existing\)/);
 });
 
@@ -21,10 +21,10 @@ test('contributor assignment controls are ownership-aware and retired schedule n
   const header = read('src/components/app/header.tsx');
   const mobileMenu = read('src/components/app/mobile-menu.tsx');
 
-  assert.match(table, /assignment\.createdBy\.id === session\?\.user\?\.id/);
+  assert.match(table, /canManageAssignmentDetails\(session\.user/);
   assert.match(table, /disabled=\{!canStart\}/);
   assert.match(table, /disabled=\{!canComplete\}/);
-  assert.match(assignmentsPage, /session\.user\.role === 'CONTRIBUTOR'/);
+  assert.match(assignmentsPage, /hasPermission\(session\.user, 'ASSIGNMENT_CREATE'\)/);
   assert.doesNotMatch(header, /todays-schedule/);
   assert.doesNotMatch(mobileMenu, /todays-schedule/);
 });

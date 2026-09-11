@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { parseDateOnly, utcDayRange } from '@/lib/date-only';
 import { shouldHideFromMainSchedule } from '@/lib/shift-color-legend';
 import { recordActivity } from '@/lib/activity-log';
@@ -31,7 +31,7 @@ const scheduleColorLegendSelect = {
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireUser();
+    const auth = await requirePermission('TEAM_SCHEDULE_VIEW');
     if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   let validatedData: z.infer<typeof CreateTeamScheduleSchema>;
   
   try {
-    const auth = await requireUser(['ADMIN', 'PRODUCER']);
+    const auth = await requirePermission('TEAM_SCHEDULE_MANAGE');
     if (auth.response) return auth.response;
 
     requestBody = await request.json();

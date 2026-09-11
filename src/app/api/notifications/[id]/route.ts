@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { serializeNotification } from '@/lib/notification-types';
 
 export async function PATCH(
@@ -9,7 +9,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await requireUser(['OPERATOR']);
+    const auth = await requirePermission('ASSIGNMENT_NOTIFICATIONS');
     if (auth.response) return auth.response;
     const { id } = await params;
 

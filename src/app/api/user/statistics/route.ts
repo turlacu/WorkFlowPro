@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 
 export async function GET() {
   try {
-    const auth = await requireUser();
+    const auth = await requirePermission('PERSONAL_STATS_VIEW');
     if (auth.response) return auth.response;
     const userId = auth.user.id;
     const userRole = auth.user.role;

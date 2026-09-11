@@ -3,8 +3,9 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
-import { requireUser } from '@/lib/server-auth';
-import { canManageAssignmentDetails, canStartAssignment, canTransitionAssignment } from '@/lib/roles';
+import { requirePermission, requireUser } from '@/lib/server-auth';
+import { canManageAssignmentDetails, canReverseAssignmentStatus, canStartAssignment, canTransitionAssignment } from '@/lib/roles';
+import { hasPermission } from '@/lib/permissions';
 import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
 import { parseDateOnly } from '@/lib/date-only';
 import { getAssignmentDuplicateKey } from '@/lib/assignment-duplicates';
@@ -43,7 +44,7 @@ class DuplicateAssignmentError extends Error {}
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireUser();
+    const auth = await requirePermission('ASSIGNMENT_VIEW');
     if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN', 'PRODUCER', 'CONTRIBUTOR']);
+    const auth = await requirePermission('ASSIGNMENT_CREATE');
     if (auth.response) return auth.response;
     const data = CreateAssignmentSchema.parse(await request.json());
     const dueDate = new Date(data.dueDate);
@@ -212,16 +213,26 @@ export async function PUT(request: NextRequest) {
       (data.priority !== undefined && data.priority !== existing.priority) ||
       (data.assignedToId !== undefined && data.assignedToId !== existing.assignedToId) ||
       (data.sourceLocation !== undefined && data.sourceLocation !== existing.sourceLocation);
+    const statusChanged = data.status !== undefined && data.status !== existing.status;
+
+    if (!detailsChanged && !statusChanged) {
+      return NextResponse.json({ error: 'No assignment changes were provided' }, { status: 400 });
+    }
 
     if (detailsChanged && !canManageAssignmentDetails(auth.user, existing)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     const operatorClaimingUnassignedTask =
-      auth.user.role === 'OPERATOR' &&
+      hasPermission(auth.user, 'ASSIGNMENT_CLAIM_UNASSIGNED') &&
       existing.assignedToId === null &&
       existing.status === 'PENDING' &&
       data.status === 'IN_PROGRESS';
-    if (data.status && data.status !== existing.status) {
+    if (statusChanged && data.status) {
+      const reversing = (existing.status === 'IN_PROGRESS' && data.status === 'PENDING')
+        || (existing.status === 'COMPLETED' && data.status !== 'COMPLETED');
+      if (reversing && !canReverseAssignmentStatus(auth.user)) {
+        return NextResponse.json({ error: 'You cannot reverse the status of this assignment' }, { status: 403 });
+      }
       const allowed = operatorClaimingUnassignedTask
         ? canStartAssignment(auth.user, existing)
         : canTransitionAssignment(auth.user, existing);

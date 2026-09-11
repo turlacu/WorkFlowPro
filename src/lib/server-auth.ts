@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import type { UserRole } from '@prisma/client';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { effectivePermissions, hasPermission, isPermissionKey, type PermissionKey } from '@/lib/permissions';
 
 export type AuthenticatedUser = {
   id: string;
@@ -11,6 +12,7 @@ export type AuthenticatedUser = {
   role: UserRole;
   sessionVersion: number;
   passwordResetRequired: boolean;
+  permissions: PermissionKey[];
 };
 
 type AuthResult =
@@ -54,6 +56,21 @@ export async function requireUser(
     user: {
       ...user,
       name: user.name || user.email,
+      permissions: Array.isArray(session.user.permissions)
+        ? session.user.permissions.filter(isPermissionKey)
+        : effectivePermissions(user.role),
     },
   };
+}
+
+export async function requirePermission(
+  permission: PermissionKey,
+  allowPasswordResetRequired = false,
+): Promise<AuthResult> {
+  const auth = await requireUser(undefined, allowPasswordResetRequired);
+  if (auth.response) return auth;
+  if (!hasPermission(auth.user, permission)) {
+    return { response: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
+  }
+  return auth;
 }

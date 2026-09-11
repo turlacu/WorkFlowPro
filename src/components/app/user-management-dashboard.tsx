@@ -27,6 +27,8 @@ import { PlusCircle, Edit, Trash2, Loader2, Key, Copy, Check } from 'lucide-reac
 import { EditUserModal } from './edit-user-modal'; // Import the new modal
 import type { UserRole } from '@prisma/client';
 import { USER_ROLES } from '@/lib/roles';
+import { useSession } from 'next-auth/react';
+import { hasPermission } from '@/lib/permissions';
 
 
 interface User {
@@ -58,6 +60,7 @@ type TemporaryCredential = {
 };
 
 export function UserManagementDashboard() {
+  const { data: session } = useSession();
   const { currentLang } = useLanguage();
   const { toast } = useToast();
   const [users, setUsers] = React.useState<User[]>([]);
@@ -310,11 +313,16 @@ export function UserManagementDashboard() {
   const formTitle = getTranslation(currentLang, 'UserManagementCreateUserTitle');
   const submitButtonText = getTranslation(currentLang, 'UserManagementCreateUserButton');
   const SubmitButtonIcon = PlusCircle;
+  const canCreateUsers = Boolean(session?.user && hasPermission(session.user, 'USER_CREATE'));
+  const canEditUsers = Boolean(session?.user && hasPermission(session.user, 'USER_EDIT'));
+  const canAssignRoles = Boolean(session?.user && hasPermission(session.user, 'USER_ASSIGN_ROLE'));
+  const canResetPasswords = Boolean(session?.user && hasPermission(session.user, 'USER_PASSWORD_RESET'));
+  const canDeleteUsers = Boolean(session?.user && hasPermission(session.user, 'USER_DELETE'));
 
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <Card>
+      <Card className={canCreateUsers ? undefined : 'hidden'}>
         <CardHeader className="pb-4 sm:pb-6">
           <CardTitle className="text-lg sm:text-xl">{formTitle}</CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -357,7 +365,7 @@ export function UserManagementDashboard() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>{getTranslation(currentLang, 'UserManagementUserRoleLabel')}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <Select disabled={!canAssignRoles} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder={getTranslation(currentLang, 'UserManagementSelectRolePlaceholder')} />
@@ -422,7 +430,7 @@ export function UserManagementDashboard() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-1">
-                          <Button 
+                          {(canEditUsers || canAssignRoles) && <Button
                             variant="ghost" 
                             size="icon"
                             onClick={() => handleOpenEditModal(user)} 
@@ -430,8 +438,8 @@ export function UserManagementDashboard() {
                             title={getTranslation(currentLang, 'UserManagementEditButton')}
                           >
                             <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button 
+                          </Button>}
+                          {canResetPasswords && <Button
                             variant="ghost" 
                             size="icon"
                             onClick={() => handleResetPassword(user.id, user.name, user.email)} 
@@ -440,8 +448,8 @@ export function UserManagementDashboard() {
                             className="text-orange-600 hover:text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/20"
                           >
                             <Key className="h-4 w-4" />
-                          </Button>
-                          <Button 
+                          </Button>}
+                          {canDeleteUsers && <Button
                             variant="ghost" 
                             size="icon"
                             onClick={() => handleDeleteUser(user.id)} 
@@ -450,7 +458,7 @@ export function UserManagementDashboard() {
                             className="text-destructive hover:text-destructive hover:bg-red-100 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </Button>
+                          </Button>}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -478,28 +486,28 @@ export function UserManagementDashboard() {
                       </Badge>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-2 pt-2">
-                      <Button 
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {(canEditUsers || canAssignRoles) && <Button
                         onClick={() => handleOpenEditModal(user)}
                         className="min-w-0 whitespace-normal border border-input bg-background px-2 text-xs leading-tight hover:bg-accent hover:text-accent-foreground min-h-[44px] touch-manipulation h-9 sm:text-sm"
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         {getTranslation(currentLang, 'UserManagementEditButton')}
-                      </Button>
-                      <Button 
+                      </Button>}
+                      {canResetPasswords && <Button
                         onClick={() => handleResetPassword(user.id, user.name, user.email)}
                         className="min-w-0 whitespace-normal border border-input bg-background px-2 text-xs leading-tight hover:bg-accent hover:text-accent-foreground min-h-[44px] touch-manipulation h-9 text-orange-600 hover:text-orange-600 sm:text-sm"
                       >
                         <Key className="h-4 w-4 mr-2" />
                         {getTranslation(currentLang, 'ResetPassword')}
-                      </Button>
-                      <Button 
+                      </Button>}
+                      {canDeleteUsers && <Button
                         onClick={() => handleDeleteUser(user.id)}
                         className="min-w-0 whitespace-normal border border-input bg-background px-2 text-xs leading-tight hover:bg-accent hover:text-accent-foreground min-h-[44px] touch-manipulation h-9 text-destructive hover:text-destructive sm:text-sm"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         {getTranslation(currentLang, 'UserManagementDeleteButton')}
-                      </Button>
+                      </Button>}
                     </div>
                   </Card>
                 ))}
@@ -517,6 +525,8 @@ export function UserManagementDashboard() {
           onClose={handleCloseEditModal}
           userToEdit={editingUser}
           onSaveUser={handleSaveUserUpdates}
+          canEditDetails={canEditUsers}
+          canAssignRole={canAssignRoles}
         />
       )}
 

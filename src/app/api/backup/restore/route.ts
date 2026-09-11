@@ -4,11 +4,12 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { USER_ROLES } from '@/lib/roles';
 import { Prisma } from '@prisma/client';
 import { recordActivity } from '@/lib/activity-log';
+import { CORE_PERMISSIONS, PERMISSION_KEYS, PROTECTED_PERMISSION } from '@/lib/permissions';
 
 const date = z.string().datetime();
 const nullableDate = date.nullable();
@@ -18,7 +19,7 @@ const priority = z.enum(['LOW', 'NORMAL', 'URGENT']);
 
 const BackupSchema = z.object({
   metadata: z.object({
-    schemaVersion: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+    schemaVersion: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
     exportedAt: date,
     exportedBy: z.object({ id: z.string(), email: z.string().email() }),
   }),
@@ -60,6 +61,14 @@ const BackupSchema = z.object({
       id: z.string(), configurationId: z.string(), filename: z.string(), uploadedBy: z.string(),
       entriesCount: z.number().int(), successCount: z.number().int(), errorCount: z.number().int(), createdAt: date,
     })).max(100_000),
+    rolePermissions: z.array(z.object({
+      role, permission: z.enum(PERMISSION_KEYS), createdAt: date,
+    })).max(1_000).optional(),
+    permissionPolicy: z.object({ revision: z.number().int().positive(), updatedAt: date }).optional(),
+    permissionAudits: z.array(z.object({
+      id: z.string(), occurredAt: date, actorId: z.string().nullable(), actorName: z.string(),
+      actorEmail: z.string().email(), targetRole: role, permission: z.enum(PERMISSION_KEYS), enabled: z.boolean(),
+    })).max(100_000).optional(),
   }),
 });
 
@@ -67,7 +76,7 @@ const MAX_BACKUP_SIZE = 25 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('BACKUP_MANAGE');
     if (auth.response) return auth.response;
     const limit = checkRateLimit(`restore:${auth.user.id}`, { limit: 3, windowMs: 60 * 60_000 });
     if (!limit.allowed) return NextResponse.json({ error: 'Too many restore attempts' }, { status: 429 });
@@ -86,6 +95,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON backup' }, { status: 400 });
     }
     const backup = BackupSchema.parse(json);
+    const isPermissionBackup = backup.metadata.schemaVersion === 5;
+    if (isPermissionBackup && (!backup.data.rolePermissions || !backup.data.permissionPolicy || !backup.data.permissionAudits)) {
+      return NextResponse.json({ error: 'Version 5 backup is missing permission data' }, { status: 400 });
+    }
+    if (isPermissionBackup) {
+      const permissionSet = new Set(backup.data.rolePermissions!.map((item) => `${item.role}:${item.permission}`));
+      if (permissionSet.size !== backup.data.rolePermissions!.length) {
+        return NextResponse.json({ error: 'Backup contains duplicate role permissions' }, { status: 400 });
+      }
+      for (const userRole of USER_ROLES) {
+        if (CORE_PERMISSIONS.some((permission) => !permissionSet.has(`${userRole}:${permission}`))) {
+          return NextResponse.json({ error: `Backup removes a protected core permission from ${userRole}` }, { status: 400 });
+        }
+        const hasProtected = permissionSet.has(`${userRole}:${PROTECTED_PERMISSION}`);
+        if ((userRole === 'ADMIN') !== hasProtected) {
+          return NextResponse.json({ error: 'Backup delegates or removes the protected permission' }, { status: 400 });
+        }
+      }
+    }
 
     const currentBackupUser = backup.data.users.find((user) => user.email.toLowerCase() === auth.user.email.toLowerCase());
     const remapUserId = (id: string | null) => {
@@ -96,6 +124,9 @@ export async function POST(request: NextRequest) {
     const usersToRestore = backup.data.users.filter(
       (user) => user.id !== currentBackupUser?.id && user.id !== auth.user.id && user.email.toLowerCase() !== auth.user.email.toLowerCase(),
     );
+    if (auth.user.role !== 'ADMIN' && !usersToRestore.some((user) => user.role === 'ADMIN')) {
+      return NextResponse.json({ error: 'Restore must retain at least one administrator' }, { status: 400 });
+    }
     const usersWithPasswords = await Promise.all(usersToRestore.map(async (user) => ({
       ...user,
       email: user.email.toLowerCase(),
@@ -107,6 +138,7 @@ export async function POST(request: NextRequest) {
     })));
 
     await prisma.$transaction(async (tx) => {
+      if (isPermissionBackup) await tx.$executeRaw`DELETE FROM "permission_audits"`;
       await tx.uploadConfigurationLog.deleteMany();
       await tx.assignment.deleteMany();
       await tx.teamSchedule.deleteMany();
@@ -201,6 +233,37 @@ export async function POST(request: NextRequest) {
           ...item, uploadedBy: remapUserId(item.uploadedBy)!, createdAt: new Date(item.createdAt),
         })) });
       }
+      if (isPermissionBackup) {
+        await tx.$executeRaw`DELETE FROM "role_permissions"`;
+        const grants = backup.data.rolePermissions!;
+        if (grants.length) {
+          await tx.$executeRaw(Prisma.sql`
+            INSERT INTO "role_permissions" ("role", "permission", "createdAt") VALUES ${Prisma.join(grants.map((item) => Prisma.sql`(
+              ${item.role}::"UserRole", ${item.permission}, ${new Date(item.createdAt)}
+            )`))}
+          `);
+        }
+        await tx.$executeRaw`
+          UPDATE "permission_policy" SET "revision" = ${backup.data.permissionPolicy!.revision},
+            "updatedAt" = ${new Date(backup.data.permissionPolicy!.updatedAt)} WHERE "id" = 'global'
+        `;
+        const restoredUserIds = new Set([auth.user.id, ...usersWithPasswords.map((user) => user.id)]);
+        const audits = backup.data.permissionAudits!;
+        for (let index = 0; index < audits.length; index += 1_000) {
+          const batch = audits.slice(index, index + 1_000);
+          await tx.$executeRaw(Prisma.sql`
+            INSERT INTO "permission_audits" (
+              "id", "occurredAt", "actorId", "actorName", "actorEmail", "targetRole", "permission", "enabled"
+            ) VALUES ${Prisma.join(batch.map((item) => {
+              const mappedActorId = remapUserId(item.actorId);
+              return Prisma.sql`(
+                ${item.id}, ${new Date(item.occurredAt)}, ${mappedActorId && restoredUserIds.has(mappedActorId) ? mappedActorId : null},
+                ${item.actorName}, ${item.actorEmail}, ${item.targetRole}::"UserRole", ${item.permission}, ${item.enabled}
+              )`;
+            }))}
+          `);
+        }
+      }
       await recordActivity({
         eventType: 'BACKUP_RESTORED', actor: auth.user, targetType: 'backup',
         targetName: file.name,
@@ -215,7 +278,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Backup restored successfully',
-      restored: Object.fromEntries(Object.entries(backup.data).map(([key, records]) => [key, records.length])),
+      restored: Object.fromEntries(Object.entries(backup.data).map(([key, records]) => [key, Array.isArray(records) ? records.length : 1])),
       passwordResetRequiredForRestoredUsers: usersWithPasswords.length,
     });
   } catch (error) {

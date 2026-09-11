@@ -27,6 +27,7 @@ import {
   type AssignmentSummaryFilter,
 } from '@/lib/assignment-summary';
 import { User } from '@prisma/client';
+import { hasPermission } from '@/lib/permissions';
 
 type ScheduledUser = User & {
   shiftColor?: string | null;
@@ -414,8 +415,7 @@ export default function AssignmentsPage() {
         return;
       }
 
-      // Only ADMIN can uncheck "Done" (unmark as completed)
-      if (!completed && assignment.status === 'COMPLETED' && session?.user?.role !== 'ADMIN') {
+      if (!completed && assignment.status === 'COMPLETED' && (!session?.user || !hasPermission(session.user, 'ASSIGNMENT_REVERSE_STATUS'))) {
         toast({
           title: 'Access Denied',
           description: 'Only Admin users can unmark assignments as Done.',
@@ -450,7 +450,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, calendarAssignments, currentLang, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
+  }, [allAssignments, calendarAssignments, currentLang, toast, fetchAssignments, fetchCalendarAssignments, session?.user]);
 
   const handleToggleUploadedToQ = useCallback(async (assignmentId: string, uploaded: boolean) => {
     try {
@@ -461,8 +461,7 @@ export default function AssignmentsPage() {
         return;
       }
 
-      // Only ADMIN can return started work to pending.
-      if (!uploaded && assignment.status === 'IN_PROGRESS' && session?.user?.role !== 'ADMIN') {
+      if (!uploaded && assignment.status === 'IN_PROGRESS' && (!session?.user || !hasPermission(session.user, 'ASSIGNMENT_REVERSE_STATUS'))) {
         toast({
           title: getTranslation(currentLang, 'AccessDenied'),
           description: getTranslation(currentLang, 'AssignmentOnlyAdminCanUndoStart'),
@@ -497,7 +496,7 @@ export default function AssignmentsPage() {
         variant: 'destructive',
       });
     }
-  }, [allAssignments, calendarAssignments, currentLang, toast, fetchAssignments, fetchCalendarAssignments, session?.user?.role]);
+  }, [allAssignments, calendarAssignments, currentLang, toast, fetchAssignments, fetchCalendarAssignments, session?.user]);
 
   const displaySelectedDateString = selectedDate ? format(selectedDate, 'PPP', { locale: dateLocale }) : getTranslation(currentLang, 'None');
 
@@ -565,7 +564,7 @@ export default function AssignmentsPage() {
                   <CardTitle className="text-lg sm:text-xl md:text-2xl">{workAssignmentsTitle}</CardTitle>
                   <CardDescription className="text-sm">{workAssignmentsDescription}</CardDescription>
                 </div>
-                {(session.user.role === 'PRODUCER' || session.user.role === 'CONTRIBUTOR' || session.user.role === 'ADMIN') && (
+                {hasPermission(session.user, 'ASSIGNMENT_CREATE') && (
                   <Button 
                     onClick={() => { setEditingAssignment(null); setIsAssignmentModalOpen(true); }} 
                     size="default"
@@ -619,7 +618,7 @@ export default function AssignmentsPage() {
                       ? getTranslation(currentLang, 'NoAssignmentsFoundSearch')
                       : getTranslation(currentLang, 'NoAssignmentsForDay')}
                   </p>
-                  {searchTerm.trim() === '' && (session.user.role === 'PRODUCER' || session.user.role === 'CONTRIBUTOR' || session.user.role === 'ADMIN') && (
+                  {searchTerm.trim() === '' && hasPermission(session.user, 'ASSIGNMENT_CREATE') && (
                     <p className="text-muted-foreground">
                       {getTranslation(currentLang, 'ProducersCanAddNewAssignments')}
                     </p>

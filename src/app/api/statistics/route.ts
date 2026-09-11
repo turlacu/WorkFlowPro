@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { summarizeCompletionTiming, zonedDateRange } from '@/lib/assignment-timing';
 import { parseDateOnly } from '@/lib/date-only';
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { startDate, endDate } = GetStatisticsSchema.parse(body);
     console.log('✅ Input validation successful:', { startDate, endDate });
 
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('ORGANIZATION_STATS_VIEW');
     if (auth.response) return auth.response;
 
     // Validate dates

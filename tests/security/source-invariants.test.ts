@@ -145,7 +145,7 @@ test('assignment notifications are persistent, recipient-scoped, and commit-awar
   assert.match(assignmentsRoute, /assignedUser\.role !== 'OPERATOR'/);
   assert.match(assignmentsRoute, /pg_notify/);
   assert.match(notificationRoute, /recipientId: auth\.user\.id/);
-  assert.match(notificationRoute, /requireUser\(\['OPERATOR'\]\)/);
+  assert.match(notificationRoute, /requirePermission\('ASSIGNMENT_NOTIFICATIONS'\)/);
   assert.match(streamRoute, /text\/event-stream/);
   assert.match(streamRoute, /notificationBroker\.subscribe\(recipientId/);
   assert.match(streamRoute, /Cache-Control.*no-cache, no-transform/);
@@ -165,7 +165,7 @@ test('presence is authenticated, persistent, role-inclusive, and non-buffered', 
   assert.match(schema, /model UserPresence/);
   assert.match(migration, /CREATE TABLE "user_presence"/);
   assert.match(migration, /ON DELETE CASCADE/);
-  assert.match(streamRoute, /requireUser\(undefined, true\)/);
+  assert.match(streamRoute, /requirePermission\('PRESENCE_USE', true\)/);
   assert.match(streamRoute, /INSERT INTO "user_presence"/);
   assert.match(streamRoute, /ON CONFLICT \("userId"\)/);
   assert.match(streamRoute, /sessionVersion !== auth\.user\.sessionVersion/);

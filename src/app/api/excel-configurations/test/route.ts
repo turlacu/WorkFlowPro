@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import * as XLSX from 'xlsx';
 import { extractExcelFillColor } from '@/lib/excel-colors';
 import { parseExcelScheduleDay } from '@/lib/excel-schedule-day';
@@ -7,7 +7,7 @@ import { parseExcelScheduleDay } from '@/lib/excel-schedule-day';
 // Test configuration against uploaded file
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('EXCEL_CONFIG_MANAGE');
     if (auth.response) return auth.response;
 
     const formData = await request.formData();

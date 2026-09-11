@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { recordActivity } from '@/lib/activity-log';
 
 export async function DELETE(
@@ -8,7 +8,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('SHIFT_LEGEND_MANAGE');
     if (auth.response) return auth.response;
 
     const resolvedParams = await params;

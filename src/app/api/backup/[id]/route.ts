@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Readable } from 'node:stream';
 import { getFile, deleteFile } from '@/lib/minio';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { recordActivity } from '@/lib/activity-log';
 
 const BACKUP_ID = /^backup-[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -13,7 +13,7 @@ async function resolveId(params: Promise<{ id: string }>) {
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('BACKUP_MANAGE');
     if (auth.response) return auth.response;
     const id = await resolveId(params);
     if (!id) return NextResponse.json({ error: 'Invalid backup ID' }, { status: 400 });
@@ -33,7 +33,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('BACKUP_MANAGE');
     if (auth.response) return auth.response;
     const id = await resolveId(params);
     if (!id) return NextResponse.json({ error: 'Invalid backup ID' }, { status: 400 });

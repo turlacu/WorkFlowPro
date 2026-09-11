@@ -85,6 +85,7 @@ model User {
   assignmentComments      AssignmentComment[]
   presence                UserPresence?
   activityLogs            ActivityLog[]
+  permissionAudits        PermissionAudit[]
 
   @@map("users")
 }
@@ -106,6 +107,40 @@ model ActivityLog {
   @@index([actorId, occurredAt])
   @@index([eventType, occurredAt])
   @@map("activity_logs")
+}
+
+model PermissionPolicy {
+  id        String   @id @default("global")
+  revision  Int      @default(1)
+  updatedAt DateTime @updatedAt
+
+  @@map("permission_policy")
+}
+
+model RolePermission {
+  role       UserRole
+  permission String
+  createdAt  DateTime @default(now())
+
+  @@id([role, permission])
+  @@index([permission])
+  @@map("role_permissions")
+}
+
+model PermissionAudit {
+  id         String   @id @default(cuid())
+  occurredAt DateTime @default(now())
+  actorId    String?
+  actorName  String
+  actorEmail String
+  targetRole UserRole
+  permission String
+  enabled    Boolean
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([occurredAt])
+  @@index([targetRole, occurredAt])
+  @@map("permission_audits")
 }
 
 model UserPresence {

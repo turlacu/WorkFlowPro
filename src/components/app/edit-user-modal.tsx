@@ -48,9 +48,11 @@ interface EditUserModalProps {
   onClose: () => void;
   userToEdit: User | null;
   onSaveUser: (data: UserFormValues) => Promise<void>;
+  canEditDetails?: boolean;
+  canAssignRole?: boolean;
 }
 
-export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditUserModalProps) {
+export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser, canEditDetails = true, canAssignRole = true }: EditUserModalProps) {
   const { currentLang } = useLanguage();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -107,7 +109,7 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
                 <FormItem>
                   <FormLabel>{getTranslation(currentLang, 'UserManagementUserNameLabel')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={getTranslation(currentLang, 'UserManagementUserNamePlaceholder')} {...field} />
+                    <Input disabled={!canEditDetails} placeholder={getTranslation(currentLang, 'UserManagementUserNamePlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -120,7 +122,7 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
                 <FormItem>
                   <FormLabel>{getTranslation(currentLang, 'UserManagementUserEmailLabel')}</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder={getTranslation(currentLang, 'UserManagementUserEmailPlaceholder')} {...field} />
+                    <Input disabled={!canEditDetails} type="email" placeholder={getTranslation(currentLang, 'UserManagementUserEmailPlaceholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -132,7 +134,7 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>{getTranslation(currentLang, 'UserManagementUserRoleLabel')}</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                  <Select disabled={!canAssignRole} onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder={getTranslation(currentLang, 'UserManagementSelectRolePlaceholder')} />
@@ -174,4 +176,3 @@ export function EditUserModal({ isOpen, onClose, userToEdit, onSaveUser }: EditU
     </Dialog>
   );
 }
-

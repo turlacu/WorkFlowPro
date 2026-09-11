@@ -1,42 +1,45 @@
 import type { UserRole } from '@prisma/client';
+import { hasPermission, type PermissionKey } from '@/lib/permissions';
 
 export const USER_ROLES = ['ADMIN', 'PRODUCER', 'CONTRIBUTOR', 'OPERATOR'] as const satisfies readonly UserRole[];
 
 export function canUpdateUser(
-  actor: { id: string; role: UserRole },
+  actor: { id: string; role: UserRole; permissions?: readonly PermissionKey[] | null },
   targetId: string,
   requestedRole: UserRole,
 ): boolean {
-  return actor.role === 'ADMIN' || (actor.id === targetId && requestedRole === actor.role);
+  return hasPermission(actor, 'USER_EDIT') || (actor.id === targetId && requestedRole === actor.role);
 }
 
 export function canManageAssignmentDetails(
-  actor: { id: string; role: UserRole },
+  actor: { id: string; role: UserRole; permissions?: readonly PermissionKey[] | null },
   assignment: { createdById: string },
 ): boolean {
-  return actor.role === 'ADMIN' ||
-    actor.role === 'PRODUCER' ||
-    (actor.role === 'CONTRIBUTOR' && assignment.createdById === actor.id);
+  return hasPermission(actor, 'ASSIGNMENT_EDIT_ANY') ||
+    (hasPermission(actor, 'ASSIGNMENT_EDIT_OWN') && assignment.createdById === actor.id);
 }
 
 export function canTransitionAssignment(
-  actor: { id: string; role: UserRole },
+  actor: { id: string; role: UserRole; permissions?: readonly PermissionKey[] | null },
   assignment: { assignedToId: string | null; createdById: string },
 ): boolean {
-  return actor.role === 'ADMIN' ||
-    actor.role === 'PRODUCER' ||
-    (actor.role === 'OPERATOR' && assignment.assignedToId === actor.id) ||
-    (actor.role === 'CONTRIBUTOR' && assignment.createdById === actor.id);
+  return hasPermission(actor, 'ASSIGNMENT_TRANSITION_ANY') ||
+    (hasPermission(actor, 'ASSIGNMENT_TRANSITION_ASSIGNED') && assignment.assignedToId === actor.id) ||
+    (hasPermission(actor, 'ASSIGNMENT_TRANSITION_OWN') && assignment.createdById === actor.id);
 }
 
 export function canStartAssignment(
-  actor: { id: string; role: UserRole },
+  actor: { id: string; role: UserRole; permissions?: readonly PermissionKey[] | null },
   assignment: { assignedToId: string | null; createdById: string },
 ): boolean {
   return canTransitionAssignment(actor, assignment) ||
-    (actor.role === 'OPERATOR' && assignment.assignedToId === null);
+    (hasPermission(actor, 'ASSIGNMENT_CLAIM_UNASSIGNED') && assignment.assignedToId === null);
 }
 
-export function canDeleteAssignment(actor: { role: UserRole }): boolean {
-  return actor.role === 'ADMIN' || actor.role === 'PRODUCER';
+export function canDeleteAssignment(actor: { role: UserRole; permissions?: readonly PermissionKey[] | null }): boolean {
+  return hasPermission(actor, 'ASSIGNMENT_DELETE');
+}
+
+export function canReverseAssignmentStatus(actor: { role: UserRole; permissions?: readonly PermissionKey[] | null }): boolean {
+  return hasPermission(actor, 'ASSIGNMENT_REVERSE_STATUS');
 }

@@ -41,7 +41,7 @@ test('activity retention defaults safely and accepts bounded configuration', () 
   else process.env.ACTIVITY_LOG_RETENTION_DAYS = previous;
 });
 
-test('activity storage is append-oriented, indexed, and Admin-only', () => {
+test('activity storage is append-oriented, indexed, and permission-protected', () => {
   const schema = readFileSync('prisma/schema.prisma', 'utf8');
   const migration = readFileSync('prisma/migrations/20260911000000_add_activity_logs/migration.sql', 'utf8');
   const route = readFileSync('src/app/api/admin/activity-logs/route.ts', 'utf8');
@@ -49,7 +49,7 @@ test('activity storage is append-oriented, indexed, and Admin-only', () => {
   assert.match(schema, /model ActivityLog/);
   assert.match(migration, /activity_logs_occurredAt_idx/);
   assert.match(migration, /ON DELETE SET NULL/);
-  assert.match(route, /requireUser\(\['ADMIN'\]\)/);
+  assert.match(route, /requirePermission\('ACTIVITY_LOG_VIEW'\)/);
   assert.doesNotMatch(route, /export async function DELETE/);
 });
 

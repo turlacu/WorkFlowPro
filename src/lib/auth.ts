@@ -4,6 +4,8 @@ import { prisma } from './prisma';
 import { checkRateLimit, resetRateLimit } from './rate-limit';
 import { verifyPassword } from './password';
 import { purgeExpiredActivityLogs, recordActivity } from './activity-log';
+import { loadRolePermissions } from './permission-store';
+import { effectivePermissions, isPermissionKey } from './permissions';
 
 export const authOptions: NextAuthOptions = {
   // Don't use PrismaAdapter with credentials provider and JWT strategy
@@ -52,6 +54,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
             sessionVersion: user.sessionVersion,
             passwordResetRequired: user.passwordResetRequired,
+            permissions: await loadRolePermissions(user.role),
           };
           return result;
         } catch (error) {
@@ -71,6 +74,7 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.sessionVersion = user.sessionVersion;
         token.passwordResetRequired = user.passwordResetRequired;
+        token.permissions = user.permissions;
       }
       return token;
     },
@@ -80,6 +84,9 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role;
         session.user.sessionVersion = token.sessionVersion;
         session.user.passwordResetRequired = token.passwordResetRequired;
+        session.user.permissions = Array.isArray(token.permissions)
+          ? token.permissions.filter(isPermissionKey)
+          : effectivePermissions(token.role);
       }
       return session;
     },

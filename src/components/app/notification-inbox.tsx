@@ -12,6 +12,7 @@ import { useNotifications } from '@/contexts/NotificationContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getTranslation } from '@/lib/translations';
 import { cn } from '@/lib/utils';
+import { hasPermission } from '@/lib/permissions';
 
 export function NotificationInbox() {
   const { data: session } = useSession();
@@ -30,7 +31,7 @@ export function NotificationInbox() {
   const [open, setOpen] = React.useState(false);
   const locale = currentLang === 'ro' ? ro : enUS;
 
-  if (session?.user?.role !== 'OPERATOR') return null;
+  if (!session?.user || !hasPermission(session.user, 'ASSIGNMENT_NOTIFICATIONS')) return null;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

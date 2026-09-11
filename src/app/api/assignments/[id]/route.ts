@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { canDeleteAssignment } from '@/lib/roles';
 import { recordActivity } from '@/lib/activity-log';
 
@@ -17,7 +17,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireUser();
+    const auth = await requirePermission('ASSIGNMENT_DELETE');
     if (auth.response) return auth.response;
 
     const { id } = await params;
@@ -58,7 +58,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireUser();
+    const auth = await requirePermission('ASSIGNMENT_VIEW');
     if (auth.response) return auth.response;
 
     const { id } = await params;

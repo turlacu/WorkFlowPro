@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 import { MAX_EXCEL_COLUMN_INDEX } from '@/lib/excel-columns';
 import { recordActivity } from '@/lib/activity-log';
 
@@ -39,7 +39,7 @@ const UpdateConfigurationSchema = CreateConfigurationSchema.extend({
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('EXCEL_CONFIG_MANAGE');
     if (auth.response) return auth.response;
 
     const { searchParams } = new URL(request.url);
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('EXCEL_CONFIG_MANAGE');
     if (auth.response) return auth.response;
 
     const body = await request.json();
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const auth = await requireUser(['ADMIN']);
+    const auth = await requirePermission('EXCEL_CONFIG_MANAGE');
     if (auth.response) return auth.response;
 
     const body = await request.json();

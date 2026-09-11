@@ -8,7 +8,7 @@ import {
   type PresenceEvent,
   type PresenceRole,
 } from '@/lib/presence';
-import { requireUser } from '@/lib/server-auth';
+import { requirePermission } from '@/lib/server-auth';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -55,7 +55,7 @@ async function readOnlineUsers(now: Date): Promise<OnlineUser[]> {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireUser(undefined, true);
+  const auth = await requirePermission('PRESENCE_USE', true);
   if (auth.response) return auth.response;
 
   let cleanup: (() => void) | undefined;
