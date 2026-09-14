@@ -40,6 +40,10 @@ export function canDeleteAssignment(actor: { role: UserRole; permissions?: reado
   return hasPermission(actor, 'ASSIGNMENT_DELETE');
 }
 
-export function canReverseAssignmentStatus(actor: { role: UserRole; permissions?: readonly PermissionKey[] | null }): boolean {
-  return hasPermission(actor, 'ASSIGNMENT_REVERSE_STATUS');
+export function canReturnAssignmentToPending(actor: { role: UserRole; permissions?: readonly PermissionKey[] | null }): boolean {
+  return hasPermission(actor, 'ASSIGNMENT_RETURN_TO_PENDING');
+}
+
+export function canReopenCompletedAssignment(actor: { role: UserRole; permissions?: readonly PermissionKey[] | null }): boolean {
+  return hasPermission(actor, 'ASSIGNMENT_REOPEN_COMPLETED');
 }

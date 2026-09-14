@@ -162,28 +162,29 @@ model VerificationToken {
 }
 
 model Assignment {
-  id              String              @id @default(cuid())
-  name            String
-  description     String?
-  author          String?
-  dueDate         DateTime
-  status          AssignmentStatus    @default(PENDING)
-  priority        AssignmentPriority  @default(NORMAL)
-  sourceLocation  String?
-  comment         String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  completedAt     DateTime?
-  completedById   String? // Who marked the assignment as completed
-  assignedToId    String?
-  createdById     String
-  lastUpdatedById String
-  lastUpdatedBy   User                @relation("UpdatedByUser", fields: [lastUpdatedById], references: [id])
-  createdBy       User                @relation("CreatedByUser", fields: [createdById], references: [id])
-  assignedTo      User?               @relation(fields: [assignedToId], references: [id])
-  completedBy     User?               @relation("CompletedByUser", fields: [completedById], references: [id])
-  notifications   Notification[]
-  comments        AssignmentComment[]
+  id                String              @id @default(cuid())
+  name              String
+  description       String?
+  author            String?
+  dueDate           DateTime
+  status            AssignmentStatus    @default(PENDING)
+  priority          AssignmentPriority  @default(NORMAL)
+  sourceLocation    String?
+  comment           String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  completedAt       DateTime?
+  completedById     String? // Who marked the assignment as completed
+  assignedToId      String?
+  claimedByOperator Boolean             @default(false)
+  createdById       String
+  lastUpdatedById   String
+  lastUpdatedBy     User                @relation("UpdatedByUser", fields: [lastUpdatedById], references: [id])
+  createdBy         User                @relation("CreatedByUser", fields: [createdById], references: [id])
+  assignedTo        User?               @relation(fields: [assignedToId], references: [id])
+  completedBy       User?               @relation("CompletedByUser", fields: [completedById], references: [id])
+  notifications     Notification[]
+  comments          AssignmentComment[]
 
   @@index([dueDate])
   @@index([status, completedAt])

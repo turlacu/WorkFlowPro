@@ -4,11 +4,18 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { publishAssignmentEvent } from '@/lib/publish-assignment-event';
 import { requirePermission, requireUser } from '@/lib/server-auth';
-import { canManageAssignmentDetails, canReverseAssignmentStatus, canStartAssignment, canTransitionAssignment } from '@/lib/roles';
+import {
+  canManageAssignmentDetails,
+  canReopenCompletedAssignment,
+  canReturnAssignmentToPending,
+  canStartAssignment,
+  canTransitionAssignment,
+} from '@/lib/roles';
 import { hasPermission } from '@/lib/permissions';
 import { NOTIFICATION_CHANNEL, notificationRecipient } from '@/lib/notification-types';
 import { parseDateOnly } from '@/lib/date-only';
 import { getAssignmentDuplicateKey } from '@/lib/assignment-duplicates';
+import { getAssignmentClaimUpdate } from '@/lib/assignment-claim';
 import { recordActivity } from '@/lib/activity-log';
 import {
   getCalendarDateKey,
@@ -232,11 +239,25 @@ export async function PUT(request: NextRequest) {
       existing.assignedToId === null &&
       existing.status === 'PENDING' &&
       data.status === 'IN_PROGRESS';
+    const returningToPending = existing.status === 'IN_PROGRESS' && data.status === 'PENDING';
+    const reopeningCompleted = existing.status === 'COMPLETED' && data.status === 'IN_PROGRESS';
+    const claimUpdate = getAssignmentClaimUpdate({
+      // The production build regenerates Prisma Client from this migration. The
+      // fallback keeps local checks safe when an older generated client is cached.
+      currentClaimedByOperator: (existing as typeof existing & { claimedByOperator?: boolean }).claimedByOperator ?? false,
+      operatorClaimingUserId: operatorClaimingUnassignedTask ? auth.user.id : undefined,
+      requestedAssignedToId: data.assignedToId,
+      returningToPending,
+    });
     if (statusChanged && data.status) {
-      const reversing = (existing.status === 'IN_PROGRESS' && data.status === 'PENDING')
-        || (existing.status === 'COMPLETED' && data.status !== 'COMPLETED');
-      if (reversing && !canReverseAssignmentStatus(auth.user)) {
-        return NextResponse.json({ error: 'You cannot reverse the status of this assignment' }, { status: 403 });
+      if (existing.status === 'COMPLETED' && data.status === 'PENDING') {
+        return NextResponse.json({ error: 'A completed assignment must be reopened as in progress' }, { status: 400 });
+      }
+      if (returningToPending && !canReturnAssignmentToPending(auth.user)) {
+        return NextResponse.json({ error: 'You cannot return this assignment to pending' }, { status: 403 });
+      }
+      if (reopeningCompleted && !canReopenCompletedAssignment(auth.user)) {
+        return NextResponse.json({ error: 'You cannot reopen this completed assignment' }, { status: 403 });
       }
       const allowed = operatorClaimingUnassignedTask
         ? canStartAssignment(auth.user, existing)
@@ -280,8 +301,7 @@ export async function PUT(request: NextRequest) {
           ...(data.author !== undefined ? { author: data.author } : {}),
           ...(dueDateChanged ? { dueDate } : {}),
           ...(data.priority !== undefined ? { priority: data.priority } : {}),
-          ...(data.assignedToId !== undefined ? { assignedToId: data.assignedToId } : {}),
-          ...(operatorClaimingUnassignedTask ? { assignedToId: auth.user.id } : {}),
+          ...claimUpdate,
           ...(data.sourceLocation !== undefined ? { sourceLocation: data.sourceLocation } : {}),
           status: nextStatus,
           lastUpdatedById: auth.user.id,

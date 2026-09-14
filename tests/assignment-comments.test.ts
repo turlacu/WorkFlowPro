@@ -41,7 +41,7 @@ test('backup and restore include threaded assignment comments', () => {
   const backup = read('src/app/api/backup/route.ts');
   const restore = read('src/app/api/backup/restore/route.ts');
 
-  assert.match(backup, /schemaVersion: 5/);
+  assert.match(backup, /schemaVersion: 6/);
   assert.match(backup, /assignmentComments/);
   assert.match(restore, /assignmentComments/);
   assert.match(restore, /INSERT INTO "assignment_comments"/);

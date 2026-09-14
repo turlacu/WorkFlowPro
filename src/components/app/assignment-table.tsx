@@ -97,13 +97,14 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
     };
     const actor = session.user;
     const canTransition = canTransitionAssignment(actor, permissionAssignment);
-    const canReverse = hasPermission(actor, 'ASSIGNMENT_REVERSE_STATUS');
+    const canReturnToPending = hasPermission(actor, 'ASSIGNMENT_RETURN_TO_PENDING');
+    const canReopenCompleted = hasPermission(actor, 'ASSIGNMENT_REOPEN_COMPLETED');
 
     return {
       canStart: assignment.status === 'PENDING'
         ? canStartAssignment(actor, permissionAssignment)
-        : assignment.status === 'IN_PROGRESS' && canTransition && canReverse,
-      canComplete: canTransition && (assignment.status !== 'COMPLETED' || canReverse),
+        : assignment.status === 'IN_PROGRESS' && canTransition && canReturnToPending,
+      canComplete: canTransition && (assignment.status !== 'COMPLETED' || canReopenCompleted),
     };
   };
 

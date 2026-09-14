@@ -415,10 +415,10 @@ export default function AssignmentsPage() {
         return;
       }
 
-      if (!completed && assignment.status === 'COMPLETED' && (!session?.user || !hasPermission(session.user, 'ASSIGNMENT_REVERSE_STATUS'))) {
+      if (!completed && assignment.status === 'COMPLETED' && (!session?.user || !hasPermission(session.user, 'ASSIGNMENT_REOPEN_COMPLETED'))) {
         toast({
-          title: 'Access Denied',
-          description: 'Only Admin users can unmark assignments as Done.',
+          title: getTranslation(currentLang, 'AccessDenied'),
+          description: getTranslation(currentLang, 'AssignmentCannotReopenCompleted'),
           variant: 'destructive',
         });
         return;
@@ -461,7 +461,7 @@ export default function AssignmentsPage() {
         return;
       }
 
-      if (!uploaded && assignment.status === 'IN_PROGRESS' && (!session?.user || !hasPermission(session.user, 'ASSIGNMENT_REVERSE_STATUS'))) {
+      if (!uploaded && assignment.status === 'IN_PROGRESS' && (!session?.user || !hasPermission(session.user, 'ASSIGNMENT_RETURN_TO_PENDING'))) {
         toast({
           title: getTranslation(currentLang, 'AccessDenied'),
           description: getTranslation(currentLang, 'AssignmentOnlyAdminCanUndoStart'),

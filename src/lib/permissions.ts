@@ -3,7 +3,8 @@ import type { UserRole } from '@prisma/client';
 export const PERMISSION_KEYS = [
   'ASSIGNMENT_VIEW', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_EDIT_ANY', 'ASSIGNMENT_EDIT_OWN',
   'ASSIGNMENT_TRANSITION_ANY', 'ASSIGNMENT_TRANSITION_OWN', 'ASSIGNMENT_TRANSITION_ASSIGNED',
-  'ASSIGNMENT_CLAIM_UNASSIGNED', 'ASSIGNMENT_REVERSE_STATUS', 'ASSIGNMENT_DELETE', 'ASSIGNMENT_COMMENT',
+  'ASSIGNMENT_CLAIM_UNASSIGNED', 'ASSIGNMENT_RETURN_TO_PENDING', 'ASSIGNMENT_REOPEN_COMPLETED',
+  'ASSIGNMENT_DELETE', 'ASSIGNMENT_COMMENT',
   'TEAM_SCHEDULE_VIEW', 'TEAM_SCHEDULE_MANAGE', 'SCHEDULE_IMPORT', 'EXCEL_CONFIG_MANAGE', 'SHIFT_LEGEND_MANAGE',
   'USER_CREATE', 'USER_EDIT', 'USER_ASSIGN_ROLE', 'USER_DELETE', 'USER_PASSWORD_RESET',
   'ORGANIZATION_STATS_VIEW', 'PERSONAL_STATS_VIEW', 'BACKUP_MANAGE', 'ACTIVITY_LOG_VIEW',
@@ -27,7 +28,8 @@ export const PERMISSION_CATALOG: ReadonlyArray<{
   { key: 'ASSIGNMENT_TRANSITION_OWN', group: 'assignments', label: { en: 'Progress own assignments', ro: 'Progres sarcini proprii' }, description: { en: 'Change status only for assignments created by the user.', ro: 'Schimbă starea doar pentru sarcinile create de utilizator.' } },
   { key: 'ASSIGNMENT_TRANSITION_ASSIGNED', group: 'assignments', label: { en: 'Progress assigned work', ro: 'Progres sarcini alocate' }, description: { en: 'Change status for work assigned to the user.', ro: 'Schimbă starea sarcinilor alocate utilizatorului.' } },
   { key: 'ASSIGNMENT_CLAIM_UNASSIGNED', group: 'assignments', label: { en: 'Claim unassigned work', ro: 'Preluare sarcini nealocate' }, description: { en: 'Start and claim a pending unassigned assignment.', ro: 'Începe și preia o sarcină nealocată în așteptare.' } },
-  { key: 'ASSIGNMENT_REVERSE_STATUS', group: 'assignments', label: { en: 'Reverse assignment status', ro: 'Revenire stare sarcină' }, description: { en: 'Return started work to pending or reopen completed work.', ro: 'Readuce lucrul început în așteptare sau redeschide lucrul finalizat.' } },
+  { key: 'ASSIGNMENT_RETURN_TO_PENDING', group: 'assignments', label: { en: 'Return started work', ro: 'Revenire lucru început' }, description: { en: 'Return in-progress work to pending. Operator-claimed work becomes unassigned.', ro: 'Readuce lucrul în desfășurare în așteptare. Sarcinile preluate de operator devin nealocate.' } },
+  { key: 'ASSIGNMENT_REOPEN_COMPLETED', group: 'assignments', label: { en: 'Reopen completed work', ro: 'Redeschidere lucru finalizat' }, description: { en: 'Reopen a completed assignment as in progress.', ro: 'Redeschide o sarcină finalizată ca fiind în desfășurare.' } },
   { key: 'ASSIGNMENT_DELETE', group: 'assignments', label: { en: 'Delete assignments', ro: 'Ștergere sarcini' }, description: { en: 'Permanently delete assignments.', ro: 'Șterge definitiv sarcini.' } },
   { key: 'ASSIGNMENT_COMMENT', group: 'assignments', label: { en: 'Comment on assignments', ro: 'Comentarii la sarcini' }, description: { en: 'Read, add, and reply to comments.', ro: 'Citește, adaugă și răspunde la comentarii.' } },
   { key: 'TEAM_SCHEDULE_VIEW', group: 'scheduling', label: { en: 'View team schedule', ro: 'Vizualizare program echipă' }, description: { en: 'View scheduled team members and shifts.', ro: 'Vizualizează membrii și schimburile programate.' } },
@@ -58,7 +60,8 @@ export const PROTECTED_PERMISSION: PermissionKey = 'ROLE_PERMISSION_MANAGE';
 export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, readonly PermissionKey[]> = {
   ADMIN: [
     'ASSIGNMENT_VIEW', 'ASSIGNMENT_CREATE', 'ASSIGNMENT_EDIT_ANY', 'ASSIGNMENT_TRANSITION_ANY',
-    'ASSIGNMENT_REVERSE_STATUS', 'ASSIGNMENT_DELETE', 'ASSIGNMENT_COMMENT', 'TEAM_SCHEDULE_VIEW',
+    'ASSIGNMENT_RETURN_TO_PENDING', 'ASSIGNMENT_REOPEN_COMPLETED', 'ASSIGNMENT_DELETE',
+    'ASSIGNMENT_COMMENT', 'TEAM_SCHEDULE_VIEW',
     'TEAM_SCHEDULE_MANAGE', 'SCHEDULE_IMPORT', 'EXCEL_CONFIG_MANAGE', 'SHIFT_LEGEND_MANAGE',
     'USER_CREATE', 'USER_EDIT', 'USER_ASSIGN_ROLE', 'USER_DELETE', 'USER_PASSWORD_RESET',
     'ORGANIZATION_STATS_VIEW', 'BACKUP_MANAGE', 'ACTIVITY_LOG_VIEW', 'ROLE_PERMISSION_MANAGE',
@@ -75,7 +78,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<UserRole, readonly PermissionKey[]
   ],
   OPERATOR: [
     'ASSIGNMENT_VIEW', 'ASSIGNMENT_TRANSITION_ASSIGNED', 'ASSIGNMENT_CLAIM_UNASSIGNED',
-    'ASSIGNMENT_COMMENT', 'TEAM_SCHEDULE_VIEW', 'PERSONAL_STATS_VIEW', 'ASSIGNMENT_NOTIFICATIONS',
+    'ASSIGNMENT_RETURN_TO_PENDING', 'ASSIGNMENT_COMMENT', 'TEAM_SCHEDULE_VIEW',
+    'PERSONAL_STATS_VIEW', 'ASSIGNMENT_NOTIFICATIONS',
     ...CORE_PERMISSIONS,
   ],
 };

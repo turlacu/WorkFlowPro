@@ -44,7 +44,7 @@ export async function POST() {
 
     const data = {
       metadata: {
-        schemaVersion: 5,
+        schemaVersion: 6,
         exportedAt: new Date().toISOString(),
         exportedBy: { id: auth.user.id, email: auth.user.email },
       },

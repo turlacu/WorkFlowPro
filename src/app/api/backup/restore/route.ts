@@ -16,10 +16,11 @@ const nullableDate = date.nullable();
 const role = z.enum(USER_ROLES);
 const status = z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']);
 const priority = z.enum(['LOW', 'NORMAL', 'URGENT']);
+const backupPermission = z.union([z.enum(PERMISSION_KEYS), z.literal('ASSIGNMENT_REVERSE_STATUS')]);
 
 const BackupSchema = z.object({
   metadata: z.object({
-    schemaVersion: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
+    schemaVersion: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5), z.literal(6)]),
     exportedAt: date,
     exportedBy: z.object({ id: z.string(), email: z.string().email() }),
   }),
@@ -32,7 +33,8 @@ const BackupSchema = z.object({
       id: z.string(), name: z.string(), description: z.string().nullable(), author: z.string().nullable(),
       dueDate: date, status, priority, sourceLocation: z.string().nullable(), comment: z.string().nullable(),
       createdAt: date, updatedAt: date, completedAt: nullableDate, completedById: z.string().nullable(),
-      assignedToId: z.string().nullable(), createdById: z.string(), lastUpdatedById: z.string(),
+      assignedToId: z.string().nullable(), claimedByOperator: z.boolean().optional().default(false),
+      createdById: z.string(), lastUpdatedById: z.string(),
     })).max(100_000),
     assignmentComments: z.array(z.object({
       id: z.string(), content: z.string().max(10_000), createdAt: date, updatedAt: date,
@@ -62,12 +64,13 @@ const BackupSchema = z.object({
       entriesCount: z.number().int(), successCount: z.number().int(), errorCount: z.number().int(), createdAt: date,
     })).max(100_000),
     rolePermissions: z.array(z.object({
-      role, permission: z.enum(PERMISSION_KEYS), createdAt: date,
+      role, permission: backupPermission, createdAt: date,
     })).max(1_000).optional(),
     permissionPolicy: z.object({ revision: z.number().int().positive(), updatedAt: date }).optional(),
     permissionAudits: z.array(z.object({
       id: z.string(), occurredAt: date, actorId: z.string().nullable(), actorName: z.string(),
-      actorEmail: z.string().email(), targetRole: role, permission: z.enum(PERMISSION_KEYS), enabled: z.boolean(),
+      actorEmail: z.string().email(), targetRole: role,
+      permission: z.string().min(1).max(100), enabled: z.boolean(),
     })).max(100_000).optional(),
   }),
 });
@@ -95,15 +98,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid JSON backup' }, { status: 400 });
     }
     const backup = BackupSchema.parse(json);
-    const isPermissionBackup = backup.metadata.schemaVersion === 5;
+    const isPermissionBackup = backup.metadata.schemaVersion >= 5;
     if (isPermissionBackup && (!backup.data.rolePermissions || !backup.data.permissionPolicy || !backup.data.permissionAudits)) {
-      return NextResponse.json({ error: 'Version 5 backup is missing permission data' }, { status: 400 });
+      return NextResponse.json({ error: 'Permission-aware backup is missing permission data' }, { status: 400 });
     }
-    if (isPermissionBackup) {
-      const permissionSet = new Set(backup.data.rolePermissions!.map((item) => `${item.role}:${item.permission}`));
-      if (permissionSet.size !== backup.data.rolePermissions!.length) {
-        return NextResponse.json({ error: 'Backup contains duplicate role permissions' }, { status: 400 });
+    const sourcePermissionKeys = new Set(
+      (backup.data.rolePermissions ?? []).map((item) => `${item.role}:${item.permission}`),
+    );
+    if (sourcePermissionKeys.size !== (backup.data.rolePermissions ?? []).length) {
+      return NextResponse.json({ error: 'Backup contains duplicate role permissions' }, { status: 400 });
+    }
+    const normalizedRolePermissions = new Map<string, {
+      role: (typeof USER_ROLES)[number]; permission: (typeof PERMISSION_KEYS)[number]; createdAt: string;
+    }>();
+    for (const item of backup.data.rolePermissions ?? []) {
+      const permissions = item.permission === 'ASSIGNMENT_REVERSE_STATUS'
+        ? item.role === 'OPERATOR'
+          ? ['ASSIGNMENT_RETURN_TO_PENDING'] as const
+          : ['ASSIGNMENT_RETURN_TO_PENDING', 'ASSIGNMENT_REOPEN_COMPLETED'] as const
+        : [item.permission];
+      for (const permission of permissions) {
+        normalizedRolePermissions.set(`${item.role}:${permission}`, { ...item, permission });
       }
+    }
+    if (backup.metadata.schemaVersion === 5 && !normalizedRolePermissions.has('OPERATOR:ASSIGNMENT_RETURN_TO_PENDING')) {
+      normalizedRolePermissions.set('OPERATOR:ASSIGNMENT_RETURN_TO_PENDING', {
+        role: 'OPERATOR', permission: 'ASSIGNMENT_RETURN_TO_PENDING', createdAt: backup.metadata.exportedAt,
+      });
+    }
+    const restoredRolePermissions = Array.from(normalizedRolePermissions.values());
+    if (isPermissionBackup) {
+      const permissionSet = new Set(restoredRolePermissions.map((item) => `${item.role}:${item.permission}`));
       for (const userRole of USER_ROLES) {
         if (CORE_PERMISSIONS.some((permission) => !permissionSet.has(`${userRole}:${permission}`))) {
           return NextResponse.json({ error: `Backup removes a protected core permission from ${userRole}` }, { status: 400 });
@@ -235,7 +260,7 @@ export async function POST(request: NextRequest) {
       }
       if (isPermissionBackup) {
         await tx.$executeRaw`DELETE FROM "role_permissions"`;
-        const grants = backup.data.rolePermissions!;
+        const grants = restoredRolePermissions;
         if (grants.length) {
           await tx.$executeRaw(Prisma.sql`
             INSERT INTO "role_permissions" ("role", "permission", "createdAt") VALUES ${Prisma.join(grants.map((item) => Prisma.sql`(
