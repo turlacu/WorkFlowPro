@@ -34,6 +34,7 @@ export interface UpdateAssignmentData extends Partial<Omit<CreateAssignmentData,
   id: string;
   assignedToId?: string | null;
   status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED';
+  completionConfirmed?: boolean;
 }
 
 export interface CreateUserData {

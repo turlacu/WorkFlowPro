@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { addDays, format } from 'date-fns';
-import { ChevronLeft, ChevronRight, History, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import type { UserRole } from '@prisma/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,15 +12,9 @@ import { getTranslation } from '@/lib/translations';
 import { ACTIVITY_EVENT_TYPES, type ActivityLogRecord } from '@/lib/activity-log-types';
 import { activityEventLabel, formatActivityParts } from '@/lib/activity-log-format';
 import { USER_ROLES } from '@/lib/roles';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type UserOption = { id: string; name: string; role: UserRole };
-
-const roleClassName: Record<UserRole, string> = {
-  ADMIN: 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
-  PRODUCER: 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300',
-  CONTRIBUTOR: 'bg-amber-500/10 text-amber-800 dark:text-amber-300',
-  OPERATOR: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-};
 
 function actionClassName(eventType: ActivityLogRecord['eventType']): string {
   if (eventType.includes('DELETED')) return 'text-red-700 dark:text-red-400';
@@ -91,29 +85,8 @@ export function ActivityLogDashboard() {
   };
 
   return (
-    <section className="min-w-0" aria-labelledby="activity-log-heading">
-      <div className="flex flex-col gap-4 border-b pb-5 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <History className="h-5 w-5 text-primary" />
-            <h3 id="activity-log-heading" className="text-lg font-semibold">{getTranslation(currentLang, 'ActivityLogTitle')}</h3>
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {getTranslation(currentLang, 'ActivityLogRetention', { count: String(retentionDays) })}
-          </p>
-        </div>
-        <div className="flex items-center gap-1 self-start xl:self-auto">
-          <Button variant="outline" size="icon" onClick={() => moveDay(-1)} aria-label={getTranslation(currentLang, 'ActivityPreviousDay')}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Input type="date" value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }} className="w-40" aria-label={getTranslation(currentLang, 'ActivityDate')} />
-          <Button variant="outline" size="icon" onClick={() => moveDay(1)} aria-label={getTranslation(currentLang, 'ActivityNextDay')}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid gap-3 border-b py-4 sm:grid-cols-3">
+    <section className="min-w-0" aria-label={getTranslation(currentLang, 'ActivityLogTitle')}>
+      <div className="grid gap-3 border-b pb-4 lg:grid-cols-[minmax(9rem,1fr)_minmax(9rem,1fr)_minmax(11rem,1.35fr)_auto]">
         <Select value={actorId} onValueChange={setActorId}>
           <SelectTrigger aria-label={getTranslation(currentLang, 'ActivityFilterUser')}><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -135,7 +108,19 @@ export function ActivityLogDashboard() {
             {ACTIVITY_EVENT_TYPES.map((item) => <SelectItem key={item} value={item}>{activityEventLabel(item, language)}</SelectItem>)}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon" className="shrink-0" onClick={() => moveDay(-1)} aria-label={getTranslation(currentLang, 'ActivityPreviousDay')}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Input type="date" value={date} onChange={(event) => { if (event.target.value) setDate(event.target.value); }} className="min-w-0 flex-1 lg:w-40" aria-label={getTranslation(currentLang, 'ActivityDate')} />
+          <Button variant="outline" size="icon" className="shrink-0" onClick={() => moveDay(1)} aria-label={getTranslation(currentLang, 'ActivityNextDay')}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
+      <p className="py-2 text-[11px] text-muted-foreground">
+        {getTranslation(currentLang, 'ActivityLogRetention', { count: String(retentionDays) })}
+      </p>
 
       {loading ? (
         <div className="flex min-h-48 items-center justify-center" role="status"><Loader2 className="h-5 w-5 animate-spin" /><span className="ml-2">{getTranslation(currentLang, 'Loading')}</span></div>
@@ -144,26 +129,36 @@ export function ActivityLogDashboard() {
       ) : events.length === 0 ? (
         <p className="py-12 text-center text-sm text-muted-foreground">{getTranslation(currentLang, 'ActivityEmpty')}</p>
       ) : (
-        <div className="divide-y" aria-live="polite">
-          {events.map((event) => {
-            const parts = formatActivityParts(event, language);
-            return (
-              <article key={event.id} className="py-4">
-                <p className="min-w-0 text-sm leading-7 text-foreground">
-                  {language === 'ro' ? 'La ' : 'On '}
-                  <span className="font-semibold text-sky-700 dark:text-sky-300">{parts.date}</span>
-                  {language === 'ro' ? ', ora ' : ' at '}
-                  <span className="font-semibold text-violet-700 dark:text-violet-300">{parts.time}</span>
-                  {', '}
-                  <span className={`inline-flex rounded px-1.5 py-0.5 text-xs font-semibold ${roleClassName[event.actorRole]}`}>{parts.role}</span>{' '}
-                  <span className="font-semibold">{parts.user}</span>{' '}
-                  <span className={`font-medium ${actionClassName(event.eventType)}`}>{parts.action}</span>
-                  {parts.target && <span className="font-semibold">{parts.target}</span>}
-                  {parts.extra}<span aria-hidden="true">.</span>
-                </p>
-              </article>
-            );
-          })}
+        <div className="rounded-md border" aria-live="polite">
+          <Table className="min-w-[760px] table-fixed text-xs">
+            <TableHeader className="bg-muted/45">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="h-9 w-[18%] px-3 text-[11px] font-normal">{getTranslation(currentLang, 'ActivityTableTime')}</TableHead>
+                <TableHead className="h-9 w-[18%] px-3 text-[11px] font-normal">{getTranslation(currentLang, 'ActivityTableUser')}</TableHead>
+                <TableHead className="h-9 w-[15%] px-3 text-[11px] font-normal">{getTranslation(currentLang, 'ActivityTableRole')}</TableHead>
+                <TableHead className="h-9 w-[22%] px-3 text-[11px] font-normal">{getTranslation(currentLang, 'ActivityTableAction')}</TableHead>
+                <TableHead className="h-9 w-[27%] px-3 text-[11px] font-normal">{getTranslation(currentLang, 'ActivityTableDetails')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events.map((event) => {
+                const parts = formatActivityParts(event, language);
+                const details = `${parts.target.trim()}${parts.extra}`.trim();
+                return (
+                  <TableRow key={event.id} className="hover:bg-muted/30">
+                    <TableCell className="min-h-0 whitespace-nowrap px-3 py-1.5 font-normal">
+                      <span className="text-muted-foreground">{parts.date}</span>{' '}
+                      <span className="text-foreground">{parts.time}</span>
+                    </TableCell>
+                    <TableCell className="min-h-0 truncate px-3 py-1.5 font-normal text-sky-700 dark:text-sky-300" title={parts.user}>{parts.user}</TableCell>
+                    <TableCell className="min-h-0 truncate px-3 py-1.5 font-normal text-foreground">{getTranslation(currentLang, event.actorRole)}</TableCell>
+                    <TableCell className={`min-h-0 px-3 py-1.5 font-normal ${actionClassName(event.eventType)}`}>{parts.action}{details ? '' : '.'}</TableCell>
+                    <TableCell className="min-h-0 truncate px-3 py-1.5 font-normal text-muted-foreground" title={details || undefined}>{details ? `${details}.` : '—'}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
 

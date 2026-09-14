@@ -1,7 +1,7 @@
 'use client';
 
 import type { UserRole } from '@prisma/client';
-import { AlertCircle, CalendarClock, CheckCircle2, Clock3, UserRoundX, Users } from 'lucide-react';
+import { AlertCircle, CalendarClock, CalendarPlus2, CheckCircle2, Clock3, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -50,7 +50,7 @@ export function AssignmentWorkloadSummary({
         { filter: 'team-today', icon: CheckCircle2, labelKey: 'AssignmentSummaryTeamToday', value: metrics.teamToday },
         { filter: 'team-upcoming', icon: CalendarClock, labelKey: 'AssignmentSummaryTeamNextSeven', value: metrics.teamUpcoming },
         { filter: 'team-overdue', icon: Clock3, labelKey: 'AssignmentSummaryTeamOverdue', value: metrics.teamOverdue },
-        { filter: 'unassigned', icon: UserRoundX, labelKey: 'AssignmentSummaryUnassigned', value: metrics.unassigned },
+        { filter: 'created-today', icon: CalendarPlus2, labelKey: 'AssignmentSummaryCreatedToday', value: metrics.createdToday },
       ];
   const completedCount = isOperator ? metrics.completedByMeToday : metrics.completedByTeamToday;
 

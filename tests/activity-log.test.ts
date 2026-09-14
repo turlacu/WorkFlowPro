@@ -88,4 +88,7 @@ test('app open and close activity uses beacon delivery with presence fallback', 
   assert.match(presence, /PRESENCE_ONLINE_WINDOW_MS \+ 1_000/);
   assert.match(dashboard, /formatActivityParts/);
   assert.match(dashboard, /15_000/);
+  assert.match(dashboard, /ActivityTableDetails/);
+  assert.match(dashboard, /text-sky-700/);
+  assert.doesNotMatch(dashboard, /roleClassName/);
 });

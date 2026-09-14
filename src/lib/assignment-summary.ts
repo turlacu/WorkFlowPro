@@ -8,11 +8,12 @@ export type AssignmentSummaryFilter =
   | 'team-today'
   | 'team-upcoming'
   | 'team-overdue'
-  | 'unassigned';
+  | 'created-today';
 
 export interface SummaryAssignment {
   assignedToId: string | null;
   completedAt?: Date | string | null;
+  createdAt: Date | string;
   dueDate: Date | string;
   status: AssignmentStatus;
 }
@@ -25,7 +26,7 @@ export interface AssignmentSummary {
   teamToday: number;
   teamUpcoming: number;
   teamOverdue: number;
-  unassigned: number;
+  createdToday: number;
   completedByMeToday: number;
   completedByTeamToday: number;
 }
@@ -73,6 +74,9 @@ export function filterAssignmentsBySummary<T extends SummaryAssignment>(
   const { today, tomorrow, afterUpcomingWindow } = getDateBoundaries(referenceDate);
 
   return assignments.filter((assignment) => {
+    const createdToday = isWithin(new Date(assignment.createdAt), today, tomorrow);
+
+    if (filter === 'created-today') return createdToday;
     if (!isActive(assignment)) return false;
     const dueDate = new Date(assignment.dueDate);
     const dueToday = isWithin(dueDate, today, tomorrow);
@@ -94,8 +98,6 @@ export function filterAssignmentsBySummary<T extends SummaryAssignment>(
         return dueUpcoming;
       case 'team-overdue':
         return overdue;
-      case 'unassigned':
-        return assignment.assignedToId === null;
     }
   });
 }
@@ -122,7 +124,7 @@ export function summarizeAssignments(
     teamToday: count('team-today'),
     teamUpcoming: count('team-upcoming'),
     teamOverdue: count('team-overdue'),
-    unassigned: count('unassigned'),
+    createdToday: count('created-today'),
     completedByMeToday: completedToday.filter((assignment) => assignment.assignedToId === userId).length,
     completedByTeamToday: completedToday.length,
   };

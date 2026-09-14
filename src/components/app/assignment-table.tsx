@@ -45,7 +45,7 @@ interface AssignmentTableProps {
   openAssignmentId?: string | null;
   onEditAssignment: (assignment: AssignmentWithUsers) => void;
   onDeleteAssignment: (assignmentId: string, assignmentName: string) => void;
-  onToggleComplete: (assignmentId: string, completed: boolean) => void;
+  onToggleComplete: (assignmentId: string, completed: boolean, completionConfirmed?: boolean) => void;
   onToggleUploadedToQ: (assignmentId: string, uploaded: boolean) => void;
   onCommentCountChanged: (assignmentId: string, count: number) => void;
 }
@@ -55,6 +55,7 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
   const [selectedAssignmentForDetail, setSelectedAssignmentForDetail] = React.useState<AssignmentWithUsers | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = React.useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = React.useState<{id: string, name: string} | null>(null);
+  const [assignmentToComplete, setAssignmentToComplete] = React.useState<{id: string, name: string} | null>(null);
   const { currentLang } = useLanguage();
   const locale = currentLang === 'ro' ? ro : enUS;
   const openedAssignmentId = React.useRef<string | null>(null);
@@ -130,6 +131,20 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
       onDeleteAssignment(assignmentToDelete.id, assignmentToDelete.name);
       setAssignmentToDelete(null);
     }
+  };
+
+  const handleToggleCompleteRequest = (assignment: AssignmentWithUsers, completed: boolean) => {
+    if (completed && assignment.status !== 'COMPLETED' && session?.user?.role === 'OPERATOR') {
+      setAssignmentToComplete({ id: assignment.id, name: assignment.name });
+      return;
+    }
+    onToggleComplete(assignment.id, completed);
+  };
+
+  const handleConfirmComplete = () => {
+    if (!assignmentToComplete) return;
+    onToggleComplete(assignmentToComplete.id, true, true);
+    setAssignmentToComplete(null);
   };
 
   const handleEditClick = (assignment: AssignmentWithUsers, event: React.MouseEvent) => {
@@ -234,10 +249,10 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
     >
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <CardTitle className="pr-2 text-lg font-semibold leading-tight">
+          <CardTitle className="min-w-0 flex-1 pr-2 text-lg font-semibold leading-tight">
             <button
               type="button"
-              className="flex items-start gap-1.5 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex w-full min-w-0 items-start gap-1.5 overflow-hidden rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => handleViewDetails(assignment)}
               aria-label={`${getTranslation(currentLang, 'View')} ${assignment.name}`}
             >
@@ -252,7 +267,7 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
                   </span>
                 </span>
               )}
-              <span className="line-clamp-2">{assignment.name}</span>
+              <span className="min-w-0 break-words line-clamp-2 [overflow-wrap:anywhere]">{assignment.name}</span>
             </button>
           </CardTitle>
           <div className="flex flex-col gap-1 items-end flex-shrink-0">
@@ -329,7 +344,7 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
                     <Checkbox
                       id={`mobile-done-${assignment.id}`}
                       checked={assignment.status === 'COMPLETED'}
-                      onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
+                      onCheckedChange={(checked) => handleToggleCompleteRequest(assignment, checked === true)}
                       aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
                       disabled={!canComplete}
                       className="touch-manipulation"
@@ -413,10 +428,10 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
                   {'bg-amber-500/[0.07] dark:bg-amber-500/10': assignment.status === 'IN_PROGRESS'},
                 )}
               >
-                <TableCell className="font-medium leading-5">
+                <TableCell className="overflow-hidden font-medium leading-5">
                   <button
                     type="button"
-                    className="flex items-start gap-1.5 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="flex w-full min-w-0 items-start gap-1.5 overflow-hidden rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     onClick={() => handleViewDetails(assignment)}
                     title={assignment.name}
                   >
@@ -431,7 +446,7 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
                         </span>
                       </span>
                     )}
-                    <span className="line-clamp-2">{assignment.name}</span>
+                    <span className="min-w-0 break-words line-clamp-2 [overflow-wrap:anywhere]">{assignment.name}</span>
                   </button>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(assignment.dueDate, 'PP', { locale })}</TableCell>
@@ -461,7 +476,7 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
                     <div className="flex min-h-10 items-center justify-center">
                       <Checkbox
                         checked={assignment.status === 'COMPLETED'}
-                        onCheckedChange={(checked) => onToggleComplete(assignment.id, !!checked)}
+                        onCheckedChange={(checked) => handleToggleCompleteRequest(assignment, checked === true)}
                         aria-label={getTranslation(currentLang, 'MarkComplete', { name: assignment.name })}
                         disabled={!canComplete}
                         className="touch-manipulation"
@@ -533,6 +548,24 @@ export function AssignmentTable({ assignments, detailAssignments, openAssignment
               <AlertDialogCancel onClick={() => setAssignmentToDelete(null)}>{getTranslation(currentLang, 'CancelButton')}</AlertDialogCancel>
               <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
                 {getTranslation(currentLang, 'DeleteButton')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      {assignmentToComplete && (
+        <AlertDialog open onOpenChange={(open) => { if (!open) setAssignmentToComplete(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{getTranslation(currentLang, 'ConfirmCompleteAssignmentTitle', { assignmentName: assignmentToComplete.name })}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {getTranslation(currentLang, 'ConfirmCompleteAssignmentDescription')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{getTranslation(currentLang, 'CancelButton')}</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmComplete}>
+                {getTranslation(currentLang, 'ConfirmButton')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

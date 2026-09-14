@@ -406,7 +406,7 @@ export default function AssignmentsPage() {
     }
   }, [currentLang, toast, fetchAssignments, fetchCalendarAssignments]);
 
-  const handleToggleComplete = useCallback(async (assignmentId: string, completed: boolean) => {
+  const handleToggleComplete = useCallback(async (assignmentId: string, completed: boolean, completionConfirmed?: boolean) => {
     try {
       const assignment = allAssignments.find(a => a.id === assignmentId)
         ?? calendarAssignments.find(a => a.id === assignmentId);
@@ -437,7 +437,7 @@ export default function AssignmentsPage() {
       // Completing moves IN_PROGRESS to COMPLETED; reopening returns it to IN_PROGRESS.
       const newStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' = completed ? 'COMPLETED' : 'IN_PROGRESS';
 
-      await api.updateAssignment({ id: assignmentId, status: newStatus });
+      await api.updateAssignment({ id: assignmentId, status: newStatus, completionConfirmed });
       await Promise.all([
         fetchAssignments(), // Refresh filtered assignments
         fetchCalendarAssignments() // Refresh calendar assignments for colors
@@ -519,7 +519,7 @@ export default function AssignmentsPage() {
       'team-today': 'AssignmentSummaryTeamToday',
       'team-upcoming': 'AssignmentSummaryTeamNextSeven',
       'team-overdue': 'AssignmentSummaryTeamOverdue',
-      unassigned: 'AssignmentSummaryUnassigned',
+      'created-today': 'AssignmentSummaryCreatedToday',
     };
     workAssignmentsCardTitleKey = summaryTitleKeys[summaryFilter];
     workAssignmentsCardTitleParams = {};

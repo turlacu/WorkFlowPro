@@ -31,6 +31,7 @@ const UpdateAssignmentSchema = CreateAssignmentSchema.partial().extend({
   id: z.string().cuid(),
   assignedToId: z.string().cuid().nullable().optional(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  completionConfirmed: z.boolean().optional(),
 });
 
 const assignmentInclude = {
@@ -217,6 +218,10 @@ export async function PUT(request: NextRequest) {
 
     if (!detailsChanged && !statusChanged) {
       return NextResponse.json({ error: 'No assignment changes were provided' }, { status: 400 });
+    }
+    if (auth.user.role === 'OPERATOR' && data.status === 'COMPLETED'
+      && existing.status !== 'COMPLETED' && data.completionConfirmed !== true) {
+      return NextResponse.json({ error: 'Completion confirmation is required' }, { status: 400 });
     }
 
     if (detailsChanged && !canManageAssignmentDetails(auth.user, existing)) {
